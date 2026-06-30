@@ -3150,12 +3150,11 @@
 
       function tryInjectHeader() {
         if(document.getElementById('nj-hdr-gbar'))return true;
-        // Find the h1 "NJ's Unblocked Games" inside the React header
-        const h1=document.querySelector('h1');
+        // Find the h1 "NJ's Unblocked Games" inside the React header,
+        // always skipping any h1 that lives inside the disguise splash (visible or hidden)
+        const splashEl=document.getElementById('gh404-splash');
+        const h1=Array.from(document.querySelectorAll('h1')).find(el=>!splashEl||!splashEl.contains(el));
         if(!h1)return false;
-        // Skip if this h1 is inside the 404 disguise splash (not the real app)
-        const splash=document.getElementById('gh404-splash');
-        if(splash&&splash.style.display!=='none'&&splash.contains(h1))return false;
         // Go up to the button element containing it, then to its parent flex row
         const titleBtn=h1.closest('button')||h1.parentElement;
         if(!titleBtn)return false;
