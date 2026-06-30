@@ -1328,25 +1328,35 @@
       import { getDatabase, ref, set, get, onValue, remove, onDisconnect }
         from "https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js";
 
-      // ── Device ID (fingerprint-based, persistent) ──
-      function njGetDeviceId() {
-        let id = localStorage.getItem("nj_device_id");
-        if (id) return id;
+      // ── Device ID (fingerprint-based, persistent, multi-storage) ──
+      function _njFpHash() {
         const fp = [
-          navigator.userAgent.slice(0, 60),
+          navigator.userAgent,
           screen.width + "x" + screen.height,
+          screen.colorDepth,
           Intl.DateTimeFormat().resolvedOptions().timeZone,
           navigator.language,
-          String(navigator.hardwareConcurrency || 0)
+          String(navigator.hardwareConcurrency || 0),
+          String(navigator.maxTouchPoints || 0)
         ].join("|");
         let h = 5381;
         for (let i = 0; i < fp.length; i++) { h = ((h << 5) + h) ^ fp.charCodeAt(i); h |= 0; }
-        const hex = (h >>> 0).toString(16).padStart(8, "0");
-        id = hex + "_" + Math.random().toString(36).slice(2, 10);
+        return (h >>> 0).toString(16).padStart(8, "0");
+      }
+      function njGetDeviceId() {
+        let id = localStorage.getItem("nj_device_id") || sessionStorage.getItem("nj_device_id");
+        if (id) {
+          localStorage.setItem("nj_device_id", id);
+          sessionStorage.setItem("nj_device_id", id);
+          return id;
+        }
+        id = _njFpHash() + "_" + Math.random().toString(36).slice(2, 10);
         localStorage.setItem("nj_device_id", id);
+        sessionStorage.setItem("nj_device_id", id);
         return id;
       }
       const NJ_DEVICE_ID = njGetDeviceId();
+      const NJ_FP_HASH = _njFpHash();
 
       // ── Tab Rate Limiting — auto-ban devices that spam new tabs ──
       (async function() {
@@ -1399,7 +1409,9 @@
 
       const _d=atob,_c={a:"QUl6YVN5RFc5eGRGZHhGU2pBbTE1Zi1sMTA3ZlFwbVpiczZfdkV3",b:"dHJvbGxpbmctZTNlZDguZmlyZWJhc2VhcHAuY29t",c:"aHR0cHM6Ly90cm9sbGluZy1lM2VkOC1kZWZhdWx0LXJ0ZGIuZmlyZWJhc2Vpby5jb20=",e:"dHJvbGxpbmctZTNlZDg=",f:"dHJvbGxpbmctZTNlZDguYXBwc3BvdC5jb20=",g:"Mjk5MjYwNDM5MDE5",h:"MToyOTkyNjA0MzkwMTk6d2ViOjlkZWRjOTg2MzM0YTg3MWUxZDUxYWU="};
       const FIREBASE_CONFIG = {apiKey:_d(_c.a),authDomain:_d(_c.b),databaseURL:_d(_c.c),projectId:_d(_c.e),storageBucket:_d(_c.f),messagingSenderId:_d(_c.g),appId:_d(_c.h)};
-      const MASTER = _d("dGVlbmdvMTI=");
+      // Admin auth — SHA-256 hash only, no plain password stored
+      async function _sha256(s){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s));return Array.from(new Uint8Array(b)).map(x=>x.toString(16).padStart(2,'0')).join('');}
+      const _ah=[atob('NGVkNDA4NzY='),atob('ZDkyOGE0Yzc='),atob('ODc3NjUxOTE='),atob('YWE5ZGE2OTU='),atob('ZTNjZDExNzI='),atob('N2EzZDExN2E='),atob('MmFlZDUzZTI='),atob('MDZlMTU3Yzg=')].join('');
       const db = getDatabase(initializeApp(FIREBASE_CONFIG, "nj_main_sys"));
 
       // ── Session ID (unique per browser tab) ──
@@ -1855,13 +1867,13 @@
           return;
         }
         _openKickBanModal("🚫", `Ban ${username}`, "Select a reason for banning this device. They will NOT be able to return.", "#991b1b", async (reason) => {
-          await set(ref(db, `njsgames/bans/${deviceId}`), {
-            username,
-            deviceId,
-            reason,
-            bannedAt: Date.now(),
-            bannedBy: localStorage.getItem("nj_username") || "Admin"
-          });
+          const banData = { username, deviceId, reason, bannedAt: Date.now(), bannedBy: localStorage.getItem("nj_username") || "Admin" };
+          await set(ref(db, `njsgames/bans/${deviceId}`), banData);
+          // Also ban by fingerprint prefix (first 8 chars = fp hash) to resist ID regeneration
+          const fpPrefix = deviceId.split('_')[0];
+          if (fpPrefix && fpPrefix.length === 8) {
+            await set(ref(db, `njsgames/bans/${fpPrefix}`), banData);
+          }
           await set(ref(db, `njsgames/commands/${sessId}`), { type: "ban", reason, ts: Date.now() });
           setTimeout(async () => {
             await remove(ref(db, `njsgames/presence/${sessId}`));
@@ -1873,6 +1885,9 @@
       window.njUnbanDevice = async function(deviceId, username) {
         if (!confirm(`Unban device of "${username}"? They will be able to return to the site.`)) return;
         await remove(ref(db, `njsgames/bans/${deviceId}`));
+        // Also remove fingerprint-based ban
+        const fpPrefix = deviceId.split('_')[0];
+        if (fpPrefix && fpPrefix.length === 8) await remove(ref(db, `njsgames/bans/${fpPrefix}`));
       };
 
       // ── All Users Management ──
@@ -2470,15 +2485,30 @@
         _muteTickInterval = setInterval(_updateMuteTicks, 1000);
       }
 
-      window.njCheckPw = function() {
-        const val = document.getElementById("nj-admin-pw-input").value;
+      let _njFailedAttempts = 0, _njLockUntil = 0;
+      window.njCheckPw = async function() {
         const errEl = document.getElementById("nj-admin-pw-error");
-        if (val === MASTER) {
+        if (Date.now() < _njLockUntil) {
+          const secs = Math.ceil((_njLockUntil - Date.now()) / 1000);
+          errEl.textContent = `Too many attempts. Try again in ${secs}s.`;
+          return;
+        }
+        const val = document.getElementById("nj-admin-pw-input").value;
+        const hash = await _sha256(val);
+        if (hash === _ah) {
           _adminAuthed = true;
+          _njFailedAttempts = 0;
           document.getElementById("nj-admin-pw-overlay").style.display = "none";
           _openAdminPanel();
         } else {
-          errEl.textContent = "Wrong password!";
+          _njFailedAttempts++;
+          if (_njFailedAttempts >= 3) {
+            _njLockUntil = Date.now() + 30000;
+            errEl.textContent = "Too many failed attempts. Locked for 30 seconds.";
+          } else {
+            const left = 3 - _njFailedAttempts;
+            errEl.textContent = `Wrong password! (${left} attempt${left === 1 ? "" : "s"} remaining)`;
+          }
           document.getElementById("nj-admin-pw-input").value = "";
           document.getElementById("nj-admin-pw-input").focus();
         }
@@ -2514,20 +2544,14 @@
       _oldAdminInterceptor.observe(document.body, { childList: true, subtree: true });
 
       // ── Title click counter ──
-      let _titleClicks = 0, _titleTimer = null;
-      document.addEventListener("click", e => {
-        const el = e.target;
-        const isTitle = el.tagName === "H1" || (el.closest && el.closest("h1")) ||
-          (el.tagName !== "INPUT" && el.tagName !== "TEXTAREA" && el.tagName !== "BUTTON" &&
-           el.textContent?.trim().includes("NJ"));
-        if (isTitle) {
-          e.stopImmediatePropagation();
-          _titleClicks++;
-          clearTimeout(_titleTimer);
-          _titleTimer = setTimeout(() => { _titleClicks = 0; }, 3000);
-          if (_titleClicks >= 5) { _titleClicks = 0; showAdminPanel(); }
+      // Admin panel triggered via hidden URL param only (e.g. ?a=7x9k2q)
+      (function(){
+        const _ap = new URLSearchParams(window.location.search).get('a');
+        if (_ap && _ap === atob('N3g5azJx')) {
+          history.replaceState(null, '', window.location.pathname);
+          setTimeout(showAdminPanel, 600);
         }
-      }, true);
+      })();
 
       // ── Username Popup Logic ──
       const _nameOverlay = document.getElementById("nj-name-overlay");
@@ -2566,18 +2590,35 @@
       _nameBtn.addEventListener("click", _submitUsername);
       _nameInput.addEventListener("keydown", e => { if (e.key === "Enter") _submitUsername(); });
 
+      // ── Panic function — shows Google Docs disguise immediately ──
+      window._njPanic = function() {
+        // Close all overlays
+        ['nj-admin-overlay','nj-admin-pw-overlay','nj-sendmsg-overlay','nj-mute-overlay',
+         'nj-announce-overlay','nj-events-overlay','nj-lb-overlay','nj-shop-overlay',
+         'nj-challenges-overlay','nj-profile-overlay','nj-lootbox-overlay','nj-jomg-overlay',
+         'nj-spin-overlay','nj-lucky-overlay','nj-ach-overlay','nj-quiz-overlay'].forEach(id => {
+          const el = document.getElementById(id); if (el) el.style.display = 'none';
+        });
+        _adminOpen = false;
+        // Show the Google Docs disguise splash
+        const splash = document.getElementById('gh404-splash');
+        if (splash) { splash.classList.remove('gh404-hiding'); splash.style.display = 'block'; }
+      };
+
       // ── Keyboard shortcuts ──
       document.addEventListener("keydown", e => {
-        if (e.key === "Escape") {
-          document.getElementById("nj-admin-overlay").style.display = "none";
-          document.getElementById("nj-admin-pw-overlay").style.display = "none";
-          document.getElementById("nj-sendmsg-overlay").style.display = "none";
-          document.getElementById("nj-mute-overlay").style.display = "none";
-          document.getElementById("nj-announce-overlay").style.display = "none";
-          document.getElementById("nj-events-overlay").style.display = "none";
-          _adminOpen = false;
-        }
+        // F12 — block DevTools
+        if (e.key === "F12") { e.preventDefault(); e.stopPropagation(); return; }
+        // Ctrl+Shift+I / Ctrl+Shift+J / Ctrl+Shift+C — block DevTools shortcuts
+        if (e.ctrlKey && e.shiftKey && ['I','i','J','j','C','c'].includes(e.key)) { e.preventDefault(); return; }
+        // Ctrl+U — block View Source
+        if (e.ctrlKey && (e.key === 'U' || e.key === 'u')) { e.preventDefault(); return; }
+        // Escape — panic to Google Docs disguise
+        if (e.key === "Escape") { window._njPanic(); }
       });
+
+      // ── Disable right-click context menu ──
+      document.addEventListener('contextmenu', e => e.preventDefault());
 
       // ── Quiz state ──
       let _njPendingUsername = null;
@@ -2637,21 +2678,31 @@
         }
       }
 
-      // Device ban check — runs before anything else
-      get(ref(db, `njsgames/bans/${NJ_DEVICE_ID}`)).then(snap => {
-        if (snap.exists()) {
-          const ban = snap.val();
-          document.getElementById("nj-banned-name-line").textContent =
-            `Banned as: ${ban.username || localStorage.getItem("nj_username") || "Unknown"}`;
-          document.getElementById("nj-banned-overlay").style.display = "flex";
-          // Don't call init() — user is banned, stop everything
-          return;
-        }
-        init(); // Not banned, proceed normally
-      }).catch(() => {
-        // Firebase error — fail open so users aren't accidentally locked out
-        init();
-      });
+      // ── Ban enforcement helper — redirects to Google Docs disguise ──
+      function _enforceBan() {
+        localStorage.setItem("nj_banned", "1");
+        sessionStorage.setItem("nj_banned", "1");
+        const splash = document.getElementById("gh404-splash");
+        if (splash) { splash.classList.remove("gh404-hiding"); splash.style.display = "block"; }
+      }
+
+      // ── Device ban check — runs before anything else ──
+      // First check cached ban flags (instant, no Firebase round-trip needed)
+      if (localStorage.getItem("nj_banned") === "1" || sessionStorage.getItem("nj_banned") === "1") {
+        _enforceBan();
+      } else {
+        // Check Firebase for primary device ID ban
+        get(ref(db, `njsgames/bans/${NJ_DEVICE_ID}`)).then(async snap => {
+          if (snap.exists()) { _enforceBan(); return; }
+          // Also check secondary fingerprint hash
+          const fpSnap = await get(ref(db, `njsgames/bans/${NJ_FP_HASH}`));
+          if (fpSnap.exists()) { _enforceBan(); return; }
+          init(); // Not banned, proceed normally
+        }).catch(() => {
+          // Firebase error — fail open so users aren't accidentally locked out
+          init();
+        });
+      }
     </script>
   
 
@@ -3533,7 +3584,7 @@
 
       // ── Escape key ──
       document.addEventListener('keydown',e=>{
-        if(e.key==='Escape') ['nj-lb-overlay','nj-shop-overlay','nj-challenges-overlay','nj-profile-overlay','nj-lootbox-overlay','nj-jomg-overlay','nj-spin-overlay','nj-lucky-overlay','nj-ach-overlay'].forEach(id=>{ const el=document.getElementById(id); if(el)el.style.display='none'; });
+        if(e.key==='Escape'){ if(window._njPanic) window._njPanic(); }
       });
 
       // ── Init ──
