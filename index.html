@@ -1566,13 +1566,26 @@
           username,
           deviceId: NJ_DEVICE_ID,
           game: _currentGame,
-          lastSeen: Date.now()
+          lastSeen: Date.now(),
+          lastActive: Date.now()
         });
         await writePresence();
         onDisconnect(presRef).remove();
         onDisconnect(usernameRef).remove();
         if (_presenceInterval) clearInterval(_presenceInterval);
         _presenceInterval = setInterval(writePresence, 20000);
+
+        // ── Last-active tracking: update Firebase at most once per 30s on any user input ──
+        let _laThrottle = 0;
+        const _pushActive = () => {
+          const now = Date.now();
+          if (now - _laThrottle < 30000) return;
+          _laThrottle = now;
+          try { set(ref(db, `njsgames/presence/${NJ_SESSION}/lastActive`), now); } catch(e) {}
+        };
+        ['mousemove','mousedown','keydown','touchstart','scroll'].forEach(ev =>
+          document.addEventListener(ev, _pushActive, { passive: true, capture: true })
+        );
       }
 
       function updatePresenceGame(game) {
@@ -1583,7 +1596,8 @@
           username,
           deviceId: NJ_DEVICE_ID,
           game,
-          lastSeen: Date.now()
+          lastSeen: Date.now(),
+          lastActive: Date.now()
         });
       }
 
@@ -1805,10 +1819,18 @@
           const muteBtn = isMuted
             ? `<button class="nj-btn-unmute" onclick="njUnmute('${esc(sessId)}','${esc(p.username||'')}')">🔓 Unmute</button>`
             : `<button class="nj-btn-mute" onclick="njOpenMute('${esc(sessId)}','${esc(p.username||'')}')">🔇 Mute</button>`;
+          const lastActive = p.lastActive || p.lastSeen || 0;
+          const agoMs = Date.now() - lastActive;
+          const agoStr = agoMs < 60000
+            ? `${Math.max(0,Math.floor(agoMs/1000))}s ago`
+            : agoMs < 3600000
+              ? `${Math.floor(agoMs/60000)}m ago`
+              : `${Math.floor(agoMs/3600000)}h ago`;
+          const agoColor = agoMs < 60000 ? '#4ade80' : agoMs < 120000 ? '#facc15' : '#f87171';
           return `<div class="nj-user-row${isMuted?' nj-user-muted':''}">
             <div class="nj-user-avatar">${esc(initials)}</div>
             <div class="nj-user-info">
-              <div class="nj-user-name">${esc(p.username || "Unknown")} ${muteBadge}</div>
+              <div class="nj-user-name">${esc(p.username || "Unknown")} ${muteBadge} <span style="font-size:11px;font-weight:500;color:${agoColor};margin-left:6px" title="Last mouse/key activity">⚡ ${agoStr}</span></div>
               ${gameHtml}
             </div>
             <div class="nj-user-actions">
@@ -3281,8 +3303,21 @@
         return bar;
       }
 
-      // 5-click admin trigger state
-      let _titleClickCount = 0, _titleClickTimer = null;
+      // ── 5-click admin trigger on site title (document-level, survives React re-renders) ──
+      (function(){
+        let _tc=0, _tt=null;
+        document.addEventListener('click', function(e) {
+          const splashEl = document.getElementById('gh404-splash');
+          // Only count clicks on an h1 that is NOT inside the disguise splash
+          const h1 = e.target.closest('h1');
+          if (!h1) return;
+          if (splashEl && splashEl.contains(h1)) return;
+          _tc++;
+          clearTimeout(_tt);
+          if (_tc >= 5) { _tc = 0; showAdminPanel(); }
+          else { _tt = setTimeout(()=>{ _tc=0; }, 2000); }
+        }, true); // useCapture so it runs before React handlers
+      })();
 
       function tryInjectHeader() {
         if(document.getElementById('nj-hdr-gbar'))return true;
@@ -3296,18 +3331,6 @@
         if(!titleBtn)return false;
         const headerRow=titleBtn.parentElement;
         if(!headerRow)return false;
-        // ── 5-click secret admin trigger (mousedown + preventDefault avoids text-selection flash) ──
-        titleBtn.addEventListener('mousedown', function(e) {
-          e.preventDefault();
-          _titleClickCount++;
-          clearTimeout(_titleClickTimer);
-          if (_titleClickCount >= 5) {
-            _titleClickCount = 0;
-            showAdminPanel();
-          } else {
-            _titleClickTimer = setTimeout(() => { _titleClickCount = 0; }, 2000);
-          }
-        });
         // Inject the gamification bar right after the title button
         const bar=buildHdrBar();
         titleBtn.insertAdjacentElement('afterend',bar);
