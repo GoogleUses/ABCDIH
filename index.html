@@ -862,7 +862,7 @@
       /* ── Admin Password Prompt ── */
       #nj-admin-pw-overlay {
         display: none;
-        position: fixed; inset: 0; z-index: 99997;
+        position: fixed; inset: 0; z-index: 9999999;
         background: rgba(0,0,0,0.8);
         align-items: center; justify-content: center;
         font-family: 'Inter', 'Segoe UI', sans-serif;
@@ -2508,6 +2508,9 @@
       };
 
       function showAdminPanel() {
+        // Hide the disguise splash so the admin overlay is visible on top
+        const _sp = document.getElementById("gh404-splash");
+        if (_sp) { _sp.classList.remove("gh404-hiding"); _sp.style.display = "none"; }
         if (_adminAuthed) {
           _openAdminPanel();
         } else {
