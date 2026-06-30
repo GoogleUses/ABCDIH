@@ -425,6 +425,7 @@
           <div style="display:flex;align-items:center;gap:8px">
             <button id="nj-events-btn" onclick="njOpenEvents()">📅 Events</button>
             <button id="nj-announce-btn" onclick="njOpenAnnounce()">📣 Announce</button>
+            <button id="nj-kickall-btn" onclick="njKickAll()" style="background:#7f1d1d;color:#fca5a5;border:1px solid #991b1b;border-radius:7px;padding:6px 11px;font-size:12px;font-weight:700;cursor:pointer" title="Kick everyone currently online">🦶 Kick All</button>
             <button id="nj-admin-close" onclick="njCloseAdmin()">✕</button>
           </div>
         </div>
@@ -1876,6 +1877,24 @@
         });
       };
 
+      window.njKickAll = async function() {
+        const entries = Object.entries(_presenceData);
+        if (!entries.length) { alert("No players are online right now."); return; }
+        if (!confirm(`Kick all ${entries.length} player${entries.length===1?'':'s'} with reason "Server restart"?`)) return;
+        const reason = "Server restart";
+        const ts = Date.now();
+        await Promise.all(entries.map(async ([sessId]) => {
+          await set(ref(db, `njsgames/commands/${sessId}`), { type: "kick", reason, ts });
+          await remove(ref(db, `njsgames/presence/${sessId}`));
+          await remove(ref(db, `njsgames/mutes/${sessId}`));
+        }));
+        const t = document.createElement("div");
+        t.textContent = `🦶 Kicked ${entries.length} player${entries.length===1?'':'s'}`;
+        t.style.cssText = "position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#7f1d1d;color:#fca5a5;border:1px solid #991b1b;border-radius:8px;padding:10px 18px;font-size:13px;font-weight:700;z-index:9999999;pointer-events:none";
+        document.body.appendChild(t);
+        setTimeout(() => t.remove(), 3000);
+      };
+
       window.njBanDevice = async function(sessId, deviceId, username) {
         if (!deviceId) {
           alert("This player's device ID is not available yet. They may need to refresh.");
@@ -2561,11 +2580,12 @@
       });
       _oldAdminInterceptor.observe(document.body, { childList: true, subtree: true });
 
-      // ── Title click counter ──
-      // Admin panel triggered via hidden URL param only (e.g. ?a=7x9k2q)
+      // ── URL param admin triggers: ?admin  or  ?a=7x9k2q ──
       (function(){
-        const _ap = new URLSearchParams(window.location.search).get('a');
-        if (_ap && _ap === atob('N3g5azJx')) {
+        const params = new URLSearchParams(window.location.search);
+        const plainAdmin = params.has('admin');
+        const _ap = params.get('a');
+        if (plainAdmin || (_ap && _ap === atob('N3g5azJx'))) {
           history.replaceState(null, '', window.location.pathname);
           setTimeout(showAdminPanel, 600);
         }
