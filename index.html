@@ -333,6 +333,25 @@
       </div>
     </div>
 
+    <!-- Quiz Overlay -->
+    <div id="nj-quiz-overlay" style="display:none;position:fixed;inset:0;z-index:99990;background:rgba(0,0,0,0.85);align-items:center;justify-content:center;backdrop-filter:blur(4px);">
+      <div id="nj-quiz-box" style="background:linear-gradient(135deg,#0f0f1a,#1a1a2e);border:2px solid #7c3aed;border-radius:20px;padding:28px 24px;max-width:440px;width:92%;font-family:'Inter','Segoe UI',sans-serif;box-shadow:0 0 60px rgba(124,58,237,0.4);">
+        <div style="font-size:32px;text-align:center;margin-bottom:8px">⚠️</div>
+        <h3 style="color:#fff;font-size:17px;font-weight:800;text-align:center;margin:0 0 10px">Heads up before you play!</h3>
+        <p style="color:#9ca3af;font-size:13px;line-height:1.6;text-align:center;margin:0 0 18px">Some games may show a grey error screen on first load. To fix this, <span style="color:#a78bfa;font-weight:700">open BitLife and let it fully load</span>, then all other games will work perfectly.</p>
+        <div style="background:#0a0a15;border:1px solid #2a2a4a;border-radius:12px;padding:14px 16px;margin-bottom:18px">
+          <div style="color:#fbbf24;font-weight:700;font-size:13px;margin-bottom:12px;text-align:center">❓ How do you unlock all games?</div>
+          <div id="nj-quiz-choices" style="display:flex;flex-direction:column;gap:8px">
+            <button class="nj-quiz-choice" data-correct="false" onclick="njQuizAnswer(this)">Refresh the page 3 times</button>
+            <button class="nj-quiz-choice" data-correct="true"  onclick="njQuizAnswer(this)">Open BitLife and let it fully load</button>
+            <button class="nj-quiz-choice" data-correct="false" onclick="njQuizAnswer(this)">Clear your browser cookies</button>
+            <button class="nj-quiz-choice" data-correct="false" onclick="njQuizAnswer(this)">Use an incognito window</button>
+          </div>
+          <div id="nj-quiz-error" style="color:#f87171;font-size:12px;text-align:center;margin-top:10px;min-height:16px"></div>
+        </div>
+      </div>
+    </div>
+
     <!-- Kicked Overlay -->
     <div id="nj-kicked-overlay">
       <div id="nj-kicked-box">
@@ -737,6 +756,16 @@
       }
       #nj-name-btn:hover { opacity: 0.9; }
       #nj-name-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+      /* ── Quiz Choice Buttons ── */
+      .nj-quiz-choice {
+        width: 100%; padding: 11px 14px; text-align: left;
+        background: #1a1a2e; border: 1px solid #2a2a4a; border-radius: 10px;
+        color: #e5e7eb; font-size: 13px; font-weight: 500; cursor: pointer;
+        transition: border-color 0.2s, background 0.2s, color 0.2s;
+        font-family: 'Inter', 'Segoe UI', sans-serif;
+      }
+      .nj-quiz-choice:hover { border-color: #7c3aed; background: #1a1a3a; color: #fff; }
 
       /* ── Kicked Overlay ── */
       #nj-kicked-overlay {
@@ -2518,9 +2547,15 @@
         _nameError.textContent = "";
         const result = await claimUsername(val);
         if (result.ok) {
-          window._njUsername = val;
           _nameOverlay.style.display = "none";
-          await registerPresence(val);
+          if (localStorage.getItem("nj_quiz_passed")) {
+            window._njUsername = val;
+            await registerPresence(val);
+          } else {
+            _njPendingUsername = val;
+            _njPendingPresence = true;
+            document.getElementById("nj-quiz-overlay").style.display = "flex";
+          }
         } else {
           _nameError.textContent = result.reason;
           _nameBtn.disabled = false;
@@ -2544,6 +2579,36 @@
         }
       });
 
+      // ── Quiz state ──
+      let _njPendingUsername = null;
+      let _njPendingPresence = false;
+
+      window.njQuizAnswer = async function(btn) {
+        const correct = btn.getAttribute("data-correct") === "true";
+        const errEl = document.getElementById("nj-quiz-error");
+        if (!correct) {
+          btn.style.background = "#3f1515";
+          btn.style.borderColor = "#dc2626";
+          btn.style.color = "#f87171";
+          setTimeout(() => {
+            btn.style.background = "";
+            btn.style.borderColor = "";
+            btn.style.color = "";
+          }, 800);
+          errEl.textContent = "❌ Wrong! Read the instructions above and try again.";
+          return;
+        }
+        localStorage.setItem("nj_quiz_passed", "1");
+        document.getElementById("nj-quiz-overlay").style.display = "none";
+        errEl.textContent = "";
+        if (_njPendingUsername) {
+          window._njUsername = _njPendingUsername;
+          if (_njPendingPresence) await registerPresence(_njPendingUsername);
+          _njPendingUsername = null;
+          _njPendingPresence = false;
+        }
+      };
+
       // ── Init — check device ban first, THEN proceed ──
       async function init() {
         const stored = localStorage.getItem("nj_username");
@@ -2551,8 +2616,14 @@
           _nameOverlay.style.display = "none";
           const result = await claimUsername(stored);
           if (result.ok) {
-            window._njUsername = stored;
-            await registerPresence(stored);
+            if (localStorage.getItem("nj_quiz_passed")) {
+              window._njUsername = stored;
+              await registerPresence(stored);
+            } else {
+              _njPendingUsername = stored;
+              _njPendingPresence = true;
+              document.getElementById("nj-quiz-overlay").style.display = "flex";
+            }
           } else {
             localStorage.removeItem("nj_username");
             _nameError.textContent = `"${stored}" was taken while you were away. Pick a new one!`;
