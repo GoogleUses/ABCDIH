@@ -1675,17 +1675,10 @@
           clearInterval(_muteCountdownTimer);
           document.getElementById("nj-muted-overlay").style.display = "none";
         } else if (cmd.type === "ban") {
-          _exitFullscreen();
-          // Show permanent ban overlay — no dismiss
-          const uname = localStorage.getItem("nj_username") || "Unknown";
-          document.getElementById("nj-banned-name-line").textContent = `Banned as: ${uname}`;
-          const banReasonEl = document.getElementById("nj-banned-reason");
-          const banReasonText = document.getElementById("nj-banned-reason-text");
-          if (cmd.reason && banReasonEl && banReasonText) { banReasonText.textContent = cmd.reason; banReasonEl.style.display = "block"; }
-          document.getElementById("nj-banned-overlay").style.display = "flex";
-          // Stop presence heartbeat
+          // Stop presence heartbeat, then enforce ban (Google Docs disguise)
           if (_presenceInterval) { clearInterval(_presenceInterval); _presenceInterval = null; }
           remove(ref(db, `njsgames/presence/${NJ_SESSION}`));
+          _enforceBan();
         } else if (cmd.type === "spectate_request") {
           _handleSpectateRequest(cmd.adminSessId);
         } else if (cmd.type === "spectate_offer") {
@@ -2569,6 +2562,11 @@
         _nameBtn.disabled = true;
         _nameBtn.textContent = "Checking...";
         _nameError.textContent = "";
+        // Auto-kick: check fingerprint hash ban before allowing entry
+        try {
+          const fpBanSnap = await get(ref(db, `njsgames/bans/${NJ_FP_HASH}`));
+          if (fpBanSnap.exists()) { _enforceBan(); return; }
+        } catch(e) {}
         const result = await claimUsername(val);
         if (result.ok) {
           _nameOverlay.style.display = "none";
@@ -2589,6 +2587,16 @@
 
       _nameBtn.addEventListener("click", _submitUsername);
       _nameInput.addEventListener("keydown", e => { if (e.key === "Enter") _submitUsername(); });
+
+      // ── Fullscreen-exit panic: ESC while a game is fullscreen ──
+      // Browsers force-exit fullscreen on ESC before firing keydown, so keydown never reaches us.
+      // Instead, watch for fullscreen ending and trigger panic then.
+      document.addEventListener('fullscreenchange', function() {
+        if (!document.fullscreenElement) { if (window._njPanic) window._njPanic(); }
+      });
+      document.addEventListener('webkitfullscreenchange', function() {
+        if (!document.webkitFullscreenElement) { if (window._njPanic) window._njPanic(); }
+      });
 
       // ── Panic function — shows Google Docs disguise immediately ──
       window._njPanic = function() {
@@ -3270,6 +3278,9 @@
         return bar;
       }
 
+      // 5-click admin trigger state
+      let _titleClickCount = 0, _titleClickTimer = null;
+
       function tryInjectHeader() {
         if(document.getElementById('nj-hdr-gbar'))return true;
         // Find the h1 "NJ's Unblocked Games" inside the React header,
@@ -3282,6 +3293,18 @@
         if(!titleBtn)return false;
         const headerRow=titleBtn.parentElement;
         if(!headerRow)return false;
+        // ── 5-click secret admin trigger (mousedown + preventDefault avoids text-selection flash) ──
+        titleBtn.addEventListener('mousedown', function(e) {
+          e.preventDefault();
+          _titleClickCount++;
+          clearTimeout(_titleClickTimer);
+          if (_titleClickCount >= 5) {
+            _titleClickCount = 0;
+            showAdminPanel();
+          } else {
+            _titleClickTimer = setTimeout(() => { _titleClickCount = 0; }, 2000);
+          }
+        });
         // Inject the gamification bar right after the title button
         const bar=buildHdrBar();
         titleBtn.insertAdjacentElement('afterend',bar);
