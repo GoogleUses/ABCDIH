@@ -23,27 +23,5 @@
     <script type="text/javascript" src="https://cdn.jsdelivr.net/gh/777kze777/xh33@main/assets/lib/phaser-cachebuster.min.js"></script>
     <script type="text/javascript" src="https://cdn.jsdelivr.net/gh/777kze777/xh33@main/assets/lib/phaser-super-storage.min.js"></script>
     <script type="text/javascript" src="https://cdn.jsdelivr.net/gh/777kze777/xh33@main/assets/lib/dragonBones.min.js"></script>
-    <script>
-(function() {
-    const originalImage = window.Image;
-    window.Image = function() {
-        const img = new originalImage();
-        img.crossOrigin = "anonymous";
-        return img;
-    };
-    window.Image.prototype = originalImage.prototype;
-})();
-
-if (window.PIXI && PIXI.BaseTexture) {
-    const orig = PIXI.BaseTexture.prototype.updateSourceImage;
-    PIXI.BaseTexture.prototype.updateSourceImage = function(source) {
-        if (source) source.crossOrigin = "anonymous";
-        return orig.call(this, source);
-    };
-}
-</script>
-
-<script type="text/javascript" src="https://cdn.jsdelivr.net/gh/777kze777/xh33@main/basketball_stars.min.js?3739db7187d2daa8dcec"></script></body>
-
 </html>
 

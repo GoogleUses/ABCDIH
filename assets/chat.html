@@ -194,7 +194,7 @@
 <div class="overlay" id="passOverlay">
   <div class="modal-box">
     <h3>🔒 Password Required</h3>
-    <p>This room is password-protected. Enter the password (or master key) to join.</p>
+    <p>This room is password-protected. Enter the password to join.</p>
     <div class="fg"><label>Password</label><input id="passInput" type="password" placeholder="Enter password" onkeydown="if(event.key==='Enter')doPassVerify()"/></div>
     <div class="mbtns">
       <button class="btn-cancel" onclick="closePass()">Cancel</button>
@@ -281,7 +281,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebas
 import { getDatabase, ref, push, onValue, set, remove, get }
   from "https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js";
 
-const MASTER = "teengo12";
+const MASTER = "imhim";
 const ROOMS  = "njsgames/rooms";
 
 const db = getDatabase(initializeApp({
@@ -355,10 +355,23 @@ window.saveName = async function() {
   if (!v){errEl.textContent="Please enter a name.";return;}
   if (v.length<2){errEl.textContent="Must be at least 2 characters.";return;}
   if (!/^[a-zA-Z0-9_\- ]+$/.test(v)){errEl.textContent="Letters, numbers, spaces, _ and - only.";return;}
+  // Word filter check
+  const _vLow=v.toLowerCase();
+  for(const e of _wordFilter){if(e&&_vLow.includes(e)){errEl.textContent="That name contains a blocked word.";return;}}
+  // 24-hour name-change cooldown
+  const _existN=localStorage.getItem("nj_username");
+  if(_existN){
+    const _lastNC=parseInt(localStorage.getItem("nj_name_changed_at")||"0");
+    const _rem=_lastNC+86400000-Date.now();
+    if(_rem>0){const _h=Math.floor(_rem/3600000),_m=Math.floor((_rem%3600000)/60000);errEl.textContent=`You can change your name again in ${_h}h ${_m}m.`;return;}
+  }
   btn.disabled=true; btn.textContent="Checking…"; errEl.textContent="";
+  const _prevN=localStorage.getItem("nj_username");
   const ok = await claimUsername(v);
   btn.disabled=false; btn.textContent="Save";
   if (!ok){errEl.textContent=`"${v}" is already taken. Try another!`;return;}
+  // Save name-change timestamp if this was a change
+  if(_prevN&&_prevN!==v){localStorage.setItem("nj_name_changed_at",Date.now().toString());}
   document.getElementById("nameDisplay").textContent=v;
   closeOverlay("nameOverlay");
   if (window._nameCb){window._nameCb();window._nameCb=null;}
