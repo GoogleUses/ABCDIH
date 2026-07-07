@@ -1525,7 +1525,6 @@
         "Baldi's Basics":"https://unblokedgames.github.io/projects/baldis-basics/baldis-basics.png",
         "FNAF 2":"https://unblokedgames.github.io/projects/fnaf-2/fnaf-2.jpg",
         "FNAF 3":"https://unblokedgames.github.io/projects/fnaf-3/fnaf-3.png",
-        "AI Chat (Free)":"assets/thumb-ai-chat.png",
         "Steal A Brainrot":"assets/thumb-steal-a-brainrot.png",
         "Volleyball Random":"assets/thumb-volleyball-random.png",
         "Granny":"https://ubg98.github.io/assets/img/games/granny.png",
@@ -3410,33 +3409,30 @@
       // Deterministically pick 1 background for a given uid (stable per user, random across users)
       function njPickFreeBg(uid){ let h=0; for(let i=0;i<uid.length;i++) h=(h*31+uid.charCodeAt(i))>>>0; return NJ_FREE_BACKGROUNDS[h%NJ_FREE_BACKGROUNDS.length]; }
 
-      // ── Apply background: a fixed <div> layer sits between the dark page bg and the React app ──
-      // This is the simplest reliable approach: image goes in a dedicated fixed layer (z-index:0),
-      // #root sits on top at z-index:1, and a CSS rule makes React's wrappers transparent.
+      // ── Apply background: set image directly on body (inline style overrides any stylesheet) ──
+      // Applying via body inline style is the most reliable approach: no z-index tricks needed.
+      // The React wrappers (#root and min-h-screen containers) are made transparent via injected CSS,
+      // so the body's background image shows through them.
       function applyBackground(id){
         const it = SHOP[id] && SHOP[id].type==='background' ? SHOP[id] : null;
         if(!it) return;
-        // 1. Create or update the background layer div
-        let layer = document.getElementById('nj-bg-layer');
-        if(!layer){
-          layer = document.createElement('div');
-          layer.id = 'nj-bg-layer';
-          document.body.insertBefore(layer, document.body.firstChild);
-        }
+        // Remove legacy bg-layer div if present from an older code version
+        const legacy = document.getElementById('nj-bg-layer');
+        if(legacy) legacy.remove();
         const bgImg = it.img ? `url('${it.img}')` : (it.css || 'none');
-        layer.style.cssText =
-          'position:fixed;top:0;left:0;right:0;bottom:0;z-index:0;pointer-events:none;' +
-          'background-image:' + bgImg + ';' +
-          'background-size:cover;background-position:center center;background-repeat:no-repeat;' +
-          (it.anim ? 'animation:njBgDrift ' + it.anim + 's ease-in-out infinite;' : '');
-        // 2. Inject persistent CSS once: stack #root above the layer and strip background from React wrappers
+        // 1. Apply background directly to body — inline style wins over stylesheet background-color
+        document.body.style.backgroundImage = bgImg;
+        document.body.style.backgroundSize = 'cover';
+        document.body.style.backgroundPosition = 'center center';
+        document.body.style.backgroundRepeat = 'no-repeat';
+        document.body.style.backgroundAttachment = 'fixed';
+        document.body.style.animation = it.anim ? ('njBgDrift ' + it.anim + 's ease-in-out infinite') : '';
+        // 2. Inject persistent CSS: make React wrappers transparent so body image shows through
         let css = document.getElementById('nj-bg-style');
         if(!css){ css = document.createElement('style'); css.id='nj-bg-style'; document.head.appendChild(css); }
         css.textContent =
-          'html{background:#0f0f1a!important}' +
-          'body{background:transparent!important}' +
-          '#root{position:relative;z-index:1;background:transparent!important}' +
-          '[class*="min-h-screen"]{background:transparent!important}';
+          '#root{background:transparent!important;background-color:transparent!important}' +
+          '[class*="min-h-screen"]{background:transparent!important;background-color:transparent!important}';
       }
 
       // ── Daily Challenges (seeded by date) ──
