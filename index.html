@@ -3410,36 +3410,44 @@
       function njPickFreeBg(uid){ let h=0; for(let i=0;i<uid.length;i++) h=(h*31+uid.charCodeAt(i))>>>0; return NJ_FREE_BACKGROUNDS[h%NJ_FREE_BACKGROUNDS.length]; }
 
       // ── Apply background ──
-      // The React bundle renders <div style="background:#0f0f1a;min-height:100vh"> as the first
-      // child of #root — an inline style we cannot rebuild. CSS !important *does* override inline
-      // styles (it trumps specificity), so we inject a rule targeting #root > div.
-      // We also apply the image to body/html so it covers every pixel behind that wrapper.
+      // Rendering approach: a position:fixed <div id="nj-bg-layer"> sits behind everything at z-index:0.
+      // This is sharper than background-attachment:fixed (which composites to a separate low-quality
+      // layer in Chromium) and lets GIFs play their own animation without a drift overlay on top.
+      // The React root wrapper's inline background:#0f0f1a is neutralised by CSS !important below.
       function applyBackground(id){
         const it = SHOP[id] && SHOP[id].type==='background' ? SHOP[id] : null;
         if(!it) return;
-        // Remove legacy bg-layer div if present from older code versions
-        const legacy = document.getElementById('nj-bg-layer');
-        if(legacy) legacy.remove();
-        const bgImg = it.img ? `url('${it.img}')` : (it.css || 'none');
-        const bgCSS =
-          'background-image:' + bgImg + ';' +
-          'background-size:cover;background-position:center center;' +
-          'background-repeat:no-repeat;background-attachment:fixed;';
-        // 1. Set image on html + body (belt-and-suspenders)
-        document.documentElement.style.cssText += bgCSS;
-        document.body.style.cssText += bgCSS;
-        if(it.anim){
-          document.body.style.animation = 'njBgDrift ' + it.anim + 's ease-in-out infinite';
+
+        // GIFs carry their own animation — don't apply the slow-pan drift on top of them
+        const isGif = it.img && it.img.toLowerCase().endsWith('.gif');
+
+        // 1. Create or reuse the fixed background layer div
+        let layer = document.getElementById('nj-bg-layer');
+        if(!layer){
+          layer = document.createElement('div');
+          layer.id = 'nj-bg-layer';
+          document.body.insertBefore(layer, document.body.firstChild);
         }
-        // 2. Inject CSS that overrides inline background on the React root wrapper.
-        //    CSS !important beats inline styles because it is a higher-priority cascade origin.
-        //    Target: #root > div  (the single top-level wrapper rendered by the React app)
+        const bgImg = it.img ? `url('${it.img}')` : (it.css || 'none');
+        layer.style.cssText =
+          'position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none;' +
+          'background-image:' + bgImg + ';' +
+          'background-size:cover;background-position:center center;background-repeat:no-repeat;' +
+          (it.anim && !isGif ? 'animation:njBgDrift ' + it.anim + 's ease-in-out infinite;' : '');
+
+        // 2. Strip any background from body/html so the div layer shows (no background-attachment:fixed —
+        //    that API causes Chromium to downscale the image for its own composite layer → blurry)
+        document.documentElement.style.background = 'transparent';
+        document.body.style.background = 'transparent';
+
+        // 3. CSS !important overrides the React bundle's inline style="background:#0f0f1a;min-height:100vh"
+        //    on the top-level wrapper div inside #root. !important beats inline styles in the cascade.
         let css = document.getElementById('nj-bg-style');
         if(!css){ css = document.createElement('style'); css.id='nj-bg-style'; document.head.appendChild(css); }
         css.textContent =
-          // The main React wrapper has style="background:#0f0f1a;min-height:100vh"
+          '#nj-bg-layer { z-index: 0 !important; }' +
+          '#root { position: relative; z-index: 1; }' +
           '#root > div { background: transparent !important; background-color: transparent !important; }' +
-          // Safety net for any other direct children that may carry a solid background
           '#root > div > div:first-child { background-color: transparent !important; }';
       }
 
