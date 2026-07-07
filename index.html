@@ -3409,30 +3409,38 @@
       // Deterministically pick 1 background for a given uid (stable per user, random across users)
       function njPickFreeBg(uid){ let h=0; for(let i=0;i<uid.length;i++) h=(h*31+uid.charCodeAt(i))>>>0; return NJ_FREE_BACKGROUNDS[h%NJ_FREE_BACKGROUNDS.length]; }
 
-      // ── Apply background: set image directly on body (inline style overrides any stylesheet) ──
-      // Applying via body inline style is the most reliable approach: no z-index tricks needed.
-      // The React wrappers (#root and min-h-screen containers) are made transparent via injected CSS,
-      // so the body's background image shows through them.
+      // ── Apply background ──
+      // The React bundle renders <div style="background:#0f0f1a;min-height:100vh"> as the first
+      // child of #root — an inline style we cannot rebuild. CSS !important *does* override inline
+      // styles (it trumps specificity), so we inject a rule targeting #root > div.
+      // We also apply the image to body/html so it covers every pixel behind that wrapper.
       function applyBackground(id){
         const it = SHOP[id] && SHOP[id].type==='background' ? SHOP[id] : null;
         if(!it) return;
-        // Remove legacy bg-layer div if present from an older code version
+        // Remove legacy bg-layer div if present from older code versions
         const legacy = document.getElementById('nj-bg-layer');
         if(legacy) legacy.remove();
         const bgImg = it.img ? `url('${it.img}')` : (it.css || 'none');
-        // 1. Apply background directly to body — inline style wins over stylesheet background-color
-        document.body.style.backgroundImage = bgImg;
-        document.body.style.backgroundSize = 'cover';
-        document.body.style.backgroundPosition = 'center center';
-        document.body.style.backgroundRepeat = 'no-repeat';
-        document.body.style.backgroundAttachment = 'fixed';
-        document.body.style.animation = it.anim ? ('njBgDrift ' + it.anim + 's ease-in-out infinite') : '';
-        // 2. Inject persistent CSS: make React wrappers transparent so body image shows through
+        const bgCSS =
+          'background-image:' + bgImg + ';' +
+          'background-size:cover;background-position:center center;' +
+          'background-repeat:no-repeat;background-attachment:fixed;';
+        // 1. Set image on html + body (belt-and-suspenders)
+        document.documentElement.style.cssText += bgCSS;
+        document.body.style.cssText += bgCSS;
+        if(it.anim){
+          document.body.style.animation = 'njBgDrift ' + it.anim + 's ease-in-out infinite';
+        }
+        // 2. Inject CSS that overrides inline background on the React root wrapper.
+        //    CSS !important beats inline styles because it is a higher-priority cascade origin.
+        //    Target: #root > div  (the single top-level wrapper rendered by the React app)
         let css = document.getElementById('nj-bg-style');
         if(!css){ css = document.createElement('style'); css.id='nj-bg-style'; document.head.appendChild(css); }
         css.textContent =
-          '#root{background:transparent!important;background-color:transparent!important}' +
-          '[class*="min-h-screen"]{background:transparent!important;background-color:transparent!important}';
+          // The main React wrapper has style="background:#0f0f1a;min-height:100vh"
+          '#root > div { background: transparent !important; background-color: transparent !important; }' +
+          // Safety net for any other direct children that may carry a solid background
+          '#root > div > div:first-child { background-color: transparent !important; }';
       }
 
       // ── Daily Challenges (seeded by date) ──
