@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="180" viewBox="0 0 320 180">
+  <rect width="320" height="180" fill="#6e2f8f"/>
+  <rect x="2" y="2" width="316" height="176" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="2"/>
+  <text x="160" y="80" font-family="Arial,sans-serif" font-size="48" text-anchor="middle" fill="rgba(255,255,255,0.3)">🎮</text>
+  <text x="160" y="130" font-family="Arial,sans-serif" font-size="18" font-weight="bold" text-anchor="middle" fill="rgba(255,255,255,0.9)">CB Clicker</text>
+</svg>

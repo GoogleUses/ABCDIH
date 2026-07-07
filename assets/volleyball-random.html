@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Volleyball Random</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{
+      font-family:'Segoe UI',system-ui,sans-serif;
+      background:linear-gradient(160deg,#0a1628 0%,#0d2440 50%,#142a18 100%);
+      min-height:100vh;display:flex;align-items:center;justify-content:center;
+      color:#fff;
+    }
+    .card{
+      text-align:center;padding:36px 28px;max-width:380px;width:90%;
+      background:rgba(255,255,255,0.05);
+      border:1px solid rgba(255,255,255,0.12);
+      border-radius:20px;
+      backdrop-filter:blur(8px);
+      box-shadow:0 20px 60px rgba(0,0,0,0.5);
+    }
+    .thumb{
+      width:180px;height:130px;object-fit:cover;
+      border-radius:12px;margin-bottom:18px;
+      box-shadow:0 8px 24px rgba(0,0,0,0.4);
+      border:2px solid rgba(255,255,255,0.15);
+    }
+    h2{font-size:22px;font-weight:800;margin-bottom:6px;letter-spacing:-0.3px}
+    .byline{color:#6ee7b7;font-size:12px;font-weight:600;letter-spacing:1px;
+            text-transform:uppercase;margin-bottom:10px}
+    p{color:#94a3b8;font-size:13px;line-height:1.55;margin-bottom:22px}
+    .play-btn{
+      display:inline-block;
+      background:linear-gradient(135deg,#3b82f6,#2563eb);
+      color:#fff;text-decoration:none;
+      border-radius:14px;padding:14px 36px;
+      font-size:16px;font-weight:800;
+      box-shadow:0 6px 24px rgba(59,130,246,0.45);
+      letter-spacing:0.3px;
+      transition:transform 0.15s,box-shadow 0.15s;
+    }
+    .play-btn:hover{transform:translateY(-2px);box-shadow:0 10px 32px rgba(59,130,246,0.55)}
+    .play-btn:active{transform:translateY(0)}
+    .note{color:#475569;font-size:11px;margin-top:12px}
+    .tags{display:flex;gap:6px;justify-content:center;margin-bottom:18px}
+    .tag{background:rgba(255,255,255,0.1);border-radius:20px;padding:3px 10px;
+         font-size:11px;color:#94a3b8;font-weight:600}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <img class="thumb" src="thumb-volleyball-random.png" alt="Volleyball Random"
+         onerror="this.style.display='none'"/>
+    <div class="byline">by RHGamestudio</div>
+    <h2>🏐 Volleyball Random</h2>
+    <div class="tags">
+      <span class="tag">Sports</span>
+      <span class="tag">2 Player</span>
+      <span class="tag">Physics</span>
+    </div>
+    <p>Wobbly physics beach volleyball with hilariously unpredictable ragdoll players. Challenge a friend or play solo!</p>
+    <a class="play-btn" href="https://rhgamestudio.itch.io/volleyball-random" target="_blank" rel="noopener">
+      ▶ &nbsp;Play Now
+    </a>
+    <div class="note">Opens on itch.io in a new tab</div>
+  </div>
+</body>
+</html>

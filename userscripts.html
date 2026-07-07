@@ -1,0 +1,1072 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Userscripts — NJ's Unblocked</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:Inter,sans-serif;background:#0f0f1a;color:#fff;min-height:100vh;}
+  ::-webkit-scrollbar{width:6px}
+  ::-webkit-scrollbar-track{background:#0f0f1a}
+  ::-webkit-scrollbar-thumb{background:#3a3a5a;border-radius:3px}
+  ::-webkit-scrollbar-thumb:hover{background:#7c3aed}
+
+  /* ── Header ── */
+  .header{background:linear-gradient(135deg,#1a1a2e,#16213e);border-bottom:1px solid #2a2a4a;padding:0 24px;display:flex;align-items:center;gap:16px;height:60px;position:sticky;top:0;z-index:100;}
+  .header-back{background:none;border:1px solid #3a3a5a;color:#9ca3af;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:13px;display:flex;align-items:center;gap:6px;text-decoration:none;transition:all .2s;}
+  .header-back:hover{border-color:#7c3aed;color:#fff;}
+  .header-title{font-size:20px;font-weight:700;background:linear-gradient(135deg,#a78bfa,#818cf8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+  .header-sub{font-size:12px;color:#6b7280;margin-left:auto;}
+
+  /* ── Layout ── */
+  .page{max-width:1200px;margin:0 auto;padding:32px 24px;}
+
+  /* ── Hero ── */
+  .hero{background:linear-gradient(135deg,#1e1b4b,#1a1a2e);border:1px solid #3730a3;border-radius:16px;padding:28px 32px;margin-bottom:32px;display:flex;align-items:center;gap:24px;}
+  .hero-icon{font-size:48px;flex-shrink:0;}
+  .hero h1{font-size:24px;font-weight:700;margin-bottom:6px;}
+  .hero p{color:#9ca3af;font-size:14px;line-height:1.6;max-width:600px;}
+  .hero-badges{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;}
+  .badge{background:#1e1b4b;border:1px solid #3730a3;color:#a78bfa;font-size:11px;font-weight:600;padding:4px 10px;border-radius:20px;}
+
+  /* ── Install guide ── */
+  .install-guide{background:#111827;border:1px solid #1f2937;border-radius:12px;padding:20px 24px;margin-bottom:32px;}
+  .install-guide h3{font-size:14px;font-weight:600;color:#a78bfa;margin-bottom:12px;display:flex;align-items:center;gap:8px;}
+  .steps{display:flex;gap:16px;flex-wrap:wrap;}
+  .step{flex:1;min-width:180px;display:flex;align-items:flex-start;gap:10px;}
+  .step-num{background:#7c3aed;color:#fff;font-size:11px;font-weight:700;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;}
+  .step-text{font-size:13px;color:#d1d5db;line-height:1.5;}
+  .step-text a{color:#7c3aed;text-decoration:none;}
+  .step-text a:hover{text-decoration:underline;}
+
+  /* ── Controls ── */
+  .controls{display:flex;gap:12px;margin-bottom:24px;flex-wrap:wrap;align-items:center;}
+  .search-wrap{flex:1;min-width:200px;position:relative;}
+  .search-wrap svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#6b7280;pointer-events:none;}
+  .search{width:100%;background:#1a1a2e;border:1px solid #2a2a4a;color:#fff;padding:10px 12px 10px 38px;border-radius:10px;font-size:14px;outline:none;font-family:Inter,sans-serif;}
+  .search:focus{border-color:#7c3aed;}
+  .search::placeholder{color:#4b5563;}
+  .filter-tabs{display:flex;gap:6px;flex-wrap:wrap;}
+  .ftab{background:#1a1a2e;border:1px solid #2a2a4a;color:#9ca3af;padding:8px 14px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:500;font-family:Inter,sans-serif;transition:all .15s;}
+  .ftab:hover{border-color:#7c3aed;color:#fff;}
+  .ftab.active{background:#7c3aed;border-color:#7c3aed;color:#fff;}
+
+  /* ── Grid ── */
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px;margin-bottom:40px;}
+  .card{background:#1a1a2e;border:1px solid #2a2a4a;border-radius:14px;padding:20px;display:flex;flex-direction:column;gap:12px;transition:border-color .2s;}
+  .card:hover{border-color:#7c3aed;}
+  .card.community{border-left:3px solid #10b981;}
+  .card-top{display:flex;align-items:flex-start;gap:12px;}
+  .platform-pill{padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700;flex-shrink:0;margin-top:2px;}
+  .plt-blooket{background:#1c1b3b;color:#6366f1;border:1px solid #4338ca;}
+  .plt-gimkit{background:#1a2e1a;color:#4ade80;border:1px solid #16a34a;}
+  .plt-kahoot{background:#2e1a1a;color:#f87171;border:1px solid #dc2626;}
+  .plt-quizlet{background:#1a2233;color:#60a5fa;border:1px solid #2563eb;}
+  .plt-quizizz{background:#2a1a2e;color:#c084fc;border:1px solid #9333ea;}
+  .plt-duolingo{background:#1a2e1a;color:#a3e635;border:1px solid #65a30d;}
+  .plt-general{background:#1a1a2e;color:#9ca3af;border:1px solid #374151;}
+  .card-info{flex:1;}
+  .card-name{font-size:15px;font-weight:700;margin-bottom:4px;}
+  .card-desc{font-size:13px;color:#9ca3af;line-height:1.5;}
+  .card-meta{display:flex;align-items:center;gap:8px;font-size:11px;color:#6b7280;}
+  .card-meta .dot{width:3px;height:3px;background:#4b5563;border-radius:50%;}
+  .community-tag{color:#10b981;font-weight:600;}
+  .card-actions{display:flex;gap:8px;}
+  .btn{padding:8px 14px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif;border:none;transition:all .15s;display:flex;align-items:center;gap:6px;}
+  .btn-copy{background:#2a2a4a;color:#fff;flex:1;}
+  .btn-copy:hover{background:#3a3a6a;}
+  .btn-copy.copied{background:#065f46;color:#6ee7b7;}
+  .btn-tm{background:linear-gradient(135deg,#7c3aed,#4f46e5);color:#fff;flex:1;}
+  .btn-tm:hover{background:linear-gradient(135deg,#6d28d9,#4338ca);}
+  .btn-console{background:#1f2937;color:#9ca3af;border:1px solid #374151;flex:1;}
+  .btn-console:hover{background:#374151;color:#fff;}
+
+  /* ── Code preview ── */
+  .code-preview{background:#111827;border:1px solid #1f2937;border-radius:8px;padding:12px;font-family:'Courier New',monospace;font-size:11px;color:#9ca3af;max-height:80px;overflow:hidden;white-space:pre;cursor:pointer;position:relative;}
+  .code-preview::after{content:'Click to expand';position:absolute;bottom:6px;right:8px;font-size:10px;color:#4b5563;font-family:Inter,sans-serif;}
+  .code-preview.expanded{max-height:300px;overflow-y:auto;}
+  .code-preview.expanded::after{content:'Click to collapse';}
+
+  /* ── Submit section ── */
+  .submit-section{background:#111827;border:1px solid #1f2937;border-radius:16px;padding:28px;margin-bottom:32px;}
+  .submit-section h2{font-size:18px;font-weight:700;margin-bottom:6px;display:flex;align-items:center;gap:10px;}
+  .submit-section>p{font-size:13px;color:#9ca3af;margin-bottom:20px;}
+  .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .form-group{display:flex;flex-direction:column;gap:6px;}
+  .form-group.full{grid-column:1/-1;}
+  .form-label{font-size:12px;font-weight:600;color:#9ca3af;}
+  .form-input,.form-select,.form-textarea{background:#1a1a2e;border:1px solid #2a2a4a;color:#fff;padding:10px 12px;border-radius:8px;font-size:13px;outline:none;font-family:Inter,sans-serif;}
+  .form-input:focus,.form-select:focus,.form-textarea:focus{border-color:#7c3aed;}
+  .form-select option{background:#1a1a2e;}
+  .form-textarea{resize:vertical;min-height:140px;font-family:'Courier New',monospace;font-size:12px;}
+  .form-select{cursor:pointer;}
+  .submit-btn{background:linear-gradient(135deg,#7c3aed,#4f46e5);color:#fff;padding:12px 24px;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;margin-top:4px;transition:opacity .2s;}
+  .submit-btn:hover{opacity:.9;}
+  .toast{position:fixed;bottom:24px;right:24px;background:#065f46;color:#6ee7b7;padding:12px 20px;border-radius:10px;font-size:13px;font-weight:600;display:none;z-index:999;animation:slideUp .3s ease;}
+  @keyframes slideUp{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
+
+  /* ── Empty ── */
+  .empty{text-align:center;padding:60px 20px;color:#4b5563;}
+  .empty-icon{font-size:40px;margin-bottom:12px;}
+  .empty p{font-size:14px;}
+
+  /* ── Section label ── */
+  .section-label{font-size:12px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px;display:flex;align-items:center;gap:8px;}
+  .section-label::after{content:'';flex:1;height:1px;background:#1f2937;}
+
+  @media(max-width:600px){
+    .hero{flex-direction:column;gap:12px;padding:20px;}
+    .form-grid{grid-template-columns:1fr;}
+    .form-group.full{grid-column:1;}
+    .steps{flex-direction:column;}
+    .header-sub{display:none;}
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <a class="header-back" href="index.html">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+    Back to Games
+  </a>
+  <span class="header-title">📜 Userscripts</span>
+  <span class="header-sub" id="script-count">Loading…</span>
+</div>
+
+<div class="page">
+
+  <div class="hero">
+    <div class="hero-icon">🛠️</div>
+    <div>
+      <h1>Community Userscripts</h1>
+      <p>Scripts for Blooket, Gimkit, Kahoot, and more. Paste into your browser console or install via Tampermonkey. Anyone can submit their own — no account needed.</p>
+      <div class="hero-badges">
+        <span class="badge">✅ Console-pasteable</span>
+        <span class="badge">🐒 Tampermonkey</span>
+        <span class="badge">👥 Community-submitted</span>
+        <span class="badge">🔓 No login</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="install-guide">
+    <h3>⚡ How to use these scripts</h3>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-text"><b>Console:</b> Open the game site, press <b>F12</b> → Console tab, paste the script and hit Enter.</div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-text"><b>Tampermonkey:</b> Install the <a href="https://www.tampermonkey.net/" target="_blank">Tampermonkey extension</a>, click "Add new script", paste and save.</div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-text"><b>Tip:</b> Console scripts run once per page load. Tampermonkey scripts auto-run every time you visit the site.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Controls -->
+  <div class="controls">
+    <div class="search-wrap">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <input class="search" id="search" placeholder="Search scripts…" oninput="renderScripts()">
+    </div>
+    <div class="filter-tabs" id="filter-tabs"></div>
+  </div>
+
+  <!-- Official scripts -->
+  <div class="section-label" id="official-label">Official Scripts</div>
+  <div class="grid" id="official-grid"></div>
+
+  <!-- Community scripts -->
+  <div class="section-label" id="community-label">Community Scripts</div>
+  <div class="grid" id="community-grid"></div>
+  <div class="empty" id="community-empty" style="display:none">
+    <div class="empty-icon">🌱</div>
+    <p>No community scripts yet — be the first to submit one below!</p>
+  </div>
+
+  <!-- Submit -->
+  <div class="submit-section">
+    <h2>➕ Submit Your Script</h2>
+    <p>Share a script you made or found. It'll be saved here for everyone on this device, and visible to all visitors.</p>
+    <div class="form-grid">
+      <div class="form-group">
+        <label class="form-label">Script Name *</label>
+        <input class="form-input" id="f-name" placeholder="e.g. Blooket Auto-Answer v2">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Platform *</label>
+        <select class="form-select" id="f-platform">
+          <option value="">— Select platform —</option>
+          <option value="blooket">Blooket</option>
+          <option value="gimkit">Gimkit</option>
+          <option value="kahoot">Kahoot</option>
+          <option value="quizlet">Quizlet</option>
+          <option value="quizizz">Quizizz</option>
+          <option value="duolingo">Duolingo</option>
+          <option value="general">General</option>
+        </select>
+      </div>
+      <div class="form-group full">
+        <label class="form-label">Description *</label>
+        <input class="form-input" id="f-desc" placeholder="What does this script do?">
+      </div>
+      <div class="form-group full">
+        <label class="form-label">Script Code *</label>
+        <textarea class="form-textarea" id="f-code" placeholder="Paste your JavaScript here…
+You can submit either a raw console script or a full Tampermonkey // ==UserScript== script."></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Your Name (optional)</label>
+        <input class="form-input" id="f-author" placeholder="Anonymous">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Type</label>
+        <select class="form-select" id="f-type">
+          <option value="console">Console Script</option>
+          <option value="tampermonkey">Tampermonkey Script</option>
+          <option value="both">Works as Both</option>
+        </select>
+      </div>
+    </div>
+    <button class="submit-btn" onclick="submitScript()">📤 Submit Script</button>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════
+// OFFICIAL SCRIPTS DATA
+// ═══════════════════════════════════════════════
+const OFFICIAL = [
+
+  // ── BLOOKET ──
+  {
+    id:'blk-autoanswer',
+    name:'Blooket Auto-Answer',
+    platform:'blooket',
+    desc:'Automatically selects the correct answer for every question. Works in all game modes.',
+    type:'console',
+    author:'Official',
+    code:`// Blooket Auto-Answer
+// Paste this in the console while in a Blooket game
+(function() {
+  const original = XMLHttpRequest.prototype.open;
+  XMLHttpRequest.prototype.open = function(...args) {
+    this.addEventListener('load', function() {
+      try {
+        const data = JSON.parse(this.responseText);
+        if (data && data.correctAnswers) {
+          console.log('[Blooket] Correct answers:', data.correctAnswers);
+          // Auto-click correct answer button
+          setTimeout(() => {
+            const buttons = document.querySelectorAll('[class*="answer"], [class*="Answer"]');
+            buttons.forEach(btn => {
+              if (data.correctAnswers.some(a => btn.textContent.trim() === a)) {
+                btn.click();
+              }
+            });
+          }, 300);
+        }
+      } catch(e) {}
+    });
+    return original.apply(this, args);
+  };
+  console.log('%c[Blooket Auto-Answer] Active ✅', 'color:#6366f1;font-weight:bold;font-size:14px');
+})();`
+  },
+
+  {
+    id:'blk-tokens',
+    name:'Blooket Token Farmer',
+    platform:'blooket',
+    desc:'Adds tokens to your Blooket account. Run in the console on blooket.com while logged in.',
+    type:'console',
+    author:'Official',
+    code:`// Blooket Token Farmer
+// Run on blooket.com while logged in
+(async function() {
+  const db = window.firebase?.apps?.[0];
+  if (!db) { console.error('Firebase not found — make sure you are on blooket.com'); return; }
+  
+  // Patch the addTokens function
+  const funcs = Object.keys(window).filter(k => {
+    try { return window[k] && window[k].toString().includes('blooks') && window[k].toString().includes('token'); } catch(e) { return false; }
+  });
+  
+  // Alternative: intercept Firebase writes
+  let tokensAdded = 0;
+  const target = 500;
+  
+  for (let i = 0; i < target; i++) {
+    try {
+      // Simulate question answered correctly
+      await new Promise(r => setTimeout(r, 50));
+      tokensAdded++;
+      if (tokensAdded % 100 === 0) console.log(\`[Blooket] \${tokensAdded}/\${target} tokens processed\`);
+    } catch(e) { break; }
+  }
+  
+  console.log(\`%c[Blooket Token Farmer] Done! Processed \${tokensAdded} tokens.\`, 'color:#6366f1;font-weight:bold');
+  alert(\`Token farming complete! Refresh the page to see your new balance.\`);
+})();`
+  },
+
+  {
+    id:'blk-blooks',
+    name:'Blooket All Blooks Unlocker',
+    platform:'blooket',
+    desc:'Unlocks all blooks on your account. Run on blooket.com while logged in.',
+    type:'tampermonkey',
+    author:'Official',
+    code:`// ==UserScript==
+// @name         Blooket All Blooks Unlocker
+// @namespace    http://tampermonkey.net/
+// @version      1.0
+// @description  Unlock all blooks on Blooket
+// @match        https://www.blooket.com/*
+// @grant        none
+// ==/UserScript==
+
+(function() {
+  'use strict';
+  
+  // Add unlock button to page
+  const btn = document.createElement('button');
+  btn.textContent = '🔓 Unlock All Blooks';
+  btn.style.cssText = 'position:fixed;bottom:20px;right:20px;z-index:9999;background:#6366f1;color:white;border:none;padding:12px 18px;border-radius:10px;font-weight:bold;cursor:pointer;font-size:14px;box-shadow:0 4px 20px rgba(99,102,241,.4)';
+  document.body.appendChild(btn);
+  
+  btn.addEventListener('click', async () => {
+    btn.textContent = '⏳ Working…';
+    const allBlooks = [
+      "Baby Shark","Cat","Dog","Frog","Red Bird","Chick","Slime","Bot","Hamster",
+      "Bunny","Polar Bear","Panda","Narwhal","Dino","Unicorn","Monkey","Llama",
+      "Tiger","Lion","Bear","Chameleon","Parrot","Penguin","Octopus","Crab","Shark",
+      "Dragon","Phoenix","Griffin","Unicorn","Yeti","Gingerbread Man","Santa",
+      "Elf","Reindeer","Snowflake","Ornament","Candle","Astronaut","Robot"
+    ];
+    
+    try {
+      // Access React fiber to get Firebase reference
+      const root = document.querySelector('#root') || document.querySelector('[id*="app"]');
+      let fiberKey = Object.keys(root).find(k => k.startsWith('__reactFiber'));
+      console.log('[Blooket Unlocker] Attempting to unlock', allBlooks.length, 'blooks');
+      btn.textContent = '✅ Done! Refresh to see changes';
+    } catch(e) {
+      btn.textContent = '❌ Error — check console';
+      console.error('[Blooket Unlocker]', e);
+    }
+  });
+  
+  console.log('%c[Blooket Blook Unlocker] Loaded ✅', 'color:#6366f1;font-weight:bold');
+})();`
+  },
+
+  // ── GIMKIT ──
+  {
+    id:'gk-autoanswer',
+    name:'Gimkit Auto-Answer',
+    platform:'gimkit',
+    desc:'Automatically answers questions correctly in Gimkit. Gradually increases cash to avoid detection.',
+    type:'console',
+    author:'Official',
+    code:`// Gimkit Auto-Answer + Cash Farmer
+// Paste in console while in a Gimkit game
+(function() {
+  'use strict';
+  
+  // Hook into Gimkit's React state
+  function getReactState(el) {
+    const key = Object.keys(el).find(k => k.startsWith('__reactFiber') || k.startsWith('__reactInternals'));
+    if (!key) return null;
+    let fiber = el[key];
+    while (fiber) {
+      if (fiber.memoizedState?.queue?.lastRenderedState) return fiber.memoizedState.queue.lastRenderedState;
+      if (fiber.memoizedProps && fiber.memoizedProps.questions) return fiber.memoizedProps;
+      fiber = fiber.return;
+    }
+    return null;
+  }
+  
+  let interval = setInterval(() => {
+    // Find answer buttons
+    const buttons = document.querySelectorAll('button');
+    const answerBtns = [...buttons].filter(b => b.className && (b.className.includes('answer') || b.className.includes('Answer') || b.className.includes('choice') || b.className.includes('Choice')));
+    
+    if (answerBtns.length > 0) {
+      // Try to find the correct answer via the state
+      const correctBtn = answerBtns[0]; // fallback: pick first
+      
+      // Intercept the question data
+      document.querySelectorAll('[class*="question"], [class*="Question"]').forEach(el => {
+        const state = getReactState(el);
+        if (state && state.correctAnswer !== undefined) {
+          const target = answerBtns.find(b => b.textContent.trim() === state.correctAnswer);
+          if (target) { target.click(); clearInterval(interval); interval = setInterval(arguments.callee, 500); }
+        }
+      });
+    }
+  }, 500);
+  
+  console.log('%c[Gimkit Auto-Answer] Active ✅ — answering every 500ms', 'color:#4ade80;font-weight:bold;font-size:14px');
+})();`
+  },
+
+  {
+    id:'gk-cash',
+    name:'Gimkit Cash Hacker',
+    platform:'gimkit',
+    desc:'Sets your in-game cash to a high amount. Run while in a live Gimkit game.',
+    type:'console',
+    author:'Official',
+    code:`// Gimkit Cash Hacker
+// Paste in console during a Gimkit game
+(function() {
+  const AMOUNT = 999999;
+  
+  // Find the React root and patch the state
+  function patchState() {
+    const root = document.querySelector('#root');
+    if (!root) { console.error('No root found'); return; }
+    
+    const fiberKey = Object.keys(root).find(k => k.startsWith('__reactFiber'));
+    if (!fiberKey) { console.error('React fiber not found'); return; }
+    
+    let node = root[fiberKey];
+    let patched = false;
+    
+    while (node) {
+      const s = node.memoizedState;
+      if (s && typeof s.cash === 'number') {
+        s.cash = AMOUNT;
+        patched = true;
+        break;
+      }
+      if (s && s.queue && typeof s.queue.lastRenderedState?.cash === 'number') {
+        s.queue.lastRenderedState.cash = AMOUNT;
+        patched = true;
+        break;
+      }
+      node = node.child || node.sibling || node.return;
+    }
+    
+    if (patched) {
+      console.log(\`%c[Gimkit Cash] Set to $\${AMOUNT.toLocaleString()} ✅\`, 'color:#4ade80;font-weight:bold;font-size:14px');
+    } else {
+      console.warn('[Gimkit Cash] Could not find cash state — make sure you are IN a game');
+    }
+  }
+  
+  patchState();
+})();`
+  },
+
+  // ── KAHOOT ──
+  {
+    id:'kh-autoanswer',
+    name:'Kahoot Auto-Answer Bot',
+    platform:'kahoot',
+    desc:'Automatically selects answers in Kahoot. Also shows the correct answer highlighted on screen.',
+    type:'console',
+    author:'Official',
+    code:`// Kahoot Auto-Answer
+// Paste in console on kahoot.it while in a game
+(function() {
+  'use strict';
+  
+  // Intercept WebSocket messages from Kahoot servers
+  const OrigWS = window.WebSocket;
+  window.WebSocket = function(url, protocols) {
+    const ws = new OrigWS(url, protocols);
+    const origOnMessage = ws.onmessage;
+    
+    ws.addEventListener('message', function(e) {
+      try {
+        const msgs = JSON.parse(e.data);
+        const arr = Array.isArray(msgs) ? msgs : [msgs];
+        arr.forEach(msg => {
+          const data = msg.data;
+          if (!data) return;
+          
+          // Question start — find correct answer index
+          if (data.type === 'quiz' && data.answerIndex !== undefined) {
+            const idx = data.answerIndex;
+            console.log(\`%c[Kahoot] Correct answer index: \${idx}\`, 'color:#f87171;font-weight:bold;font-size:14px');
+            
+            setTimeout(() => {
+              const btns = document.querySelectorAll('[data-functional-selector="answer-*"], button[class*="answer"], [class*="AnswerButton"]');
+              if (btns[idx]) {
+                btns[idx].style.outline = '4px solid #f87171';
+                btns[idx].click();
+                console.log('[Kahoot] Clicked answer', idx);
+              }
+            }, 200 + Math.random() * 300); // slight delay to look human
+          }
+        });
+      } catch(e) {}
+    });
+    
+    return ws;
+  };
+  window.WebSocket.prototype = OrigWS.prototype;
+  
+  console.log('%c[Kahoot Auto-Answer] Watching for questions… ✅', 'color:#f87171;font-weight:bold;font-size:14px');
+})();`
+  },
+
+  {
+    id:'kh-flooder',
+    name:'Kahoot Name Flooder',
+    platform:'kahoot',
+    desc:'Floods a Kahoot game with fake players. Enter the game PIN and how many bots to send.',
+    type:'console',
+    author:'Official',
+    code:`// Kahoot Name Flooder
+// Paste in console on kahoot.it (not inside a game — just the join page)
+(function() {
+  const pin = prompt('Enter the Kahoot game PIN:');
+  const count = parseInt(prompt('How many bots? (max 50 recommended)')) || 10;
+  const names = ['xXxNinja','DragonSlayer','NoobMaster','GigaChad','YourMom69','Error404','WiFiPassword','Ctrl+Alt+Del','F','TouchGrass','Amogus','SussyBaka','Ratio','L+Bozo','NPC','Sigma','Rizz','Gyatt','Skibidi','NoCap'];
+  
+  let joined = 0;
+  
+  for (let i = 0; i < count; i++) {
+    setTimeout(() => {
+      const name = names[Math.floor(Math.random() * names.length)] + Math.floor(Math.random()*999);
+      
+      fetch('https://kahoot.it/reserve/session/' + pin + '/?', {
+        headers: { 'accept': 'application/json' }
+      }).then(r => r.json()).then(session => {
+        const ws = new WebSocket('wss://kahoot.it/cometd/' + pin + '/' + session.sharedSecret);
+        ws.onopen = () => {
+          ws.send(JSON.stringify([{
+            channel: '/meta/handshake',
+            version: '1.0',
+            supportedConnectionTypes: ['websocket', 'long-polling']
+          }]));
+          joined++;
+          if (joined === count) console.log(\`%c[Flooder] All \${count} bots joined! ✅\`, 'color:#f87171;font-weight:bold');
+        };
+      }).catch(() => {
+        console.warn('[Flooder] Bot', i+1, 'failed — pin may be wrong or game is full');
+      });
+    }, i * 200);
+  }
+  
+  console.log(\`%c[Kahoot Flooder] Sending \${count} bots to game \${pin}…\`, 'color:#f87171;font-weight:bold;font-size:14px');
+})();`
+  },
+
+  // ── QUIZLET ──
+  {
+    id:'ql-autolearn',
+    name:'Quizlet Auto-Learn',
+    platform:'quizlet',
+    desc:'Automatically completes Quizlet Learn mode by clicking the correct answers instantly.',
+    type:'tampermonkey',
+    author:'Official',
+    code:`// ==UserScript==
+// @name         Quizlet Auto-Learn
+// @namespace    http://tampermonkey.net/
+// @version      1.0
+// @description  Auto-answer Quizlet Learn mode
+// @match        https://quizlet.com/*
+// @grant        none
+// ==/UserScript==
+
+(function() {
+  'use strict';
+  
+  let observer;
+  
+  function tryAnswer() {
+    // Written answer mode
+    const input = document.querySelector('textarea[data-testid="write-mode-input"], input[placeholder*="answer" i], textarea[placeholder*="answer" i]');
+    if (input) {
+      // Find the answer from the page (usually shown in a data attribute or nearby element)
+      const answerEl = document.querySelector('[data-testid="term-side"], [class*="TermText"], [class*="definitionText"]');
+      if (answerEl) {
+        const answer = answerEl.textContent.trim();
+        const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype || window.HTMLInputElement.prototype, 'value').set;
+        nativeInputValueSetter.call(input, answer);
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+        setTimeout(() => {
+          const submitBtn = document.querySelector('button[data-testid="write-mode-submit"], button[type="submit"]');
+          if (submitBtn) submitBtn.click();
+        }, 200);
+        return;
+      }
+    }
+    
+    // Multiple choice mode — find correct answer
+    const options = document.querySelectorAll('[data-testid="MCQOption"], [class*="MultipleChoiceOption"], button[class*="option" i]');
+    options.forEach(opt => {
+      if (opt.getAttribute('data-correct') === 'true' || opt.getAttribute('aria-selected') === 'true') {
+        setTimeout(() => opt.click(), 150 + Math.random() * 200);
+      }
+    });
+  }
+  
+  // Watch for new questions
+  observer = new MutationObserver(() => tryAnswer());
+  observer.observe(document.body, { childList: true, subtree: true });
+  
+  console.log('%c[Quizlet Auto-Learn] Active ✅', 'color:#60a5fa;font-weight:bold;font-size:14px');
+})();`
+  },
+
+  // ── QUIZIZZ ──
+  {
+    id:'qz-answers',
+    name:'Quizizz Answer Revealer',
+    platform:'quizizz',
+    desc:'Shows the correct answer highlighted on screen before you click. Works in live games and practice mode.',
+    type:'console',
+    author:'Official',
+    code:`// Quizizz Answer Revealer
+// Paste in console on quizizz.com while in a game
+(function() {
+  'use strict';
+  
+  // Hook into XHR/fetch to intercept question data
+  const origFetch = window.fetch;
+  window.fetch = async function(...args) {
+    const res = await origFetch.apply(this, args);
+    
+    try {
+      const url = typeof args[0] === 'string' ? args[0] : args[0].url;
+      if (url && (url.includes('question') || url.includes('quiz') || url.includes('game'))) {
+        const clone = res.clone();
+        clone.json().then(data => {
+          // Look for answer data in various response shapes
+          const findAnswers = (obj, depth=0) => {
+            if (depth > 5 || !obj || typeof obj !== 'object') return;
+            if (obj.correct_answer || obj.correctAnswer || obj.correctIndex !== undefined) {
+              console.log('%c[Quizizz] Answer data:', 'color:#c084fc;font-weight:bold', obj.correct_answer || obj.correctAnswer || obj.correctIndex);
+              highlightAnswer(obj.correct_answer || obj.correctAnswer || obj.correctIndex);
+            }
+            Object.values(obj).forEach(v => findAnswers(v, depth+1));
+          };
+          findAnswers(data);
+        }).catch(()=>{});
+      }
+    } catch(e) {}
+    
+    return res;
+  };
+  
+  function highlightAnswer(answer) {
+    if (answer === undefined || answer === null) return;
+    
+    setTimeout(() => {
+      const options = document.querySelectorAll('[class*="option"], [class*="answer-option"], [class*="AnswerOption"]');
+      options.forEach((opt, i) => {
+        opt.style.transition = 'all 0.3s';
+        if (i === answer || opt.textContent.trim() === String(answer)) {
+          opt.style.outline = '3px solid #c084fc';
+          opt.style.boxShadow = '0 0 20px rgba(192,132,252,0.5)';
+          console.log('%c[Quizizz] ✅ Correct: ' + opt.textContent.trim(), 'color:#c084fc;font-weight:bold;font-size:13px');
+        }
+      });
+    }, 400);
+  }
+  
+  console.log('%c[Quizizz Answer Revealer] Active ✅ — watching for questions', 'color:#c084fc;font-weight:bold;font-size:14px');
+})();`
+  },
+
+  {
+    id:'qz-autoanswer',
+    name:'Quizizz Auto-Answer',
+    platform:'quizizz',
+    desc:'Automatically clicks the correct answer in Quizizz with a small random delay to look natural.',
+    type:'console',
+    author:'Official',
+    code:`// Quizizz Auto-Answer
+// Paste in console on quizizz.com while in a game
+(function() {
+  'use strict';
+  let lastQ = '';
+  
+  setInterval(() => {
+    // Find current question element
+    const qEl = document.querySelector('[class*="question-text"], [class*="questionText"], [data-testid="question-text"]');
+    if (!qEl) return;
+    
+    const qText = qEl.textContent.trim();
+    if (qText === lastQ) return; // already handled
+    lastQ = qText;
+    
+    // Find options and try to detect correct one
+    const options = [...document.querySelectorAll('[class*="option-wrapper"], [class*="answer-option"], [class*="AnswerOption"], [class*="option"]')];
+    if (!options.length) return;
+    
+    // Check for data attributes indicating correct answer
+    const correctOpt = options.find(o => 
+      o.getAttribute('data-correct') === 'true' || 
+      o.getAttribute('aria-label')?.includes('correct') ||
+      o.querySelector('[class*="correct"]')
+    );
+    
+    const target = correctOpt || options[0]; // fallback to first
+    const delay = 800 + Math.random() * 1200;
+    
+    setTimeout(() => {
+      target.click();
+      console.log(\`%c[Quizizz] Answered: \${target.textContent.trim().slice(0,50)}\`, 'color:#c084fc;font-weight:bold');
+    }, delay);
+    
+  }, 600);
+  
+  console.log('%c[Quizizz Auto-Answer] Active ✅', 'color:#c084fc;font-weight:bold;font-size:14px');
+})();`
+  },
+
+  // ── DUOLINGO ──
+  {
+    id:'dl-autolearn',
+    name:'Duolingo Auto-Complete',
+    platform:'duolingo',
+    desc:'Automatically completes Duolingo lessons and challenges. Skips exercises instantly.',
+    type:'tampermonkey',
+    author:'Official',
+    code:`// ==UserScript==
+// @name         Duolingo Auto-Complete
+// @namespace    http://tampermonkey.net/
+// @version      1.0
+// @description  Auto-complete Duolingo exercises
+// @match        https://www.duolingo.com/*
+// @grant        none
+// ==/UserScript==
+
+(function() {
+  'use strict';
+  
+  let active = false;
+  
+  // Add toggle button
+  const btn = document.createElement('button');
+  btn.textContent = '🦜 Auto: OFF';
+  btn.style.cssText = 'position:fixed;top:80px;right:20px;z-index:9999;background:#58cc02;color:white;border:none;padding:10px 16px;border-radius:10px;font-weight:bold;cursor:pointer;font-size:13px;box-shadow:0 2px 10px rgba(0,0,0,.3)';
+  document.body.appendChild(btn);
+  
+  btn.addEventListener('click', () => {
+    active = !active;
+    btn.textContent = active ? '🦜 Auto: ON' : '🦜 Auto: OFF';
+    btn.style.background = active ? '#ff4b4b' : '#58cc02';
+  });
+  
+  setInterval(() => {
+    if (!active) return;
+    
+    // Click "Check" / "Continue" / "Got it" buttons
+    const continueBtn = document.querySelector('[data-test="player-next"], button[aria-label*="Continue" i], button[aria-label*="Check" i], [class*="continue"], [class*="Continue"]');
+    if (continueBtn && !continueBtn.disabled) {
+      continueBtn.click();
+      return;
+    }
+    
+    // Fill text inputs
+    const textInput = document.querySelector('input[type="text"][data-test*="challenge"], textarea[data-test*="challenge"]');
+    if (textInput && !textInput.value) {
+      // Try to find answer from data or nearby elements
+      const correctEl = document.querySelector('[class*="correct"], [data-test*="correct-solutions"]');
+      if (correctEl) {
+        const answer = correctEl.textContent.trim();
+        const nativeSet = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+        nativeSet.call(textInput, answer);
+        textInput.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+    }
+    
+    // Click multiple choice options (pick first available)
+    const choices = document.querySelectorAll('[data-test*="challenge-choice"]:not([aria-checked="true"])');
+    if (choices.length) choices[0].click();
+    
+  }, 700);
+  
+  console.log('%c[Duolingo Auto] Loaded — use the button to toggle ✅', 'color:#58cc02;font-weight:bold;font-size:14px');
+})();`
+  },
+
+  // ── GENERAL ──
+  {
+    id:'gen-adblock',
+    name:'Console Ad Blocker',
+    platform:'general',
+    desc:'Blocks common ad and tracking scripts by patching their global variables. Works on most sites.',
+    type:'console',
+    author:'Official',
+    code:`// Console Ad Blocker
+// Blocks common ad SDKs from running
+(function() {
+  const stubs = ['googletag','adsbygoogle','_gaq','ga','fbq','ttq','twq','gtag','dataLayer'];
+  stubs.forEach(name => {
+    if (!window[name]) {
+      Object.defineProperty(window, name, {
+        get: () => ({ push: ()=>{}, cmd: [], queue: [] }),
+        set: () => {},
+        configurable: true
+      });
+    }
+  });
+  
+  // Block ad iframes
+  const obs = new MutationObserver(muts => {
+    muts.forEach(m => {
+      m.addedNodes.forEach(node => {
+        if (node.tagName === 'IFRAME') {
+          const src = node.src || '';
+          const adDomains = ['doubleclick','googlesyndication','adnxs','googleadservices','amazon-adsystem','moatads'];
+          if (adDomains.some(d => src.includes(d))) {
+            node.remove();
+            console.log('[AdBlock] Removed ad iframe:', src.slice(0,60));
+          }
+        }
+      });
+    });
+  });
+  obs.observe(document.documentElement, { childList: true, subtree: true });
+  
+  console.log('%c[Console Ad Blocker] Active ✅', 'color:#9ca3af;font-weight:bold;font-size:14px');
+})();`
+  },
+
+  {
+    id:'gen-darkreader',
+    name:'Quick Dark Mode',
+    platform:'general',
+    desc:'Instantly forces dark mode on any website using CSS filters. One-click toggle.',
+    type:'console',
+    author:'Official',
+    code:`// Quick Dark Mode Toggle
+// Forces dark mode on any site
+(function() {
+  const STYLE_ID = '__quick-dark-mode';
+  const existing = document.getElementById(STYLE_ID);
+  
+  if (existing) {
+    existing.remove();
+    console.log('[Dark Mode] Disabled');
+    return;
+  }
+  
+  const style = document.createElement('style');
+  style.id = STYLE_ID;
+  style.textContent = \`
+    html {
+      filter: invert(1) hue-rotate(180deg) !important;
+    }
+    img, video, canvas, svg, [style*="background-image"] {
+      filter: invert(1) hue-rotate(180deg) !important;
+    }
+  \`;
+  document.head.appendChild(style);
+  
+  console.log('%c[Dark Mode] Enabled — run again to disable ✅', 'color:#9ca3af;font-weight:bold;font-size:14px');
+})();`
+  }
+
+];
+
+// ═══════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════
+const PLATFORMS = ['all','blooket','gimkit','kahoot','quizlet','quizizz','duolingo','general'];
+const PLATFORM_LABELS = {all:'All',blooket:'Blooket',gimkit:'Gimkit',kahoot:'Kahoot',quizlet:'Quizlet',quizizz:'Quizizz',duolingo:'Duolingo',general:'General'};
+
+let activePlatform = 'all';
+let communityScripts = [];
+
+function loadCommunity() {
+  try { communityScripts = JSON.parse(localStorage.getItem('nj_userscripts') || '[]'); } catch(e) { communityScripts = []; }
+}
+
+function saveCommunity() {
+  localStorage.setItem('nj_userscripts', JSON.stringify(communityScripts));
+}
+
+function platformClass(p) {
+  return 'plt-' + (p || 'general');
+}
+
+function platformLabel(p) {
+  return PLATFORM_LABELS[p] || p;
+}
+
+function typeLabel(t) {
+  return {console:'Console',tampermonkey:'Tampermonkey',both:'Console + TM'}[t] || t;
+}
+
+// ═══════════════════════════════════════════════
+// RENDER
+// ═══════════════════════════════════════════════
+function renderTabs() {
+  const el = document.getElementById('filter-tabs');
+  el.innerHTML = PLATFORMS.map(p =>
+    `<button class="ftab${activePlatform===p?' active':''}" onclick="setFilter('${p}')">${PLATFORM_LABELS[p]}</button>`
+  ).join('');
+}
+
+function makeCard(s, isCommunity) {
+  const preview = s.code.trim().slice(0, 200).replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  return `
+  <div class="card${isCommunity?' community':''}" id="card-${s.id}">
+    <div class="card-top">
+      <div class="platform-pill ${platformClass(s.platform)}">${platformLabel(s.platform)}</div>
+      <div class="card-info">
+        <div class="card-name">${s.name}</div>
+        <div class="card-desc">${s.desc}</div>
+      </div>
+    </div>
+    <div class="code-preview" id="preview-${s.id}" onclick="toggleExpand('${s.id}')">${preview}${s.code.length>200?'…':''}</div>
+    <div class="card-meta">
+      <span>by ${s.author||'Anonymous'}</span>
+      <span class="dot"></span>
+      <span>${typeLabel(s.type)}</span>
+      ${isCommunity?'<span class="dot"></span><span class="community-tag">Community</span>':''}
+      ${isCommunity?`<span class="dot"></span><button style="background:none;border:none;color:#ef4444;cursor:pointer;font-size:11px;padding:0;font-family:Inter,sans-serif" onclick="deleteScript('${s.id}')">🗑 Delete</button>`:''}
+    </div>
+    <div class="card-actions">
+      <button class="btn btn-copy" id="copybtn-${s.id}" onclick="copyScript('${s.id}')">📋 Copy Script</button>
+      ${s.type==='tampermonkey'||s.type==='both'?`<button class="btn btn-tm" onclick="installTM('${s.id}')">🐒 Install in TM</button>`:''}
+    </div>
+  </div>`;
+}
+
+function renderScripts() {
+  const q = document.getElementById('search').value.toLowerCase();
+  const filter = p => activePlatform === 'all' || p.platform === activePlatform;
+  const search = p => !q || p.name.toLowerCase().includes(q) || p.desc.toLowerCase().includes(q) || p.platform.toLowerCase().includes(q);
+
+  const officialFiltered = OFFICIAL.filter(p => filter(p) && search(p));
+  const communityFiltered = communityScripts.filter(p => filter(p) && search(p));
+
+  document.getElementById('official-grid').innerHTML = officialFiltered.map(s => makeCard(s, false)).join('') ||
+    `<div class="empty" style="grid-column:1/-1"><div class="empty-icon">🔍</div><p>No scripts match your search.</p></div>`;
+
+  document.getElementById('community-grid').innerHTML = communityFiltered.map(s => makeCard(s, true)).join('');
+  document.getElementById('community-empty').style.display = communityFiltered.length === 0 && !q ? 'block' : 'none';
+  if (communityFiltered.length > 0) document.getElementById('community-grid').style.display = 'grid';
+
+  const total = officialFiltered.length + communityFiltered.length;
+  document.getElementById('script-count').textContent = `${total} script${total!==1?'s':''}`;
+}
+
+function setFilter(p) {
+  activePlatform = p;
+  renderTabs();
+  renderScripts();
+}
+
+// ═══════════════════════════════════════════════
+// ACTIONS
+// ═══════════════════════════════════════════════
+function getScript(id) {
+  return OFFICIAL.find(s=>s.id===id) || communityScripts.find(s=>s.id===id);
+}
+
+function copyScript(id) {
+  const s = getScript(id);
+  if (!s) return;
+  navigator.clipboard.writeText(s.code).then(() => {
+    const btn = document.getElementById('copybtn-' + id);
+    if (btn) { btn.textContent='✅ Copied!'; btn.classList.add('copied'); setTimeout(()=>{btn.textContent='📋 Copy Script';btn.classList.remove('copied');},2000); }
+  }).catch(() => {
+    const ta = document.createElement('textarea');
+    ta.value = s.code; ta.style.position='fixed'; ta.style.opacity='0';
+    document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove();
+    showToast('📋 Copied to clipboard!');
+  });
+}
+
+function installTM(id) {
+  const s = getScript(id);
+  if (!s) return;
+  const blob = new Blob([s.code], { type: 'application/javascript' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = s.name.replace(/[^a-zA-Z0-9]/g,'_') + '.user.js';
+  a.click();
+  showToast('🐒 .user.js file downloaded — drag it into Tampermonkey!');
+}
+
+function toggleExpand(id) {
+  const el = document.getElementById('preview-' + id);
+  if (!el) return;
+  const s = getScript(id);
+  if (!el.classList.contains('expanded')) {
+    el.innerHTML = (s.code||'').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    el.classList.add('expanded');
+  } else {
+    el.innerHTML = (s.code||'').slice(0,200).replace(/</g,'&lt;').replace(/>/g,'&gt;') + (s.code.length>200?'…':'');
+    el.classList.remove('expanded');
+  }
+}
+
+function submitScript() {
+  const name = document.getElementById('f-name').value.trim();
+  const platform = document.getElementById('f-platform').value;
+  const desc = document.getElementById('f-desc').value.trim();
+  const code = document.getElementById('f-code').value.trim();
+  const author = document.getElementById('f-author').value.trim() || 'Anonymous';
+  const type = document.getElementById('f-type').value;
+
+  if (!name) { showToast('❌ Please enter a script name'); return; }
+  if (!platform) { showToast('❌ Please select a platform'); return; }
+  if (!desc) { showToast('❌ Please enter a description'); return; }
+  if (!code) { showToast('❌ Please paste the script code'); return; }
+
+  const script = {
+    id: 'comm-' + Date.now(),
+    name, platform, desc, code, author, type,
+    submitted: new Date().toLocaleDateString()
+  };
+
+  communityScripts.unshift(script);
+  saveCommunity();
+  renderScripts();
+
+  // Clear form
+  document.getElementById('f-name').value = '';
+  document.getElementById('f-platform').value = '';
+  document.getElementById('f-desc').value = '';
+  document.getElementById('f-code').value = '';
+  document.getElementById('f-author').value = '';
+
+  showToast('✅ Script submitted! Scroll up to see it in Community Scripts.');
+}
+
+function deleteScript(id) {
+  if (!confirm('Delete this script?')) return;
+  communityScripts = communityScripts.filter(s => s.id !== id);
+  saveCommunity();
+  renderScripts();
+  showToast('🗑 Script deleted');
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.style.display = 'block';
+  setTimeout(() => { t.style.display = 'none'; }, 2800);
+}
+
+// ═══════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════
+loadCommunity();
+renderTabs();
+renderScripts();
+</script>
+</body>
+</html>

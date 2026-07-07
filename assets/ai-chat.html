@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AI Chat</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:'Segoe UI',sans-serif;background:#0f0f1a;color:#e0e0e0;display:flex;flex-direction:column;height:100vh;overflow:hidden;}
+    .topbar{background:#1a1a2e;padding:10px 14px;display:flex;align-items:center;gap:10px;border-bottom:1px solid #2a2a4a;flex-shrink:0;}
+    .ai-icon{width:28px;height:28px;background:linear-gradient(135deg,#667eea,#764ba2);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;}
+    .topbar h1{font-size:15px;color:#fff;font-weight:600;flex:1;}
+    .topbar .sub{font-size:11px;color:#6666aa;font-weight:400;}
+    .icon-btn{background:none;border:1px solid #2a2a4a;color:#888;border-radius:7px;padding:5px 10px;cursor:pointer;font-size:12px;margin-left:4px;}
+    .icon-btn:hover{color:#fff;border-color:#667eea;}
+    .messages{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px;}
+    .msg{display:flex;gap:8px;align-items:flex-start;}
+    .msg.user{flex-direction:row-reverse;}
+    .av{width:27px;height:27px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;margin-top:2px;}
+    .av.ai{background:linear-gradient(135deg,#667eea,#764ba2);}
+    .av.user{background:#1a5a3a;}
+    .bubble{max-width:83%;padding:9px 13px;border-radius:13px;font-size:13.5px;line-height:1.6;word-break:break-word;}
+    .msg.ai .bubble{background:#1e1e38;border:1px solid #2a2a50;border-top-left-radius:3px;}
+    .msg.user .bubble{background:#162e22;border:1px solid #1a4a30;border-top-right-radius:3px;}
+    .dots{display:flex;gap:4px;align-items:center;padding:2px 0;}
+    .dot{width:6px;height:6px;border-radius:50%;background:#667eea;animation:bop .9s infinite;}
+    .dot:nth-child(2){animation-delay:.18s;}
+    .dot:nth-child(3){animation-delay:.36s;}
+    @keyframes bop{0%,80%,100%{transform:translateY(0);}40%{transform:translateY(-6px);}}
+    .input-row{padding:9px 11px;background:#14142a;border-top:1px solid #222238;display:flex;gap:8px;flex-shrink:0;}
+    .input-row textarea{flex:1;background:#1e1e38;border:1px solid #2a2a50;color:#ddd;border-radius:10px;padding:9px 13px;font-size:13.5px;font-family:inherit;resize:none;outline:none;min-height:40px;max-height:110px;}
+    .input-row textarea:focus{border-color:#667eea;}
+    .input-row textarea::placeholder{color:#555;}
+    .send-btn{background:linear-gradient(135deg,#667eea,#764ba2);border:none;color:#fff;border-radius:10px;padding:9px 15px;cursor:pointer;font-size:17px;flex-shrink:0;align-self:flex-end;transition:opacity .2s;}
+    .send-btn:disabled{opacity:.3;cursor:default;}
+    .welcome{text-align:center;margin:auto;padding:20px;max-width:340px;}
+    .welcome .icon{font-size:44px;margin-bottom:9px;}
+    .welcome h2{color:#fff;margin-bottom:6px;font-size:17px;}
+    .welcome p{color:#777;font-size:13px;line-height:1.6;}
+    .examples{display:flex;flex-direction:column;gap:5px;margin-top:12px;}
+    .ex{background:#1e1e38;border:1px solid #2a2a50;color:#bbb;border-radius:8px;padding:8px 12px;cursor:pointer;font-size:12.5px;text-align:left;transition:all .15s;}
+    .ex:hover{background:#26264a;border-color:#667eea;color:#fff;}
+    pre{background:#111;border-radius:6px;padding:8px;overflow-x:auto;font-size:12px;white-space:pre-wrap;margin:4px 0;}
+    code.ic{background:#252545;padding:1px 5px;border-radius:4px;font-size:12px;}
+    strong{color:#ddd;} em{color:#aaa;font-style:italic;}
+    ul,ol{padding-left:16px;margin:3px 0;} li{margin:2px 0;}
+    .err{color:#f87;}
+  </style>
+</head>
+<body>
+<div id="chatUI" style="display:flex;flex-direction:column;height:100%;">
+  <div class="topbar">
+    <div class="ai-icon">🤖</div>
+    <h1>AI Chat <span class="sub">· Free · No sign-in needed</span></h1>
+    <button class="icon-btn" onclick="clearChat()" title="Clear chat">🗑</button>
+  </div>
+  <div class="messages" id="messages">
+    <div class="welcome" id="welcome">
+      <div class="icon">🤖</div>
+      <h2>AI Chat</h2>
+      <p>Ask me anything — homework, coding, explanations, creative writing, trivia, or just to chat!</p>
+      <div class="examples">
+        <button class="ex" onclick="useEx(this)">📚 Explain how gravity works</button>
+        <button class="ex" onclick="useEx(this)">💻 Write Python code to sort a list</button>
+        <button class="ex" onclick="useEx(this)">🌌 Give me 5 cool space facts</button>
+        <button class="ex" onclick="useEx(this)">✍️ Write a short funny story</button>
+      </div>
+    </div>
+  </div>
+  <div class="input-row">
+    <textarea id="inp" placeholder="Ask me anything…" rows="1"
+      onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();send();}"
+      oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,110)+'px'"></textarea>
+    <button class="send-btn" id="sendBtn" onclick="send()">➤</button>
+  </div>
+</div>
+
+<script>
+const GROQ_KEY = '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';
+const GROQ_MODEL = 'llama-3.3-70b-versatile';
+const MAX_TURNS = 10;
+const history = [];
+
+function renderMd(text) {
+  text = text.replace(/```(\w*)\n?([\s\S]*?)```/g, (_, l, c) =>
+    `<pre><code>${escH(c.trim())}</code></pre>`);
+  text = text.replace(/`([^`\n]+)`/g, (_, c) => `<code class="ic">${escH(c)}</code>`);
+  text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  text = text.replace(/\*(.+?)\*/g, '<em>$1</em>');
+  text = text.replace(/^### (.+)$/gm, '<strong style="color:#aab">$1</strong>');
+  text = text.replace(/^## (.+)$/gm, '<strong style="color:#ccf;font-size:14px">$1</strong>');
+  text = text.replace(/^# (.+)$/gm, '<strong style="color:#eef;font-size:15px">$1</strong>');
+  text = text.replace(/^[\-\*] (.+)$/gm, '&nbsp;• $1');
+  text = text.replace(/^\d+\. (.+)$/gm, '&nbsp;• $1');
+  text = text.replace(/\n/g, '<br>');
+  return text;
+}
+
+function escH(t){ return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function scrollBottom(){ const m=document.getElementById('messages'); m.scrollTop=m.scrollHeight; }
+
+function addBubble(role, content, isTyping) {
+  const w = document.getElementById('welcome');
+  if (w) w.remove();
+  const msgs = document.getElementById('messages');
+  const d = document.createElement('div');
+  d.className = `msg ${role}`;
+  d.innerHTML = `
+    <div class="av ${role}">${role==='ai'?'🤖':'👤'}</div>
+    <div class="bubble">${isTyping
+      ? '<div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>'
+      : content
+    }</div>`;
+  msgs.appendChild(d);
+  scrollBottom();
+  return d;
+}
+
+async function send() {
+  const inp = document.getElementById('inp');
+  const text = inp.value.trim();
+  if (!text) return;
+  inp.value = ''; inp.style.height = 'auto';
+  document.getElementById('sendBtn').disabled = true;
+
+  addBubble('user', escH(text));
+  history.push({ role: 'user', content: text });
+
+  const typingEl = addBubble('ai', '', true);
+  const bubble = typingEl.querySelector('.bubble');
+
+  try {
+    const messages = [
+      { role: 'system', content: 'You are a helpful, friendly AI assistant. Give clear, concise answers. Use markdown formatting when it helps (code blocks, bullets, bold). Keep responses focused and useful.' },
+      ...history.slice(-(MAX_TURNS * 2))
+    ];
+
+    const resp = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${GROQ_KEY}`
+      },
+      body: JSON.stringify({
+        model: GROQ_MODEL,
+        messages,
+        max_tokens: 1024,
+        temperature: 0.8
+      })
+    });
+
+    if (resp.status === 401) throw new Error('API key error — please contact the site owner.');
+    if (resp.status === 429) throw new Error('Too many requests — please wait a moment and try again.');
+    if (!resp.ok) throw new Error(`Error ${resp.status} — please try again.`);
+
+    const data = await resp.json();
+    const reply = data.choices?.[0]?.message?.content || '(no response)';
+
+    history.push({ role: 'assistant', content: reply });
+    bubble.innerHTML = renderMd(reply);
+
+  } catch(err) {
+    bubble.innerHTML = `<span class="err">⚠️ ${escH(err.message)}</span>`;
+    history.pop();
+  }
+
+  scrollBottom();
+  document.getElementById('sendBtn').disabled = false;
+  document.getElementById('inp').focus();
+}
+
+function useEx(btn) {
+  const t = btn.textContent.replace(/^[\p{Emoji}\s]+/u, '').trim();
+  document.getElementById('inp').value = t;
+  send();
+}
+
+function clearChat() {
+  history.length = 0;
+  document.getElementById('messages').innerHTML = `
+    <div class="welcome" id="welcome">
+      <div class="icon">🤖</div>
+      <h2>AI Chat</h2>
+      <p>Ask me anything — homework, coding, explanations, creative writing, trivia, or just to chat!</p>
+      <div class="examples">
+        <button class="ex" onclick="useEx(this)">📚 Explain how gravity works</button>
+        <button class="ex" onclick="useEx(this)">💻 Write Python code to sort a list</button>
+        <button class="ex" onclick="useEx(this)">🌌 Give me 5 cool space facts</button>
+        <button class="ex" onclick="useEx(this)">✍️ Write a short funny story</button>
+      </div>
+    </div>`;
+}
+</script>
+</body>
+</html>

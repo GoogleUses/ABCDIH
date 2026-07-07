@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>The Nitrogen Cycle — Bio Notes - Google Docs</title>
+  <link rel="icon" href="https://ssl.gstatic.com/docs/documents/images/kix-favicon7.ico">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Google Sans', Roboto, Arial, sans-serif;
+      background: #f1f3f4;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── App bar ── */
+    .gdocs-appbar {
+      display: flex; align-items: center; justify-content: space-between;
+      background: #fff; padding: 4px 12px; height: 60px; flex-shrink: 0;
+      border-bottom: 1px solid #e0e0e0;
+    }
+    .gdocs-appbar-left { display: flex; align-items: center; gap: 10px; }
+    .gdocs-title-area { display: flex; flex-direction: column; gap: 0; }
+    .gdocs-doc-title {
+      font-size: 18px; font-weight: 400; color: #202124;
+      outline: none; border: none; background: transparent;
+      cursor: text; line-height: 1.3; white-space: nowrap;
+    }
+    .gdocs-doc-meta { display: flex; align-items: center; gap: 4px; }
+    .gdocs-icon-btn {
+      background: none; border: none; cursor: pointer; padding: 3px;
+      display: flex; align-items: center; border-radius: 50%;
+    }
+    .gdocs-icon-btn:hover { background: #f1f3f4; }
+    .gdocs-saved-chip { font-size: 11px; color: #5f6368; }
+    .gdocs-appbar-right { display: flex; align-items: center; gap: 10px; }
+    .gdocs-btn-share {
+      display: flex; align-items: center; gap: 6px;
+      background: #1a73e8; color: #fff; border: none; border-radius: 20px;
+      padding: 8px 18px; font-size: 14px; font-weight: 500; cursor: pointer;
+    }
+    .gdocs-avatar {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: #fbbc04; color: #202124; font-weight: 700; font-size: 15px;
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    /* ── Menu bar ── */
+    .gdocs-menubar {
+      display: flex; align-items: center;
+      background: #fff; padding: 0 60px; height: 30px; flex-shrink: 0;
+    }
+    .gdocs-menu-item {
+      padding: 3px 10px; font-size: 13px; color: #202124;
+      cursor: pointer; border-radius: 4px; user-select: none;
+    }
+    .gdocs-menu-item:hover { background: #f1f3f4; }
+
+    /* ── Toolbar ── */
+    .gdocs-toolbar {
+      display: flex; align-items: center; gap: 1px;
+      background: #fff; padding: 4px 60px; height: 42px; flex-shrink: 0;
+      border-bottom: 1px solid #e0e0e0; overflow: hidden;
+    }
+    .gdocs-tb-btn {
+      width: 30px; height: 30px; border: none; background: none; cursor: pointer;
+      border-radius: 4px; display: flex; align-items: center; justify-content: center;
+      font-size: 13px; color: #444746; font-weight: 700;
+    }
+    .gdocs-tb-btn:hover { background: #f1f3f4; }
+    .gdocs-tb-sep { width: 1px; height: 22px; background: #dadce0; margin: 0 3px; flex-shrink: 0; }
+    .gdocs-zoom-box, .gdocs-font-box, .gdocs-fontsize-box, .gdocs-styles-box {
+      display: flex; align-items: center; gap: 2px;
+      padding: 3px 7px; font-size: 13px; color: #444746; cursor: pointer;
+      border-radius: 4px; border: 1px solid transparent; white-space: nowrap;
+    }
+    .gdocs-zoom-box:hover,.gdocs-font-box:hover,.gdocs-fontsize-box:hover,.gdocs-styles-box:hover {
+      background: #f1f3f4; border-color: #dadce0;
+    }
+    .gdocs-fontsize-box { width: 46px; }
+    .gdocs-styles-box { width: 100px; }
+    .gdocs-tb-bold { font-weight: 700; }
+    .gdocs-tb-italic { font-style: italic; font-weight: 400; }
+    .gdocs-tb-underline { text-decoration: underline; }
+
+    /* ── Document area ── */
+    .gdocs-body { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+    /* Ruler */
+    .gdocs-ruler {
+      height: 30px; background: #f8f9fa; border-bottom: 1px solid #dadce0;
+      flex-shrink: 0; overflow: hidden;
+    }
+    .gdocs-ruler-track {
+      display: flex; height: 100%; align-items: center; padding: 0 60px;
+    }
+    .gdocs-ruler-margin { height: 100%; background: #e8eaed; flex-shrink: 0; width: 96px; }
+    .gdocs-ruler-content {
+      flex: 1; position: relative; height: 100%;
+      font-size: 10px; color: #80868b;
+    }
+    .gdocs-ruler-content span {
+      position: absolute; top: 50%; transform: translateY(-50%); user-select: none;
+    }
+
+    /* Page canvas */
+    .gdocs-page-canvas {
+      flex: 1; overflow-y: auto; background: #f1f3f4;
+      display: flex; justify-content: center; padding: 24px 0 40px;
+    }
+    .gdocs-page {
+      width: 816px; min-height: 500px; background: #fff;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+      padding: 96px 96px 72px; box-sizing: border-box;
+    }
+    .gdocs-heading1 {
+      font-size: 24px; font-weight: 400; color: #1a73e8;
+      margin: 0 0 16px; line-height: 1.3;
+      border-bottom: 1px solid #e0e0e0; padding-bottom: 8px;
+      font-family: 'Google Sans', Arial, sans-serif;
+    }
+    .gdocs-body-text {
+      font-size: 11pt; line-height: 1.75; color: #202124;
+      margin: 0 0 14px; font-family: Arial, sans-serif;
+    }
+    .gdocs-cursor {
+      display: inline-block; width: 2px; height: 1.2em;
+      background: #202124; vertical-align: text-bottom;
+      animation: gdocs-blink 1s step-end infinite; margin-left: 1px;
+    }
+    @keyframes gdocs-blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+    /* Status bar */
+    .gdocs-statusbar {
+      display: flex; align-items: center; gap: 16px;
+      background: #fff; border-top: 1px solid #e0e0e0;
+      padding: 0 16px; height: 28px; font-size: 12px; color: #5f6368; flex-shrink: 0;
+    }
+
+    @media (max-width: 900px) {
+      .gdocs-page { width: 100%; padding: 48px 24px; }
+      .gdocs-menubar, .gdocs-toolbar { padding-left: 8px; padding-right: 8px; }
+      .gdocs-ruler-track { padding: 0 8px; }
+      .gdocs-ruler-margin { width: 0; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- App bar -->
+  <div class="gdocs-appbar">
+    <div class="gdocs-appbar-left">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="40" height="40" style="flex-shrink:0">
+        <path fill="#2196F3" d="M37 45H11c-1.1 0-2-.9-2-2V5c0-1.1.9-2 2-2h19l9 9v31c0 1.1-.9 2-2 2z"/>
+        <path fill="#BBDEFB" d="M40 12l-9-9v7c0 1.1.9 2 2 2h7z"/>
+        <path fill="#E3F2FD" d="M15 22h18v2H15zm0 4h18v2H15zm0 4h12v2H15z"/>
+      </svg>
+      <div class="gdocs-title-area">
+        <span class="gdocs-doc-title" contenteditable="true" spellcheck="false">The Nitrogen Cycle — Bio Notes</span>
+        <div class="gdocs-doc-meta">
+          <button class="gdocs-icon-btn" title="Star">
+            <svg width="16" height="16" viewBox="0 0 24 24"><path d="M12 2l2.93 6.41 6.57.54-5 4.64 1.56 6.85L12 17.27l-6.06 3.17 1.56-6.85-5-4.64 6.57-.54z" fill="#5F6368"/></svg>
+          </button>
+          <button class="gdocs-icon-btn" title="Move to folder">
+            <svg width="16" height="16" viewBox="0 0 24 24"><path d="M20 6h-8l-2-2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2z" fill="#5F6368"/></svg>
+          </button>
+          <span class="gdocs-saved-chip">All changes saved in Drive</span>
+        </div>
+      </div>
+    </div>
+    <div class="gdocs-appbar-right">
+      <button class="gdocs-btn-share">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92c0-1.61-1.31-2.92-2.92-2.92z"/></svg>
+        Share
+      </button>
+      <div class="gdocs-avatar">N</div>
+    </div>
+  </div>
+
+  <!-- Menu bar -->
+  <div class="gdocs-menubar">
+    <span class="gdocs-menu-item">File</span>
+    <span class="gdocs-menu-item">Edit</span>
+    <span class="gdocs-menu-item">View</span>
+    <span class="gdocs-menu-item">Insert</span>
+    <span class="gdocs-menu-item">Format</span>
+    <span class="gdocs-menu-item">Tools</span>
+    <span class="gdocs-menu-item">Extensions</span>
+    <span class="gdocs-menu-item">Help</span>
+  </div>
+
+  <!-- Toolbar -->
+  <div class="gdocs-toolbar">
+    <button class="gdocs-tb-btn" title="Undo"><svg width="18" height="18" viewBox="0 0 24 24"><path fill="#444746" d="M12.5 8c-2.65 0-5.05 1-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z"/></svg></button>
+    <button class="gdocs-tb-btn" title="Redo"><svg width="18" height="18" viewBox="0 0 24 24"><path fill="#444746" d="M18.4 10.6C16.55 9 14.15 8 11.5 8c-4.65 0-8.58 3.03-9.96 7.22L3.9 16c1.05-3.19 4.05-5.5 7.6-5.5 1.95 0 3.73.72 5.12 1.88L13 16h9V7l-3.6 3.6z"/></svg></button>
+    <button class="gdocs-tb-btn" title="Print"><svg width="18" height="18" viewBox="0 0 24 24"><path fill="#444746" d="M19 8H5c-1.66 0-3 1.34-3 3v6h4v4h12v-4h4v-6c0-1.66-1.34-3-3-3zm-3 11H8v-5h8v5zm3-7c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm-1-9H6v4h12V3z"/></svg></button>
+    <div class="gdocs-tb-sep"></div>
+    <div class="gdocs-zoom-box">100%<svg width="14" height="14" viewBox="0 0 24 24"><path fill="#444746" d="M7 10l5 5 5-5z"/></svg></div>
+    <div class="gdocs-tb-sep"></div>
+    <div class="gdocs-styles-box">Normal text<svg width="14" height="14" viewBox="0 0 24 24"><path fill="#444746" d="M7 10l5 5 5-5z"/></svg></div>
+    <div class="gdocs-tb-sep"></div>
+    <div class="gdocs-font-box">Arial<svg width="14" height="14" viewBox="0 0 24 24"><path fill="#444746" d="M7 10l5 5 5-5z"/></svg></div>
+    <div class="gdocs-tb-sep"></div>
+    <div class="gdocs-fontsize-box">11<svg width="14" height="14" viewBox="0 0 24 24"><path fill="#444746" d="M7 10l5 5 5-5z"/></svg></div>
+    <div class="gdocs-tb-sep"></div>
+    <button class="gdocs-tb-btn gdocs-tb-bold" title="Bold">B</button>
+    <button class="gdocs-tb-btn gdocs-tb-italic" title="Italic">I</button>
+    <button class="gdocs-tb-btn gdocs-tb-underline" title="Underline">U</button>
+    <div class="gdocs-tb-sep"></div>
+    <button class="gdocs-tb-btn" title="Text color"><svg width="18" height="18" viewBox="0 0 24 24"><path fill="#444746" d="M11.16 2.29L6.5 15h2.09l1.12-3h4.59l1.12 3h2.09L12.84 2.29h-1.68zm-1 7.71l1.68-4.69L13.52 10h-3.36z"/><rect y="20" width="18" height="2" fill="#DB4437" x="3"/></svg></button>
+    <button class="gdocs-tb-btn" title="Align left"><svg width="18" height="18" viewBox="0 0 24 24"><path fill="#444746" d="M15 15H3v2h12v-2zm0-8H3v2h12V7zM3 13h18v-2H3v2zm0 8h18v-2H3v2zM3 3v2h18V3H3z"/></svg></button>
+    <button class="gdocs-tb-btn" title="Insert link"><svg width="18" height="18" viewBox="0 0 24 24"><path fill="#444746" d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"/></svg></button>
+    <button class="gdocs-tb-btn" title="Insert image"><svg width="18" height="18" viewBox="0 0 24 24"><path fill="#444746" d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg></button>
+  </div>
+
+  <!-- Document area -->
+  <div class="gdocs-body">
+    <!-- Ruler -->
+    <div class="gdocs-ruler">
+      <div class="gdocs-ruler-track">
+        <div class="gdocs-ruler-margin"></div>
+        <div class="gdocs-ruler-content">
+          <span style="left:0">1</span><span style="left:54px">2</span><span style="left:108px">3</span>
+          <span style="left:162px">4</span><span style="left:216px">5</span><span style="left:270px">6</span>
+          <span style="left:324px">7</span><span style="left:378px">8</span>
+        </div>
+        <div class="gdocs-ruler-margin"></div>
+      </div>
+    </div>
+
+    <!-- Page canvas -->
+    <div class="gdocs-page-canvas">
+      <div class="gdocs-page">
+        <h1 class="gdocs-heading1">The Nitrogen Cycle</h1>
+        <p class="gdocs-body-text">Nitrogen is the most abundant gas in Earth's atmosphere, comprising approximately 78% of the air we breathe. Despite its prevalence, most living organisms cannot directly utilize atmospheric nitrogen (N₂) in its diatomic form. The <b>nitrogen cycle</b> describes the series of biological and geochemical processes by which nitrogen is converted between its various chemical forms as it moves through the atmosphere, terrestrial ecosystems, and aquatic environments. Key transformations include <i>nitrogen fixation</i>, carried out by specialized prokaryotes such as <i>Rhizobium</i> residing in the root nodules of leguminous plants; <i>nitrification</i>, in which ammonium ions are oxidized first to nitrite and then to nitrate by soil bacteria including <i>Nitrosomonas</i> and <i>Nitrobacter</i>; <i>assimilation</i>, through which plants and fungi absorb inorganic nitrogen for biosynthesis of amino acids and nucleic acids; <i>ammonification</i>, the decomposition of organic nitrogen back to ammonia by saprotrophic microorganisms; and <i>denitrification</i>, by which anaerobic bacteria return nitrogen gas to the atmosphere. Human activities — particularly the widespread application of synthetic fertilizers derived from the Haber-Bosch process and the combustion of fossil fuels — have substantially altered the natural nitrogen cycle, contributing to environmental consequences such as eutrophication of water bodies, hypoxic dead zones, and the production of nitrous oxide, a potent greenhouse gas.</p>
+        <p class="gdocs-body-text">Understanding the nitrogen cycle is fundamental to agronomy, ecology, and climate science. Sustainable agricultural practices, including crop rotation with legumes and precision fertilizer management, aim to minimize nitrogen losses while maintaining soil fertility. Ongoing research into biological nitrogen fixation and nitrification inhibitors holds promise for reducing the environmental footprint of global food production without compromising crop yields.<span class="gdocs-cursor"></span></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Status bar -->
+  <div class="gdocs-statusbar">
+    <span>Page 1 of 1</span>
+    <span>Word count: 192</span>
+    <span style="margin-left:auto">100%</span>
+  </div>
+
+</body>
+</html>
