@@ -1,0 +1,941 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Chat Rooms</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:'Segoe UI',sans-serif;background:#f4f4f8;min-height:100vh;}
+
+    /* EVENT BANNER */
+    #event-banner{display:none;background:linear-gradient(135deg,#1a1a4e,#0d2a0d);border-bottom:2px solid #22c55e;padding:10px 14px;color:#fff;font-size:13px;align-items:center;gap:10px;flex-shrink:0;}
+    .ev-icon{font-size:22px;flex-shrink:0;}
+    .ev-body{flex:1;}
+    .ev-label{font-size:10px;font-weight:700;color:#4ade80;text-transform:uppercase;letter-spacing:1px;margin-bottom:2px;}
+    .ev-title{font-weight:700;font-size:14px;color:#fff;margin-bottom:2px;}
+    .ev-desc{color:#9ca3af;font-size:12px;line-height:1.4;}
+    .ev-join{background:linear-gradient(135deg,#22c55e,#16a34a);border:none;color:#fff;border-radius:8px;padding:7px 14px;cursor:pointer;font-weight:700;font-size:12px;flex-shrink:0;white-space:nowrap;}
+    .ev-join:hover{opacity:.9;}
+    .ev-dismiss{background:none;border:none;color:#6b7280;cursor:pointer;font-size:16px;flex-shrink:0;}
+
+    /* ROOMS VIEW */
+    #rooms-view{padding:16px;}
+    .header{text-align:center;margin-bottom:14px;}
+    .header h1{font-size:24px;color:#333;}
+    .search-row{display:flex;gap:8px;margin-bottom:14px;}
+    .search-row input{flex:1;padding:9px 16px;border:2px solid #ddd;border-radius:20px;font-size:14px;outline:none;background:#fff;}
+    .search-row input:focus{border-color:#667eea;}
+    .btn-create{background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border:none;border-radius:20px;padding:9px 18px;cursor:pointer;font-weight:600;font-size:13px;white-space:nowrap;}
+    .rooms-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;}
+    .room-card{background:#fff;border-radius:12px;padding:15px;box-shadow:0 2px 8px rgba(0,0,0,.08);cursor:pointer;transition:all .2s;position:relative;}
+    .room-card:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(0,0,0,.13);}
+    .room-card h3{margin:0 0 5px;color:#333;font-size:15px;padding-right:52px;}
+    .room-card p{color:#666;font-size:13px;margin-bottom:8px;}
+    .room-stats{font-size:12px;color:#aaa;margin-bottom:10px;}
+    .room-actions{display:flex;gap:6px;}
+    .pin-btn{background:#e8f4fd;border:none;border-radius:8px;padding:5px 10px;cursor:pointer;font-size:12px;color:#0077cc;}
+    .pin-btn.pinned{background:#fff3cd;color:#856404;}
+    .delete-btn{background:#fde8e8;border:none;border-radius:8px;padding:5px 10px;cursor:pointer;font-size:12px;color:#cc0000;}
+    .private-icon{position:absolute;top:12px;right:12px;font-size:18px;}
+    .pinned-badge{position:absolute;top:12px;right:34px;font-size:14px;}
+    .no-rooms{text-align:center;padding:40px;color:#aaa;font-size:14px;grid-column:1/-1;}
+
+    /* CHAT VIEW */
+    #chat-view{display:none;height:100vh;flex-direction:column;}
+    .chat-top{background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;padding:11px 14px;display:flex;align-items:center;gap:10px;flex-shrink:0;}
+    .back-btn{background:rgba(255,255,255,.22);border:none;color:#fff;border-radius:8px;padding:6px 12px;cursor:pointer;font-size:13px;font-weight:600;}
+    .back-btn:hover{background:rgba(255,255,255,.35);}
+    .chat-top h2{font-size:15px;flex:1;}
+    .event-admin-btn{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.35);color:#fff;border-radius:8px;padding:5px 10px;cursor:pointer;font-size:11px;font-weight:600;white-space:nowrap;}
+    .event-admin-btn:hover{background:rgba(255,255,255,.3);}
+    .messages-area{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:7px;background:#f4f4f8;}
+    .msg{max-width:80%;padding:8px 12px;border-radius:12px;font-size:13px;line-height:1.4;position:relative;}
+    .msg.them{background:#fff;border:1px solid #e0e0e0;align-self:flex-start;border-bottom-left-radius:3px;}
+    .msg.me{background:#667eea;color:#fff;align-self:flex-end;border-bottom-right-radius:3px;}
+    .msg:hover .msg-del{opacity:1;}
+    .msg-del{position:absolute;top:-8px;right:-8px;background:#dc2626;border:none;color:#fff;border-radius:50%;width:20px;height:20px;font-size:10px;cursor:pointer;opacity:0;transition:opacity .15s;line-height:20px;padding:0;display:flex;align-items:center;justify-content:center;}
+    .msg-del:hover{background:#b91c1c;}
+    .msg-report{position:absolute;top:-8px;right:16px;background:#f59e0b;border:none;color:#fff;border-radius:50%;width:20px;height:20px;font-size:10px;cursor:pointer;opacity:0;transition:opacity .15s;line-height:20px;padding:0;display:flex;align-items:center;justify-content:center;font-style:normal;}
+    .msg-report:hover{background:#d97706;}
+    .msg:hover .msg-report{opacity:1;}
+    /* Report message modal */
+    #reportMsgOverlay .modal-box{background:#1a1a2e;border:1px solid #7c3aed;color:#fff;}
+    #reportMsgOverlay .modal-box h3{color:#a78bfa;}
+    #reportMsgOverlay .modal-box p{color:#9ca3af;}
+    #reportMsgOverlay .fg label{color:#9ca3af;}
+    #reportMsgOverlay .fg select,#reportMsgOverlay .fg textarea{background:#0f0f1a;border-color:#2a2a4a;color:#e5e7eb;}
+    #reportMsgOverlay .reported-msg-box{background:#0f0f1a;border:1px solid #374151;border-radius:8px;padding:8px 10px;font-size:12px;color:#d1d5db;margin-bottom:12px;max-height:80px;overflow-y:auto;line-height:1.5;}
+    .msg-author{font-size:10px;font-weight:700;margin-bottom:2px;opacity:.65;}
+    .msg-time{font-size:10px;opacity:.45;margin-top:2px;}
+    .msg-gif{max-width:220px;border-radius:8px;display:block;margin:3px 0;}
+    .chat-name-bar{background:#fffbe6;border-top:1px solid #ffe082;padding:6px 12px;font-size:12px;color:#7a5200;flex-shrink:0;display:flex;align-items:center;justify-content:space-between;}
+    .chat-name-bar b{color:#333;}
+    .change-name-btn{background:none;border:1px solid #ffe082;border-radius:6px;padding:2px 8px;font-size:11px;color:#7a5200;cursor:pointer;}
+    .change-name-btn:hover{background:#fff3cd;}
+
+    /* IMAGE PANEL */
+    #img-panel{display:none;background:#fff;border-top:1px solid #eee;flex-shrink:0;padding:10px 12px;}
+    .img-panel-label{font-size:11px;color:#888;margin-bottom:6px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;}
+    .img-panel-row{display:flex;gap:7px;align-items:center;}
+    .img-panel-input{flex:1;padding:8px 14px;border:2px solid #eee;border-radius:16px;font-size:13px;outline:none;}
+    .img-panel-input:focus{border-color:#667eea;}
+    .img-panel-send{background:#667eea;color:#fff;border:none;border-radius:12px;padding:8px 15px;cursor:pointer;font-weight:700;font-size:12px;flex-shrink:0;}
+    .img-panel-send:hover{background:#5a6fd6;}
+    .img-close-btn{background:none;border:none;color:#aaa;font-size:18px;cursor:pointer;padding:0 4px;line-height:1;}
+    .img-close-btn:hover{color:#667eea;}
+
+    /* IMAGE PREVIEW (Discord-style) */
+    #gif-preview-bar{display:none;background:#f0f2ff;border-top:2px solid #667eea;padding:8px 12px;flex-shrink:0;align-items:center;gap:10px;}
+    #gif-preview-img{max-height:90px;max-width:120px;border-radius:8px;object-fit:cover;border:2px solid #667eea;}
+    .gif-preview-label{flex:1;font-size:12px;color:#5a62d6;font-weight:600;}
+    .gif-preview-cancel{background:none;border:1px solid #c7caff;border-radius:8px;padding:4px 10px;color:#667eea;font-size:12px;cursor:pointer;font-weight:600;}
+    .gif-preview-cancel:hover{background:#e8e9ff;}
+
+    /* INPUT ROW */
+    .input-row{padding:9px 10px;background:#fff;border-top:1px solid #eee;display:flex;gap:7px;flex-shrink:0;align-items:flex-end;}
+    .gif-btn{background:#f0f0f8;border:none;color:#667eea;border-radius:10px;padding:9px 11px;cursor:pointer;font-size:12px;font-weight:700;flex-shrink:0;align-self:flex-end;border:1px solid #e0e0f0;transition:all .15s;}
+    .gif-btn:hover{background:#e8e8ff;border-color:#667eea;}
+    .input-row input{flex:1;padding:9px 14px;border:2px solid #eee;border-radius:20px;font-size:14px;outline:none;}
+    .input-row input:focus{border-color:#667eea;}
+    .send-btn{background:#667eea;color:#fff;border:none;border-radius:20px;padding:9px 18px;cursor:pointer;font-weight:600;font-size:13px;flex-shrink:0;}
+
+    /* BANNERS */
+    #wf-blocked-banner{display:none;background:#2d0000;border-top:2px solid #dc2626;padding:6px 14px;font-size:12px;color:#f87171;font-weight:600;text-align:center;flex-shrink:0;animation:wf-shake 0.3s ease;}
+    @keyframes wf-shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-4px)}40%{transform:translateX(4px)}60%{transform:translateX(-3px)}80%{transform:translateX(3px)}}
+    #muted-banner{display:none;background:#7a3e00;border-top:2px solid #f59e0b;padding:7px 14px;font-size:12px;color:#fbbf24;font-weight:600;text-align:center;flex-shrink:0;}
+
+    /* MODALS */
+    .overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);align-items:center;justify-content:center;z-index:999;}
+    .overlay.open{display:flex;}
+    .modal-box{background:#fff;border-radius:14px;padding:22px;width:90%;max-width:370px;}
+    .modal-box h2,.modal-box h3{margin-bottom:14px;color:#333;font-size:17px;}
+    .modal-box p{font-size:13px;color:#666;margin-bottom:12px;}
+    .fg{margin-bottom:12px;}
+    .fg label{display:block;font-size:12px;font-weight:700;color:#555;margin-bottom:4px;}
+    .fg input,.fg textarea,.fg select{width:100%;padding:9px 11px;border:2px solid #eee;border-radius:8px;font-size:14px;outline:none;font-family:inherit;}
+    .fg input:focus,.fg textarea:focus,.fg select:focus{border-color:#667eea;}
+    .mbtns{display:flex;gap:8px;justify-content:flex-end;margin-top:14px;}
+    .btn-cancel{background:#f0f0f0;border:none;border-radius:8px;padding:8px 16px;cursor:pointer;font-size:13px;}
+    .btn-ok{background:#667eea;color:#fff;border:none;border-radius:8px;padding:8px 16px;cursor:pointer;font-weight:600;font-size:13px;}
+    .btn-danger{background:#dc3545;color:#fff;border:none;border-radius:8px;padding:8px 16px;cursor:pointer;font-weight:600;font-size:13px;}
+    .btn-success{background:#22c55e;color:#fff;border:none;border-radius:8px;padding:8px 16px;cursor:pointer;font-weight:600;font-size:13px;}
+    .name-error{color:#dc3545;font-size:12px;margin-top:5px;min-height:16px;}
+    .clear-event-btn{background:#fee2e2;color:#dc2626;border:none;border-radius:8px;padding:8px 14px;cursor:pointer;font-size:12px;font-weight:600;width:100%;margin-top:6px;}
+    .clear-event-btn:hover{background:#fecaca;}
+  </style>
+</head>
+<body>
+
+<!-- Event banner (shown at top of page when event is active) -->
+<div id="event-banner">
+  <div class="ev-icon">🎮</div>
+  <div class="ev-body">
+    <div class="ev-label">Live Event</div>
+    <div class="ev-title" id="ev-title">Event</div>
+    <div class="ev-desc" id="ev-desc"></div>
+  </div>
+  <button class="ev-join" id="ev-join-btn" style="display:none" onclick="joinEvent()">▶ Join Now</button>
+  <button class="ev-dismiss" onclick="dismissEvent()" title="Dismiss">✕</button>
+</div>
+
+<div id="rooms-view">
+  <div class="header"><h1>Chat Rooms</h1></div>
+  <div class="search-row">
+    <input id="searchInput" type="text" placeholder="Search rooms…"/>
+    <button class="btn-create" onclick="openCreate()">+ New Room</button>
+  </div>
+  <div id="roomsGrid" class="rooms-grid"><div class="no-rooms">Loading…</div></div>
+</div>
+
+<div id="chat-view">
+  <div class="chat-top">
+    <button class="back-btn" onclick="backToRooms()">← Back</button>
+    <h2 id="chatTitle">Room</h2>
+    <button class="event-admin-btn" onclick="openEventAdmin()">📢 Event</button>
+  </div>
+  <div id="messagesArea" class="messages-area"></div>
+  <div class="chat-name-bar">
+    Chatting as: <b id="nameDisplay"></b>
+    <button class="change-name-btn" onclick="changeUsername()">Change name</button>
+  </div>
+  <div id="muted-banner">🔇 <span id="muted-timer"></span></div>
+  <div id="wf-blocked-banner">🚫 <span id="wf-blocked-text">Message blocked.</span></div>
+
+  <!-- Image URL Panel -->
+  <div id="img-panel">
+    <div class="img-panel-label">🖼 Paste a URL below — or just press Ctrl+V anywhere in chat to paste an image</div>
+    <div class="img-panel-row">
+      <input id="img-url-input" class="img-panel-input" type="url" placeholder="https://example.com/image.gif"/>
+      <button class="img-panel-send" onclick="confirmImgUrl()">Send</button>
+      <button class="img-close-btn" onclick="closeImgPanel()">✕</button>
+    </div>
+  </div>
+
+  <!-- Discord-style image preview bar (shown when an image is staged, before sending) -->
+  <div id="gif-preview-bar">
+    <img id="gif-preview-img" src="" alt="Selected image"/>
+    <span class="gif-preview-label">Image ready to send — press Send or Enter</span>
+    <button class="gif-preview-cancel" onclick="cancelGifPreview()">✕ Cancel</button>
+  </div>
+
+  <div class="input-row">
+    <button class="gif-btn" onclick="toggleImgPanel()" title="Send an image URL">🖼</button>
+    <input id="msgInput" type="text" placeholder="Type a message…" onkeydown="if(event.key==='Enter')sendMsg()"/>
+    <button class="send-btn" onclick="sendMsg()">Send</button>
+  </div>
+</div>
+
+<!-- Create room modal -->
+<div class="overlay" id="createOverlay">
+  <div class="modal-box">
+    <h2>Create Chat Room</h2>
+    <div class="fg"><label>Room Name *</label><input id="cName" type="text" placeholder="My cool room"/></div>
+    <div class="fg"><label>Description</label><textarea id="cDesc" rows="2" placeholder="What is this room about?"></textarea></div>
+    <div class="fg"><label>Password (optional)</label><input id="cPass" type="password" placeholder="Leave blank for public"/></div>
+    <div class="mbtns">
+      <button class="btn-cancel" onclick="closeCreate()">Cancel</button>
+      <button class="btn-ok" onclick="doCreate()">Create</button>
+    </div>
+  </div>
+</div>
+
+<!-- Password modal -->
+<div class="overlay" id="passOverlay">
+  <div class="modal-box">
+    <h3>🔒 Password Required</h3>
+    <p>This room is password-protected. Enter the password to join.</p>
+    <div class="fg"><label>Password</label><input id="passInput" type="password" placeholder="Enter password" onkeydown="if(event.key==='Enter')doPassVerify()"/></div>
+    <div class="mbtns">
+      <button class="btn-cancel" onclick="closePass()">Cancel</button>
+      <button class="btn-ok" onclick="doPassVerify()">Enter</button>
+    </div>
+  </div>
+</div>
+
+<!-- Delete room modal -->
+<div class="overlay" id="delOverlay">
+  <div class="modal-box">
+    <h3>Delete Room</h3>
+    <p>Enter the <strong>master key</strong> to delete this room.</p>
+    <div class="fg"><label>Master Key</label><input id="delPass" type="password" placeholder="Enter master key" onkeydown="if(event.key==='Enter')doDelete()"/></div>
+    <div class="mbtns">
+      <button class="btn-cancel" onclick="closeDel()">Cancel</button>
+      <button class="btn-danger" onclick="doDelete()">Delete Room</button>
+    </div>
+  </div>
+</div>
+
+<!-- Pin modal -->
+<div class="overlay" id="pinOverlay">
+  <div class="modal-box">
+    <h3 id="pinTitle">Pin Room</h3>
+    <p>Enter the master key to pin or unpin this room.</p>
+    <div class="fg"><label>Master Key</label><input id="pinPass" type="password" placeholder="Master key" onkeydown="if(event.key==='Enter')doPin()"/></div>
+    <div class="mbtns">
+      <button class="btn-cancel" onclick="closePin()">Cancel</button>
+      <button class="btn-ok" onclick="doPin()">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- Username modal -->
+<div class="overlay" id="nameOverlay">
+  <div class="modal-box">
+    <h3>Choose Username</h3>
+    <p style="font-size:13px;color:#666;margin-bottom:12px">Usernames are unique — no two people can use the same one at the same time.</p>
+    <div class="fg">
+      <label>Your display name</label>
+      <input id="nameInput" type="text" placeholder="Enter username" maxlength="20" onkeydown="if(event.key==='Enter')saveName()"/>
+      <div class="name-error" id="nameError"></div>
+    </div>
+    <div class="mbtns">
+      <button class="btn-cancel" onclick="closeOverlay('nameOverlay')">Cancel</button>
+      <button class="btn-ok" id="nameSaveBtn" onclick="saveName()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Delete message modal -->
+<div class="overlay" id="delMsgOverlay">
+  <div class="modal-box">
+    <h3>🗑 Delete Message</h3>
+    <p>Enter the master key to delete this message. This cannot be undone.</p>
+    <div class="fg"><label>Master Key</label><input id="delMsgKey" type="password" placeholder="Enter master key" onkeydown="if(event.key==='Enter')doDeleteMsg()"/></div>
+    <div class="mbtns">
+      <button class="btn-cancel" onclick="closeOverlay('delMsgOverlay')">Cancel</button>
+      <button class="btn-danger" onclick="doDeleteMsg()">Delete Message</button>
+    </div>
+  </div>
+</div>
+
+<!-- Event admin modal -->
+<div class="overlay" id="eventAdminOverlay">
+  <div class="modal-box">
+    <h3>📢 Manage Event</h3>
+    <p style="font-size:12px;color:#888;margin-bottom:14px">Create an event notification that all visitors will see. Great for announcing a multiplayer game session!</p>
+    <div class="fg"><label>Master Key *</label><input id="evAdminKey" type="password" placeholder="Enter master key"/></div>
+    <div class="fg"><label>Event Title *</label><input id="evTitle" type="text" placeholder="e.g. Rocket Soccer Tournament!"/></div>
+    <div class="fg"><label>Description</label><textarea id="evDesc" rows="2" placeholder="e.g. Join us in Rocket Soccer Derby — Room: RocketSoccer123"></textarea></div>
+    <div class="fg"><label>Game Link (optional)</label><input id="evGameUrl" type="text" placeholder="e.g. https://googleuses.github.io/ABCDIH/"/></div>
+    <button class="clear-event-btn" onclick="clearEventAdmin()">✕ Clear / End Current Event</button>
+    <div class="mbtns">
+      <button class="btn-cancel" onclick="closeOverlay('eventAdminOverlay')">Cancel</button>
+      <button class="btn-success" onclick="saveEvent()">📣 Broadcast Event</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
+import { getDatabase, ref, push, onValue, set, remove, get }
+  from "https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js";
+
+const MASTER = "imhim";
+
+function logMasterAction(action, room, detail) {
+  try {
+    push(ref(db, "njsgames/adminlogs"), {
+      type: "master_key",
+      data: { action, room: room || "", detail: detail || "" },
+      admin: localStorage.getItem("nj_username") || "Admin",
+      ts: Date.now()
+    });
+  } catch (e) { /* logging must never break the calling action */ }
+}
+const ROOMS  = "njsgames/rooms";
+
+const db = getDatabase(initializeApp({
+  apiKey:"AIzaSyDW9xdFdxFSjAm15f-l107fQpmZbs6_vEw",
+  authDomain:"trolling-e3ed8.firebaseapp.com",
+  databaseURL:"https://trolling-e3ed8-default-rtdb.firebaseio.com",
+  projectId:"trolling-e3ed8",
+  storageBucket:"trolling-e3ed8.appspot.com",
+  messagingSenderId:"299260439019",
+  appId:"1:299260439019:web:9dedc986334a871e1d51ae"
+},"nj_chat_instance"));
+
+/* ── Session ── */
+const NJ_SESSION = sessionStorage.getItem("nj_sess") ||
+  (() => { const s="s"+Math.random().toString(36).slice(2)+Date.now().toString(36); sessionStorage.setItem("nj_sess",s); return s; })();
+
+/* ── Word filter ── */
+let _wordFilter = new Set();
+onValue(ref(db,"njsgames/wordfilter"), snap => {
+  _wordFilter.clear();
+  const d = snap.val();
+  if (!d) return;
+  Object.values(d).forEach(e => { if(e&&e.word) _wordFilter.add(e.word.toLowerCase().trim()); });
+});
+function _checkWordFilter(text) {
+  const lower = text.toLowerCase();
+  for (const w of _wordFilter) { if(w && lower.includes(w)) return w; }
+  return null;
+}
+let _wfTimer=null;
+function _showFilteredBanner() {
+  const b=document.getElementById("wf-blocked-banner"); if(!b) return;
+  b.style.display="block"; b.style.animation="none"; b.offsetHeight; b.style.animation="";
+  clearTimeout(_wfTimer); _wfTimer=setTimeout(()=>{ b.style.display="none"; }, 4000);
+}
+
+/* ── Firebase key encoder ── */
+function fk(u){ return u.toLowerCase().replace(/[^a-z0-9_\-]/g,"_").slice(0,30); }
+
+/* ── Username ── */
+const getName = () => localStorage.getItem("nj_username");
+
+async function checkUsernameAvailable(username) {
+  const key = fk(username);
+  try {
+    const snap = await get(ref(db,`njsgames/usernames/${key}`));
+    if (!snap.exists()) return true;
+    const d = snap.val();
+    if (d.sessionId === NJ_SESSION) return true;
+    const p = await get(ref(db,`njsgames/presence/${d.sessionId}`));
+    return !p.exists();
+  } catch { return true; }
+}
+async function claimUsername(username) {
+  if (!(await checkUsernameAvailable(username))) return false;
+  await set(ref(db,`njsgames/usernames/${fk(username)}`),{sessionId:NJ_SESSION,display:username,claimedAt:Date.now()});
+  localStorage.setItem("nj_username",username);
+  return true;
+}
+function ensureName(cb) {
+  if (getName()) { document.getElementById("nameDisplay").textContent=getName(); cb(); return; }
+  document.getElementById("nameInput").value="";
+  document.getElementById("nameError").textContent="";
+  openOverlay("nameOverlay"); window._nameCb=cb;
+}
+
+window.saveName = async function() {
+  const v=document.getElementById("nameInput").value.trim();
+  const errEl=document.getElementById("nameError");
+  const btn=document.getElementById("nameSaveBtn");
+  if (!v){errEl.textContent="Please enter a name.";return;}
+  if (v.length<2){errEl.textContent="Must be at least 2 characters.";return;}
+  if (!/^[a-zA-Z0-9_\- ]+$/.test(v)){errEl.textContent="Letters, numbers, spaces, _ and - only.";return;}
+  // Word filter check
+  const _vLow=v.toLowerCase();
+  for(const e of _wordFilter){if(e&&_vLow.includes(e)){errEl.textContent="That name contains a blocked word.";return;}}
+  // 24-hour name-change cooldown
+  const _existN=localStorage.getItem("nj_username");
+  if(_existN){
+    const _lastNC=parseInt(localStorage.getItem("nj_name_changed_at")||"0");
+    const _rem=_lastNC+86400000-Date.now();
+    if(_rem>0){const _h=Math.floor(_rem/3600000),_m=Math.floor((_rem%3600000)/60000);errEl.textContent=`You can change your name again in ${_h}h ${_m}m.`;return;}
+  }
+  btn.disabled=true; btn.textContent="Checking…"; errEl.textContent="";
+  const _prevN=localStorage.getItem("nj_username");
+  const ok = await claimUsername(v);
+  btn.disabled=false; btn.textContent="Save";
+  if (!ok){errEl.textContent=`"${v}" is already taken. Try another!`;return;}
+  // Save name-change timestamp if this was a change
+  if(_prevN&&_prevN!==v){localStorage.setItem("nj_name_changed_at",Date.now().toString());}
+  document.getElementById("nameDisplay").textContent=v;
+  closeOverlay("nameOverlay");
+  if (window._nameCb){window._nameCb();window._nameCb=null;}
+};
+window.changeUsername = function() {
+  document.getElementById("nameInput").value=getName()||"";
+  document.getElementById("nameError").textContent="";
+  document.getElementById("nameSaveBtn").disabled=false;
+  document.getElementById("nameSaveBtn").textContent="Save";
+  openOverlay("nameOverlay"); window._nameCb=null;
+};
+
+/* ── Overlay helpers ── */
+function openOverlay(id){document.getElementById(id).classList.add("open");}
+function closeOverlay(id){document.getElementById(id).classList.remove("open");}
+window.closeOverlay=closeOverlay;
+
+/* ── Events system ── */
+let _currentEvent = null;
+onValue(ref(db,"njsgames/events/current"), snap => {
+  _currentEvent = snap.val();
+  renderEventBanner(_currentEvent);
+});
+
+function renderEventBanner(ev) {
+  const banner = document.getElementById("event-banner");
+  if (!ev || !ev.title) { banner.style.display="none"; return; }
+  banner.style.display="flex";
+  document.getElementById("ev-title").textContent = ev.title;
+  document.getElementById("ev-desc").textContent = ev.desc || "";
+  const joinBtn = document.getElementById("ev-join-btn");
+  if (ev.gameUrl) {
+    joinBtn.style.display="block";
+    joinBtn._url = ev.gameUrl;
+  } else {
+    joinBtn.style.display="none";
+  }
+}
+window.joinEvent = function() {
+  const btn = document.getElementById("ev-join-btn");
+  if (btn._url) window.open(btn._url,"_blank");
+};
+window.dismissEvent = function() {
+  document.getElementById("event-banner").style.display="none";
+};
+
+window.openEventAdmin = function() {
+  document.getElementById("evAdminKey").value="";
+  document.getElementById("evTitle").value = _currentEvent?.title || "";
+  document.getElementById("evDesc").value = _currentEvent?.desc || "";
+  document.getElementById("evGameUrl").value = _currentEvent?.gameUrl || "";
+  openOverlay("eventAdminOverlay");
+};
+window.clearEventAdmin = async function() {
+  const key = document.getElementById("evAdminKey").value;
+  if (key !== MASTER){alert("Wrong master key!");return;}
+  logMasterAction("clear_event", "", "Cleared site event");
+  await remove(ref(db,"njsgames/events/current"));
+  closeOverlay("eventAdminOverlay");
+};
+window.saveEvent = async function() {
+  const key = document.getElementById("evAdminKey").value;
+  if (key !== MASTER){alert("Wrong master key!");return;}
+  const title = document.getElementById("evTitle").value.trim();
+  if (!title){alert("Event title is required.");return;}
+  const desc = document.getElementById("evDesc").value.trim();
+  const gameUrl = document.getElementById("evGameUrl").value.trim();
+  logMasterAction("save_event", "", `Set event: ${title}`);
+  await set(ref(db,"njsgames/events/current"),{title,desc,gameUrl,ts:Date.now()});
+  closeOverlay("eventAdminOverlay");
+};
+
+/* ── Rooms list ── */
+let allRooms={}, msgUnsub=null, curRoomId=null;
+onValue(ref(db,ROOMS), snap => { allRooms=snap.val()||{}; renderRooms(); });
+
+function renderRooms() {
+  const q=document.getElementById("searchInput").value.toLowerCase();
+  const grid=document.getElementById("roomsGrid");
+  const list=Object.entries(allRooms)
+    .filter(([,r])=>!q||r.name.toLowerCase().includes(q)||(r.description||"").toLowerCase().includes(q))
+    .sort(([,a],[,b])=>(b.isPinned||0)-(a.isPinned||0));
+  if (!list.length){grid.innerHTML='<div class="no-rooms">No rooms yet — create one!</div>';return;}
+  grid.innerHTML="";
+  list.forEach(([id,r]) => {
+    const c=document.createElement("div");
+    c.className="room-card";
+    c.innerHTML=`
+      ${r.hasPassword?'<span class="private-icon">🔒</span>':""}
+      ${r.isPinned?'<span class="pinned-badge">📌</span>':""}
+      <h3>${esc(r.name)}</h3>
+      <p>${esc(r.description||"No description")}</p>
+      <div class="room-stats">💬 ${r.messageCount||0} messages</div>
+      <div class="room-actions">
+        <button class="pin-btn${r.isPinned?" pinned":""}" onclick="openPin('${id}',${!!r.isPinned});event.stopPropagation()">${r.isPinned?"Unpin":"Pin"}</button>
+        <button class="delete-btn" onclick="openDel('${id}');event.stopPropagation()">Delete</button>
+      </div>`;
+    c.onclick=()=>clickRoom(id,r);
+    grid.appendChild(c);
+  });
+}
+document.getElementById("searchInput").addEventListener("input",renderRooms);
+
+/* ── Room enter ── */
+function clickRoom(id,r) {
+  curRoomId=id;
+  if (r.hasPassword){ document.getElementById("passInput").value=""; openOverlay("passOverlay"); }
+  else enterRoom(id,r);
+}
+window.closePass=()=>closeOverlay("passOverlay");
+window.doPassVerify=async function() {
+  const pass=document.getElementById("passInput").value;
+  const snap=await get(ref(db,`${ROOMS}/${curRoomId}`)); const r=snap.val();
+  if (!r){closeOverlay("passOverlay");return;}
+  if (pass===MASTER||pass===r.password){
+    if(pass===MASTER) logMasterAction("bypass_room_password", r.name||curRoomId, "Entered password-protected room using master key");
+    closeOverlay("passOverlay");enterRoom(curRoomId,r);
+  }
+  else alert("Wrong password!");
+};
+function enterRoom(id,r) {
+  ensureName(()=>{
+    curRoomId=id;
+    document.getElementById("rooms-view").style.display="none";
+    const cv=document.getElementById("chat-view"); cv.style.display="flex";
+    document.getElementById("chatTitle").textContent=r.name;
+    document.getElementById("nameDisplay").textContent=getName();
+    document.getElementById("msgInput").value="";
+    document.getElementById("wf-blocked-banner").style.display="none";
+    document.getElementById("img-panel").style.display="none";
+    loadMsgs(id);
+  });
+}
+window.backToRooms=function() {
+  if (msgUnsub){msgUnsub();msgUnsub=null;} curRoomId=null;
+  document.getElementById("chat-view").style.display="none";
+  document.getElementById("rooms-view").style.display="block";
+};
+
+/* ── User equipment cache for chat styling ── */
+const _equipCache = {}; // username → {chatColor, badge, title} or {}
+const SHOP_ITEMS = {
+  'col-purple':{type:'chatColor',val:'#a855f7'},
+  'col-gold':{type:'chatColor',val:'#f59e0b'},
+  'col-red':{type:'chatColor',val:'#ef4444'},
+  'col-cyan':{type:'chatColor',val:'#06b6d4'},
+  'col-green':{type:'chatColor',val:'#22c55e'},
+  'col-pink':{type:'chatColor',val:'#ec4899'},
+  'col-rainbow':{type:'chatColor',val:'rainbow'},
+  'col-orange':{type:'chatColor',val:'#f97316'},
+  'col-white':{type:'chatColor',val:'#f8fafc'},
+  'col-blue':{type:'chatColor',val:'#3b82f6'},
+  'col-teal':{type:'chatColor',val:'#14b8a6'},
+  'col-lime':{type:'chatColor',val:'#84cc16'},
+  'col-magenta':{type:'chatColor',val:'#d946ef'},
+  'bdg-star':{type:'badge',val:'⭐'},
+  'bdg-fire':{type:'badge',val:'🔥'},
+  'bdg-crown':{type:'badge',val:'👑'},
+  'bdg-diamond':{type:'badge',val:'💎'},
+  'bdg-gamer':{type:'badge',val:'🎮'},
+  'bdg-skull':{type:'badge',val:'💀'},
+  'bdg-rocket':{type:'badge',val:'🚀'},
+  'bdg-lightning':{type:'badge',val:'⚡'},
+  'bdg-rainbow':{type:'badge',val:'🌈'},
+  'bdg-alien':{type:'badge',val:'👽'},
+  'bdg-robot':{type:'badge',val:'🤖'},
+  'bdg-cat':{type:'badge',val:'🐱'},
+  'bdg-snake':{type:'badge',val:'🐍'},
+  'bdg-brain':{type:'badge',val:'🧠'},
+  'bdg-clown':{type:'badge',val:'🤡'},
+  'ttl-grinder':{type:'title',val:'Grinder'},
+  'ttl-nolife':{type:'title',val:'No Life'},
+  'ttl-legend':{type:'title',val:'Legend'},
+  'ttl-speed':{type:'title',val:'Speed Runner'},
+  'ttl-pro':{type:'title',val:'Pro Gamer'},
+  'ttl-casual':{type:'title',val:'Casual'},
+  'ttl-goat':{type:'title',val:'G.O.A.T'},
+  'ttl-veteran':{type:'title',val:'Veteran'},
+  'ttl-newbie':{type:'title',val:'Newbie'},
+  'ttl-mvp':{type:'title',val:'MVP'},
+  'ttl-boss':{type:'title',val:'Boss'},
+  'ttl-wizard':{type:'title',val:'Wizard'},
+  'ttl-hacker':{type:'title',val:'Hacker'},
+  'ttl-champion':{type:'title',val:'Champion'},
+};
+
+async function _fetchEquip(author) {
+  if (_equipCache[author] !== undefined) return _equipCache[author];
+  _equipCache[author] = {}; // mark as loading to avoid duplicate fetches
+  try {
+    const snap = await get(ref(db, `njsgames/users/${author}/equipped`));
+    _equipCache[author] = snap.val() || {};
+  } catch(e) { _equipCache[author] = {}; }
+  return _equipCache[author];
+}
+
+function _buildAuthorHtml(author, equip) {
+  const colorId = equip?.chatColor;
+  const colorItem = colorId ? SHOP_ITEMS[colorId] : null;
+  const badgeId = equip?.badge;
+  const badgeItem = badgeId ? SHOP_ITEMS[badgeId] : null;
+  const titleId = equip?.title;
+  const titleItem = titleId ? SHOP_ITEMS[titleId] : null;
+  const badge = badgeItem ? `${badgeItem.val} ` : '';
+  const title = titleItem ? `<div style="font-size:9px;color:#a78bfa;margin-bottom:1px;font-weight:600">[${titleItem.val}]</div>` : '';
+  return `${title}<div class="msg-author">${badge}${esc(author||'?')}</div>`;
+}
+
+function _applyColor(text, equip, isMe) {
+  const colorId = equip?.chatColor;
+  const colorItem = colorId ? SHOP_ITEMS[colorId] : null;
+  if (!colorItem) return `<div>${esc(text)}</div>`;
+  if (colorItem.val === 'rainbow') {
+    return `<div style="background:linear-gradient(90deg,#f00,#ff7700,#ff0,#0f0,#00f,#8b00ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;font-weight:700">${esc(text)}</div>`;
+  }
+  return `<div style="color:${colorItem.val};font-weight:600">${esc(text)}</div>`;
+}
+
+/* ── Messages ── */
+let _pendingDelMsgKey = null;
+
+function loadMsgs(id) {
+  const area=document.getElementById("messagesArea");
+  area.innerHTML='<div style="text-align:center;color:#aaa;padding:20px;font-size:13px">Loading…</div>';
+  if (msgUnsub) msgUnsub();
+  msgUnsub=onValue(ref(db,`${ROOMS}/${id}/messages`), async snap => {
+    const msgs=snap.val()||{};
+    const me=getName();
+    const list=Object.entries(msgs).sort(([,a],[,b])=>(a.ts||0)-(b.ts||0));
+    if (!list.length){
+      area.innerHTML='<div style="text-align:center;color:#aaa;padding:30px;font-size:13px">No messages yet — say hello!</div>';
+      return;
+    }
+    // Pre-fetch equipment for all unique authors not yet cached
+    const unknownAuthors=[...new Set(list.map(([,m])=>m.author).filter(a=>a&&_equipCache[a]===undefined))];
+    await Promise.all(unknownAuthors.map(a=>_fetchEquip(a)));
+
+    area.innerHTML="";
+    list.forEach(([msgKey,m]) => {
+      const isMe=m.author===me;
+      const equip=_equipCache[m.author]||{};
+      const d=document.createElement("div");
+      d.className=`msg ${isMe?"me":"them"}`;
+      let content="";
+      if (m.type==="gif") {
+        content=`<img class="msg-gif" src="${esc(m.gifUrl)}" alt="GIF" loading="lazy" onerror="this.style.display='none'"/>`;
+      } else {
+        content=_applyColor(m.text, equip, isMe);
+      }
+      const msgTextRaw = m.type==="gif" ? "[GIF]" : (m.text||"");
+      const reportBtn = !isMe
+        ? `<button class="msg-report" onclick="promptReportMsg('${esc(m.author)}',this,event)" title="Report message">🚩</button>`
+        : "";
+      d.innerHTML=
+        (isMe?"":_buildAuthorHtml(m.author, equip))
+        +content
+        +`<div class="msg-time">${fmt(m.ts)}</div>`
+        +`<button class="msg-del" onclick="promptDeleteMsg('${id}','${msgKey}',event)" title="Delete">✕</button>`
+        +reportBtn;
+      d.querySelector('.msg-report')?.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        ev.currentTarget._msgText = msgTextRaw;
+      });
+      area.appendChild(d);
+    });
+    area.scrollTop=area.scrollHeight;
+  });
+}
+
+window.promptDeleteMsg = function(roomId, msgKey, event) {
+  event.stopPropagation();
+  _pendingDelMsgKey = {roomId, msgKey};
+  document.getElementById("delMsgKey").value="";
+  openOverlay("delMsgOverlay");
+};
+window.promptReportMsg = function(author, btnEl, event) {
+  event.stopPropagation();
+  // Walk up to the message div to extract the message text
+  let msgEl = btnEl;
+  while (msgEl && !msgEl.classList.contains('msg')) msgEl = msgEl.parentElement;
+  let msgText = "";
+  if (msgEl) {
+    // Clone the element, remove the buttons and timestamps to get clean text
+    const clone = msgEl.cloneNode(true);
+    clone.querySelectorAll('.msg-del,.msg-report,.msg-time,.msg-author,.msg-gif').forEach(n=>n.remove());
+    msgText = clone.textContent.trim();
+  }
+  if (msgText.length > 300) msgText = msgText.slice(0, 300) + "…";
+  try {
+    if (window.parent && window.parent.njReportMessage) {
+      window.parent.njReportMessage(author, msgText, Date.now());
+    }
+  } catch(e) {}
+};
+window.doDeleteMsg = async function() {
+  const key = document.getElementById("delMsgKey").value;
+  if (key !== MASTER){alert("Wrong master key!");return;}
+  if (!_pendingDelMsgKey) return;
+  const {roomId,msgKey} = _pendingDelMsgKey;
+  logMasterAction("delete_message", roomId, `Deleted message ${msgKey}`);
+  await remove(ref(db,`${ROOMS}/${roomId}/messages/${msgKey}`));
+  const cSnap=await get(ref(db,`${ROOMS}/${roomId}/messageCount`));
+  const cnt=Math.max(0,(cSnap.val()||1)-1);
+  set(ref(db,`${ROOMS}/${roomId}/messageCount`),cnt);
+  closeOverlay("delMsgOverlay");
+  _pendingDelMsgKey=null;
+};
+
+/* ── Send text message ── */
+window.sendMsg=async function() {
+  const mutedUntil=parseInt(localStorage.getItem("nj_muted_until")||"0");
+  if (mutedUntil && Date.now()<mutedUntil){
+    const s=Math.floor((mutedUntil-Date.now())/1000);
+    _showMutedBanner(`You're muted for another ${s}s.`); return;
+  } else if (mutedUntil) localStorage.removeItem("nj_muted_until");
+
+  // If a GIF is staged in the preview bar, send it instead of text
+  if (_pendingGifUrl) {
+    await doSendGif(_pendingGifUrl);
+    return;
+  }
+
+  const inp=document.getElementById("msgInput");
+  const text=inp.value.trim();
+  if (!text||!curRoomId) return;
+
+  const blocked=_checkWordFilter(text);
+  if (blocked!==null){_showFilteredBanner();return;}
+
+  inp.value="";
+  document.getElementById("wf-blocked-banner").style.display="none";
+  const author=getName()||"Anonymous";
+  await push(ref(db,`${ROOMS}/${curRoomId}/messages`),{author,text,ts:Date.now()});
+  const cSnap=await get(ref(db,`${ROOMS}/${curRoomId}/messageCount`));
+  set(ref(db,`${ROOMS}/${curRoomId}/messageCount`),(cSnap.val()||0)+1);
+  // Track chat message challenge in parent window
+  try{ if(window.parent&&window.parent.njTrackChat) window.parent.njTrackChat(); }catch(e){}
+};
+
+/* ── Image URL functionality (replaces Tenor GIF picker) ── */
+let _imgPanelOpen=false;
+let _pendingGifUrl=null;  // URL of image staged in Discord-style preview
+
+window.toggleImgPanel = function() {
+  _imgPanelOpen=!_imgPanelOpen;
+  const panel=document.getElementById("img-panel");
+  panel.style.display=_imgPanelOpen?"block":"none";
+  if (_imgPanelOpen){
+    const inp=document.getElementById("img-url-input");
+    inp.value="";
+    inp.focus();
+  }
+};
+window.closeImgPanel = function() {
+  _imgPanelOpen=false;
+  document.getElementById("img-panel").style.display="none";
+};
+
+window.confirmImgUrl = function() {
+  const val=document.getElementById("img-url-input").value.trim();
+  if (!val) return;
+  window.closeImgPanel();
+  _pendingGifUrl = val;
+  document.getElementById("gif-preview-img").src = val;
+  document.getElementById("gif-preview-bar").style.display = "flex";
+  document.getElementById("msgInput").focus();
+};
+
+/* ── Discord-style paste image (Ctrl+V) ── */
+document.addEventListener('paste', function(e) {
+  // Only handle if chat view is active
+  if (document.getElementById('chat-view').style.display === 'none') return;
+  const items = e.clipboardData && e.clipboardData.items;
+  if (!items) return;
+  for (let i = 0; i < items.length; i++) {
+    if (items[i].type.startsWith('image/')) {
+      e.preventDefault();
+      const file = items[i].getAsFile();
+      if (!file) continue;
+      const reader = new FileReader();
+      reader.onload = function(ev) {
+        const img = new Image();
+        img.onload = function() {
+          // Compress: max 640px, JPEG 65% quality
+          const MAX = 640;
+          let w = img.width, h = img.height;
+          if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; }
+          if (h > MAX) { w = Math.round(w * MAX / h); h = MAX; }
+          const canvas = document.createElement('canvas');
+          canvas.width = w; canvas.height = h;
+          canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.65);
+          // Stage in preview bar exactly like a URL send
+          window.closeImgPanel();
+          _pendingGifUrl = dataUrl;
+          document.getElementById('gif-preview-img').src = dataUrl;
+          document.getElementById('gif-preview-bar').style.display = 'flex';
+          document.getElementById('msgInput').focus();
+        };
+        img.src = ev.target.result;
+      };
+      reader.readAsDataURL(file);
+      break;
+    }
+  }
+});
+
+window.cancelGifPreview = function() {
+  _pendingGifUrl = null;
+  document.getElementById("gif-preview-bar").style.display = "none";
+  document.getElementById("gif-preview-img").src = "";
+};
+
+async function doSendGif(gifUrl) {
+  if (!curRoomId||!gifUrl) return;
+  window.cancelGifPreview();
+  const author=getName()||"Anonymous";
+  await push(ref(db,`${ROOMS}/${curRoomId}/messages`),{
+    author, type:"gif", gifUrl, text:"[Image]", ts:Date.now()
+  });
+  const cSnap=await get(ref(db,`${ROOMS}/${curRoomId}/messageCount`));
+  set(ref(db,`${ROOMS}/${curRoomId}/messageCount`),(cSnap.val()||0)+1);
+}
+
+/* ── Create room ── */
+window.openCreate=function(){["cName","cDesc"].forEach(i=>document.getElementById(i).value="");document.getElementById("cPass").value="";openOverlay("createOverlay");};
+window.closeCreate=()=>closeOverlay("createOverlay");
+window.doCreate=async function(){
+  const name=document.getElementById("cName").value.trim();
+  if (!name){alert("Room name required.");return;}
+  const desc=document.getElementById("cDesc").value.trim();
+  const pass=document.getElementById("cPass").value.trim();
+  await push(ref(db,ROOMS),{name,description:desc,hasPassword:!!pass,password:pass,messageCount:0,isPinned:false,createdAt:Date.now()});
+  window.closeCreate();
+};
+
+/* ── Delete room ── */
+let _delId=null;
+window.openDel=function(id){_delId=id;document.getElementById("delPass").value="";openOverlay("delOverlay");};
+window.closeDel=()=>closeOverlay("delOverlay");
+window.doDelete=async function(){
+  const pass=document.getElementById("delPass").value;
+  if (!_delId) return;
+  if (pass!==MASTER){alert("Wrong master key! Only the master key can delete rooms.");return;}
+  logMasterAction("delete_room", allRooms[_delId]?.name||_delId, "Deleted room");
+  await remove(ref(db,`${ROOMS}/${_delId}`));
+  window.closeDel();
+};
+
+/* ── Pin room ── */
+let _pinId=null,_pinState=false;
+window.openPin=function(id,cur){_pinId=id;_pinState=cur;document.getElementById("pinTitle").textContent=cur?"Unpin Room":"Pin Room";document.getElementById("pinPass").value="";openOverlay("pinOverlay");};
+window.closePin=()=>closeOverlay("pinOverlay");
+window.doPin=async function(){
+  const pass=document.getElementById("pinPass").value;
+  if (pass!==MASTER){alert("Wrong master key!");return;}
+  logMasterAction(_pinState?"unpin_room":"pin_room", allRooms[_pinId]?.name||_pinId, "");
+  await set(ref(db,`${ROOMS}/${_pinId}/isPinned`),!_pinState);
+  window.closePin();
+};
+
+/* ── Mute banner ── */
+let _muteBannerTimer=null;
+function _showMutedBanner(msg){
+  const b=document.getElementById("muted-banner"); if(!b)return;
+  b.style.display="block"; document.getElementById("muted-timer").textContent=msg;
+  clearInterval(_muteBannerTimer);
+  _muteBannerTimer=setInterval(()=>{
+    const mu=parseInt(localStorage.getItem("nj_muted_until")||"0");
+    if (!mu||Date.now()>=mu){b.style.display="none";clearInterval(_muteBannerTimer);localStorage.removeItem("nj_muted_until");return;}
+    const s=Math.floor((mu-Date.now())/1000),m=Math.floor(s/60),h=Math.floor(m/60),d=Math.floor(h/24);
+    document.getElementById("muted-timer").textContent=`muted for ${d>0?d+"d "+(h%24)+"h":h>0?h+"h "+(m%60)+"m":m>0?m+"m "+(s%60)+"s":s+"s"}`;
+  },1000);
+}
+(function(){const mu=parseInt(localStorage.getItem("nj_muted_until")||"0");if(mu&&Date.now()<mu)_showMutedBanner("");else if(mu)localStorage.removeItem("nj_muted_until");})();
+
+/* ── Ban check on startup ── */
+function _showBanScreen(reason) {
+  document.body.innerHTML = `<div style="position:fixed;inset:0;background:#0a0a0a;display:flex;align-items:center;justify-content:center;font-family:'Inter',sans-serif;z-index:99999;text-align:center;padding:20px;">
+    <div style="max-width:360px">
+      <div style="font-size:64px;margin-bottom:16px">🚫</div>
+      <div style="color:#f87171;font-size:20px;font-weight:700;margin-bottom:8px">You are banned</div>
+      <div style="color:#6b7280;font-size:13px;line-height:1.6">${reason ? 'Reason: ' + esc(reason) + '<br>' : ''}You have been banned from this chat by an admin.</div>
+      <div style="color:#4b5563;font-size:11px;margin-top:16px">Contact an admin if you believe this is a mistake.</div>
+    </div>
+  </div>`;
+}
+
+(async function checkBanOnStartup() {
+  const username = localStorage.getItem("nj_username");
+  if (!username) return;
+  try {
+    const snap = await get(ref(db, `njsgames/bans/${fk(username)}`));
+    if (snap.exists()) { _showBanScreen(snap.val().reason || ""); return; }
+  } catch(e) { /* ignore */ }
+  /* Also check mute store for offline mutes applied while away */
+  try {
+    const msnap = await get(ref(db, `njsgames/mutes/${fk(username)}`));
+    if (msnap.exists()) {
+      const m = msnap.val();
+      if (m.expiresAt && Date.now() < m.expiresAt) {
+        localStorage.setItem("nj_muted_until", String(m.expiresAt));
+        _showMutedBanner("");
+      }
+    }
+  } catch(e) { /* ignore */ }
+})();
+
+/* ── Admin commands listener ── */
+onValue(ref(db,`njsgames/commands/${NJ_SESSION}`), snap => {
+  const cmd=snap.val(); if(!cmd)return;
+  remove(ref(db,`njsgames/commands/${NJ_SESSION}`));
+  if (cmd.type==="mute"){
+    localStorage.setItem("nj_muted_until",cmd.expiresAt);
+    _showMutedBanner("");
+  } else if (cmd.type==="unmute"){
+    localStorage.removeItem("nj_muted_until");
+    clearInterval(_muteBannerTimer);
+    document.getElementById("muted-banner").style.display="none";
+  } else if (cmd.type==="ban"){
+    _showBanScreen("");
+  } else if (cmd.type==="kick"){
+    window.top.location.reload();
+  }
+});
+
+/* ── Broadcast listener ── */
+let _lastSeenAnn=localStorage.getItem("nj_last_ann")?Number(localStorage.getItem("nj_last_ann")):null;
+onValue(ref(db,"njsgames/broadcast"), snap => {
+  const ann=snap.val(); if(!ann||!ann.text)return;
+  if (Date.now()-ann.ts>10*60*1000)return;
+  if (_lastSeenAnn===ann.ts)return;
+  _lastSeenAnn=ann.ts; localStorage.setItem("nj_last_ann",String(ann.ts));
+  let toast=document.getElementById("nj-chat-announce-toast");
+  if (!toast){toast=document.createElement("div");toast.id="nj-chat-announce-toast";toast.style.cssText="position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#0f1f0f;border:1px solid #22c55e;border-radius:12px;padding:12px 16px;color:#e5e7eb;font-size:13px;font-family:inherit;box-shadow:0 8px 24px rgba(0,0,0,0.5);z-index:9999;max-width:90vw;display:flex;gap:10px;align-items:flex-start;";document.body.appendChild(toast);}
+  toast.innerHTML=`<span style="font-size:18px;flex-shrink:0">📣</span><div><div style="font-size:10px;font-weight:700;color:#4ade80;text-transform:uppercase;letter-spacing:1px;margin-bottom:3px">Announcement</div><div>${esc(ann.text)}</div></div><button onclick="this.parentElement.style.display='none'" style="background:none;border:none;color:#6b7280;cursor:pointer;font-size:14px;padding:0 2px;flex-shrink:0">✕</button>`;
+  toast.style.display="flex"; clearTimeout(window._chatAnnTimer); window._chatAnnTimer=setTimeout(()=>{toast.style.display="none";},12000);
+});
+
+/* ── Utils ── */
+function esc(t){return String(t).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
+function fmt(ts){if(!ts)return"";return new Date(ts).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});}
+window.esc=esc;
+</script>
+</body>
+</html>

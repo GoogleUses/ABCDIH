@@ -3243,11 +3243,11 @@
       @keyframes njBgDrift { 0%{background-position:15% 20%} 50%{background-position:85% 80%} 100%{background-position:15% 20%} }
       .nj-bg-anim{animation:njBgFlow var(--nj-bg-dur,14s) ease infinite}
       .nj-bg-anim.nj-bg-photo{animation:njBgDrift var(--nj-bg-dur,30s) ease-in-out infinite}
-      .nj-settings-bg-item{background:#1a1a2e;border:2px solid #2a2a4a;border-radius:12px;cursor:pointer;transition:all .15s;overflow:hidden;position:relative;height:70px;display:flex;align-items:flex-end;justify-content:center}
-      .nj-settings-bg-item:hover{border-color:#7c3aed;transform:translateY(-2px)}
-      .nj-settings-bg-item.nj-bg-current{border-color:#22c55e}
-      .nj-settings-bg-item .nj-bg-label{background:rgba(0,0,0,.55);color:#fff;font-size:10px;font-weight:700;padding:3px 6px;width:100%;text-align:center}
-      .nj-settings-bg-item .nj-bg-check{position:absolute;top:4px;right:4px;background:#22c55e;color:#fff;font-size:10px;border-radius:50%;width:16px;height:16px;display:flex;align-items:center;justify-content:center}
+      .nj-settings-bg-item{background:#1a1a2e;border:2px solid #2a2a4a;border-radius:12px;cursor:pointer;transition:all .15s;overflow:hidden;position:relative;height:120px;display:flex;align-items:flex-end;justify-content:center}
+      .nj-settings-bg-item:hover{border-color:#7c3aed;transform:translateY(-2px);box-shadow:0 4px 20px rgba(124,58,237,.3)}
+      .nj-settings-bg-item.nj-bg-current{border-color:#22c55e;box-shadow:0 0 0 1px #22c55e}
+      .nj-settings-bg-item .nj-bg-label{background:linear-gradient(transparent,rgba(0,0,0,.82));color:#fff;font-size:11px;font-weight:700;padding:18px 8px 6px;width:100%;text-align:center}
+      .nj-settings-bg-item .nj-bg-check{position:absolute;top:6px;right:6px;background:#22c55e;color:#fff;font-size:11px;font-weight:800;border-radius:20px;padding:2px 8px;line-height:1.6}
       .nj-shop-item.nj-owned{border-color:#166534;background:#0f1f12}
       .nj-shop-item.nj-equipped{border-color:#b45309;background:#1c1507}
       .nj-lb-row{display:flex;align-items:center;gap:10px;padding:10px 12px;background:#1a1a2e;border-radius:10px}
@@ -3410,38 +3410,40 @@
       // Deterministically pick 1 background for a given uid (stable per user, random across users)
       function njPickFreeBg(uid){ let h=0; for(let i=0;i<uid.length;i++) h=(h*31+uid.charCodeAt(i))>>>0; return NJ_FREE_BACKGROUNDS[h%NJ_FREE_BACKGROUNDS.length]; }
 
-      // ── Apply an equipped background across the *entire* app (not just a boxed-in area), overriding the bundled root wrapper's fixed color ──
+      // ── Apply an equipped background across the entire page via injected stylesheet (most reliable approach) ──
+      // Using a <style> tag instead of inline styles avoids !important conflicts with CSS animations,
+      // and the CSS selector auto-neutralises any React wrapper the bundle renders now or later.
       function applyBackground(id){
-        const it = (SHOP[id] && SHOP[id].type==='background') ? SHOP[id] : (Object.values(SHOP).find(v=>v.type==='background') || {img:'',css:'linear-gradient(135deg,#0f0f1a,#1e1f22)',anim:0});
-        const html = document.documentElement, body = document.body;
-        const value = it.img
-          ? `linear-gradient(180deg,rgba(8,8,14,.4),rgba(8,8,14,.6)),url('${it.img}')`
-          : it.css;
-        [html, body].forEach(el=>{
-          el.style.setProperty('background-image', value, 'important');
-          el.style.setProperty('background-repeat', 'no-repeat', 'important');
-          el.style.setProperty('background-attachment', 'fixed', 'important');
-          el.style.setProperty('background-position', '50% 50%', 'important');
-          el.style.setProperty('background-size', it.img ? '150% 150%' : '300% 300%', 'important');
-          el.classList.toggle('nj-bg-anim', !!it.anim);
-          el.classList.toggle('nj-bg-photo', !!it.img);
-          if(it.anim) el.style.setProperty('--nj-bg-dur', it.anim+'s');
+        const it = (SHOP[id] && SHOP[id].type==='background') ? SHOP[id] : (Object.values(SHOP).find(v=>v.type==='background') || {});
+        // Clear any legacy inline styles this function used to set so they don't block animations
+        [document.documentElement, document.body].forEach(el=>{
+          ['background-image','background-color','background-size','background-attachment',
+           'background-position','background-repeat','animation','--nj-bg-dur'].forEach(p=>el.style.removeProperty(p));
+          el.classList.remove('nj-bg-anim','nj-bg-photo');
         });
-        // Neutralize every full-page wrapper the compiled bundle renders with a hardcoded dark background,
-        // so the equipped background shows behind the ENTIRE app, not just a small boxed-in area.
-        const neutralize = () => {
-          const root = document.getElementById('root');
-          if(root) root.style.setProperty('background', 'transparent', 'important');
-          document.querySelectorAll('[class*="min-h-screen"]').forEach(el=>{
-            el.style.setProperty('background-color', 'transparent', 'important');
-          });
-        };
-        neutralize();
-        // The React bundle re-renders these wrappers on navigation/state changes, so keep re-neutralizing them live.
-        if(!window._njBgObserver){
-          window._njBgObserver = new MutationObserver(neutralize);
-          window._njBgObserver.observe(document.body,{childList:true,subtree:true});
-        }
+        let styleEl = document.getElementById('nj-bg-style');
+        if(!styleEl){ styleEl=document.createElement('style'); styleEl.id='nj-bg-style'; document.head.appendChild(styleEl); }
+        const bgImg = it.img
+          ? `linear-gradient(180deg,rgba(8,8,14,.38),rgba(8,8,14,.52)),url('${it.img}')`
+          : (it.css || 'linear-gradient(135deg,#0f0f1a,#1a1b2e)');
+        const bgSize = it.img ? '150% 150%' : '300% 300%';
+        const animName = it.img ? 'njBgDrift' : 'njBgFlow';
+        const animCss = it.anim ? `${animName} ${it.anim}s ease-in-out infinite` : 'none';
+        // The CSS rule for [class*="min-h-screen"] auto-applies to every React wrapper React renders at any time —
+        // no MutationObserver needed.
+        styleEl.textContent = `
+          html, body {
+            background-color: #0a0a0e !important;
+            background-image: ${bgImg} !important;
+            background-size: ${bgSize} !important;
+            background-attachment: fixed !important;
+            background-repeat: no-repeat !important;
+            animation: ${animCss};
+          }
+          #root, [class*="min-h-screen"] {
+            background: transparent !important;
+          }
+        `;
       }
 
       // ── Daily Challenges (seeded by date) ──
@@ -3902,10 +3904,10 @@
         const g=document.getElementById('nj-settings-grid');
         const owned=Object.entries(SHOP).filter(([id,v])=>v.type==='background'&&njOwned[id]);
         g.innerHTML=owned.map(([id,it])=>{
-          const current=njEquipped.background===id||(!njEquipped.background&&id==='bg-default');
-          const preview = it.img ? `background-image:url('${it.img}');background-size:cover;background-position:center` : `background:${it.css}${it.anim?';background-size:300% 300%':''}`;
+          const current=njEquipped.background===id;
+          const preview = it.img ? `background-image:url('${it.img}');background-size:cover;background-position:center` : `background:${it.css||'#1a1a2e'}`;
           return `<div class="nj-settings-bg-item${current?' nj-bg-current':''}" onclick="njSelectBackground('${id}')" style="${preview}">
-            ${current?'<div class="nj-bg-check">✓</div>':''}
+            ${current?'<div class="nj-bg-check">✓ Equipped</div>':''}
             <div class="nj-bg-label">${it.icon} ${it.name}</div>
           </div>`;
         }).join('')||'<div style="grid-column:1/-1;text-align:center;color:#6b7280;padding:30px">No backgrounds owned yet</div>';
@@ -3933,14 +3935,25 @@
           else if(owned){bTxt='Equip';bSt='background:#166534;color:#22c55e';}
           else{bTxt=`Buy · ${it.price.toLocaleString()} 🪙`;bSt=njCoins>=it.price?'background:#7c3aed;color:#fff':'background:#1a1a2e;color:#4b5563;cursor:not-allowed';}
           const isExclusive = it.price >= 1000000;
-          const bgPreview = it.type==='background'&&it.img ? `<div style="width:100%;height:64px;border-radius:8px;margin-bottom:2px;background-image:url('${it.img}');background-size:cover;background-position:center;border:1px solid #2a2a4a"></div>` : '';
-          return `<div class="nj-shop-item${owned&&it.type!=='lootbox'?' nj-owned':''}${equipped?' nj-equipped':''}${isExclusive?' nj-exclusive':''}" ${isExclusive?'style="border-color:#d97706;background:linear-gradient(135deg,#1a1a2e,#1c1507)"':''}>
-            ${isExclusive?'<div style="text-align:center;font-size:9px;font-weight:800;color:#f59e0b;letter-spacing:2px;text-transform:uppercase;margin-bottom:2px">👑 EXCLUSIVE</div>':''}
+          const isBg = it.type==='background';
+          const bgCardStyle = isBg&&it.img ? `style="padding:0;overflow:hidden;${isExclusive?'border-color:#d97706;':''}"` : (isExclusive?'style="border-color:#d97706;background:linear-gradient(135deg,#1a1a2e,#1c1507)"':'');
+          const bgPreview = isBg&&it.img
+            ? `<div style="width:100%;height:140px;background-image:url('${it.img}');background-size:cover;background-position:center;position:relative;flex-shrink:0">
+                ${equipped?'<div style="position:absolute;top:8px;right:8px;background:#22c55e;color:#fff;font-size:11px;font-weight:800;padding:3px 9px;border-radius:20px">✓ ON</div>':''}
+                ${owned&&!equipped?'<div style="position:absolute;top:8px;right:8px;background:#1d4ed8;color:#fff;font-size:11px;font-weight:800;padding:3px 9px;border-radius:20px">OWNED</div>':''}
+                <div style="position:absolute;bottom:0;left:0;right:0;height:40px;background:linear-gradient(transparent,rgba(0,0,0,.8))"></div>
+               </div>
+               <div style="padding:10px 12px 12px">`
+            : '';
+          const bgPreviewClose = isBg&&it.img ? '</div>' : '';
+          return `<div class="nj-shop-item${owned&&it.type!=='lootbox'?' nj-owned':''}${equipped?' nj-equipped':''}${isExclusive?' nj-exclusive':''}" ${bgCardStyle}>
+            ${isExclusive&&!isBg?'<div style="text-align:center;font-size:9px;font-weight:800;color:#f59e0b;letter-spacing:2px;text-transform:uppercase;margin-bottom:2px">👑 EXCLUSIVE</div>':''}
             ${bgPreview}
-            <div style="font-size:28px;text-align:center">${it.icon}</div>
-            <div style="color:${isExclusive?'#fbbf24':'#fff'};font-weight:700;font-size:14px;text-align:center">${it.name}</div>
-            <div style="color:#6b7280;font-size:11px;text-align:center;min-height:28px">${it.desc}</div>
-            <button onclick="njShopAct('${id}')" style="width:100%;border:none;border-radius:8px;padding:8px;font-size:12px;font-weight:700;cursor:pointer;margin-top:4px;${bSt}">${bTxt}</button>
+            <div style="font-size:${isBg?'20px':'28px'};text-align:center">${it.icon}</div>
+            <div style="color:${isExclusive&&!isBg?'#fbbf24':'#fff'};font-weight:700;font-size:${isBg?'13px':'14px'};text-align:center">${it.name}</div>
+            <div style="color:#6b7280;font-size:11px;text-align:center;min-height:${isBg?'0':'28px'}">${it.desc}</div>
+            <button onclick="njShopAct('${id}')" style="width:100%;border:none;border-radius:8px;padding:8px;font-size:12px;font-weight:700;cursor:pointer;margin-top:6px;${bSt}">${bTxt}</button>
+            ${bgPreviewClose}
           </div>`;
         }).join('')||'<div style="grid-column:1/-1;text-align:center;color:#6b7280;padding:30px">Nothing here yet</div>';
       }
