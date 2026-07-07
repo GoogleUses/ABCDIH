@@ -3410,40 +3410,33 @@
       // Deterministically pick 1 background for a given uid (stable per user, random across users)
       function njPickFreeBg(uid){ let h=0; for(let i=0;i<uid.length;i++) h=(h*31+uid.charCodeAt(i))>>>0; return NJ_FREE_BACKGROUNDS[h%NJ_FREE_BACKGROUNDS.length]; }
 
-      // ── Apply an equipped background across the entire page via injected stylesheet (most reliable approach) ──
-      // Using a <style> tag instead of inline styles avoids !important conflicts with CSS animations,
-      // and the CSS selector auto-neutralises any React wrapper the bundle renders now or later.
+      // ── Apply background: a fixed <div> layer sits between the dark page bg and the React app ──
+      // This is the simplest reliable approach: image goes in a dedicated fixed layer (z-index:0),
+      // #root sits on top at z-index:1, and a CSS rule makes React's wrappers transparent.
       function applyBackground(id){
-        const it = (SHOP[id] && SHOP[id].type==='background') ? SHOP[id] : (Object.values(SHOP).find(v=>v.type==='background') || {});
-        // Clear any legacy inline styles this function used to set so they don't block animations
-        [document.documentElement, document.body].forEach(el=>{
-          ['background-image','background-color','background-size','background-attachment',
-           'background-position','background-repeat','animation','--nj-bg-dur'].forEach(p=>el.style.removeProperty(p));
-          el.classList.remove('nj-bg-anim','nj-bg-photo');
-        });
-        let styleEl = document.getElementById('nj-bg-style');
-        if(!styleEl){ styleEl=document.createElement('style'); styleEl.id='nj-bg-style'; document.head.appendChild(styleEl); }
-        const bgImg = it.img
-          ? `linear-gradient(180deg,rgba(8,8,14,.38),rgba(8,8,14,.52)),url('${it.img}')`
-          : (it.css || 'linear-gradient(135deg,#0f0f1a,#1a1b2e)');
-        const bgSize = it.img ? '150% 150%' : '300% 300%';
-        const animName = it.img ? 'njBgDrift' : 'njBgFlow';
-        const animCss = it.anim ? `${animName} ${it.anim}s ease-in-out infinite` : 'none';
-        // The CSS rule for [class*="min-h-screen"] auto-applies to every React wrapper React renders at any time —
-        // no MutationObserver needed.
-        styleEl.textContent = `
-          html, body {
-            background-color: #0a0a0e !important;
-            background-image: ${bgImg} !important;
-            background-size: ${bgSize} !important;
-            background-attachment: fixed !important;
-            background-repeat: no-repeat !important;
-            animation: ${animCss};
-          }
-          #root, [class*="min-h-screen"] {
-            background: transparent !important;
-          }
-        `;
+        const it = SHOP[id] && SHOP[id].type==='background' ? SHOP[id] : null;
+        if(!it) return;
+        // 1. Create or update the background layer div
+        let layer = document.getElementById('nj-bg-layer');
+        if(!layer){
+          layer = document.createElement('div');
+          layer.id = 'nj-bg-layer';
+          document.body.insertBefore(layer, document.body.firstChild);
+        }
+        const bgImg = it.img ? `url('${it.img}')` : (it.css || 'none');
+        layer.style.cssText =
+          'position:fixed;top:0;left:0;right:0;bottom:0;z-index:0;pointer-events:none;' +
+          'background-image:' + bgImg + ';' +
+          'background-size:cover;background-position:center center;background-repeat:no-repeat;' +
+          (it.anim ? 'animation:njBgDrift ' + it.anim + 's ease-in-out infinite;' : '');
+        // 2. Inject persistent CSS once: stack #root above the layer and strip background from React wrappers
+        let css = document.getElementById('nj-bg-style');
+        if(!css){ css = document.createElement('style'); css.id='nj-bg-style'; document.head.appendChild(css); }
+        css.textContent =
+          'html{background:#0f0f1a!important}' +
+          'body{background:transparent!important}' +
+          '#root{position:relative;z-index:1;background:transparent!important}' +
+          '[class*="min-h-screen"]{background:transparent!important}';
       }
 
       // ── Daily Challenges (seeded by date) ──
@@ -3936,24 +3929,18 @@
           else{bTxt=`Buy · ${it.price.toLocaleString()} 🪙`;bSt=njCoins>=it.price?'background:#7c3aed;color:#fff':'background:#1a1a2e;color:#4b5563;cursor:not-allowed';}
           const isExclusive = it.price >= 1000000;
           const isBg = it.type==='background';
-          const bgCardStyle = isBg&&it.img ? `style="padding:0;overflow:hidden;${isExclusive?'border-color:#d97706;':''}"` : (isExclusive?'style="border-color:#d97706;background:linear-gradient(135deg,#1a1a2e,#1c1507)"':'');
-          const bgPreview = isBg&&it.img
-            ? `<div style="width:100%;height:140px;background-image:url('${it.img}');background-size:cover;background-position:center;position:relative;flex-shrink:0">
-                ${equipped?'<div style="position:absolute;top:8px;right:8px;background:#22c55e;color:#fff;font-size:11px;font-weight:800;padding:3px 9px;border-radius:20px">✓ ON</div>':''}
-                ${owned&&!equipped?'<div style="position:absolute;top:8px;right:8px;background:#1d4ed8;color:#fff;font-size:11px;font-weight:800;padding:3px 9px;border-radius:20px">OWNED</div>':''}
-                <div style="position:absolute;bottom:0;left:0;right:0;height:40px;background:linear-gradient(transparent,rgba(0,0,0,.8))"></div>
-               </div>
-               <div style="padding:10px 12px 12px">`
+          const thumbHtml = isBg && it.img
+            ? `<div style="width:100%;height:130px;border-radius:8px 8px 0 0;background-image:url('${it.img}');background-size:cover;background-position:center;margin:-14px -14px 10px -14px;width:calc(100% + 28px);flex-shrink:0;position:relative">
+                 ${equipped ? '<span style="position:absolute;top:7px;right:7px;background:#22c55e;color:#fff;font-size:10px;font-weight:800;padding:2px 8px;border-radius:20px">✓ ON</span>' : owned ? '<span style="position:absolute;top:7px;right:7px;background:#1d4ed8;color:#fff;font-size:10px;font-weight:800;padding:2px 8px;border-radius:20px">OWNED</span>' : ''}
+               </div>`
             : '';
-          const bgPreviewClose = isBg&&it.img ? '</div>' : '';
-          return `<div class="nj-shop-item${owned&&it.type!=='lootbox'?' nj-owned':''}${equipped?' nj-equipped':''}${isExclusive?' nj-exclusive':''}" ${bgCardStyle}>
-            ${isExclusive&&!isBg?'<div style="text-align:center;font-size:9px;font-weight:800;color:#f59e0b;letter-spacing:2px;text-transform:uppercase;margin-bottom:2px">👑 EXCLUSIVE</div>':''}
-            ${bgPreview}
-            <div style="font-size:${isBg?'20px':'28px'};text-align:center">${it.icon}</div>
-            <div style="color:${isExclusive&&!isBg?'#fbbf24':'#fff'};font-weight:700;font-size:${isBg?'13px':'14px'};text-align:center">${it.name}</div>
-            <div style="color:#6b7280;font-size:11px;text-align:center;min-height:${isBg?'0':'28px'}">${it.desc}</div>
-            <button onclick="njShopAct('${id}')" style="width:100%;border:none;border-radius:8px;padding:8px;font-size:12px;font-weight:700;cursor:pointer;margin-top:6px;${bSt}">${bTxt}</button>
-            ${bgPreviewClose}
+          return `<div class="nj-shop-item${owned&&it.type!=='lootbox'?' nj-owned':''}${equipped?' nj-equipped':''}${isExclusive?' nj-exclusive':''}" ${isExclusive?'style="border-color:#d97706;background:linear-gradient(135deg,#1a1a2e,#1c1507)"':''}>
+            ${thumbHtml}
+            ${isExclusive?'<div style="text-align:center;font-size:9px;font-weight:800;color:#f59e0b;letter-spacing:2px;text-transform:uppercase;margin-bottom:2px">👑 EXCLUSIVE</div>':''}
+            <div style="font-size:28px;text-align:center">${it.icon}</div>
+            <div style="color:${isExclusive?'#fbbf24':'#fff'};font-weight:700;font-size:14px;text-align:center">${it.name}</div>
+            <div style="color:#6b7280;font-size:11px;text-align:center;min-height:28px">${it.desc}</div>
+            <button onclick="njShopAct('${id}')" style="width:100%;border:none;border-radius:8px;padding:8px;font-size:12px;font-weight:700;cursor:pointer;margin-top:4px;${bSt}">${bTxt}</button>
           </div>`;
         }).join('')||'<div style="grid-column:1/-1;text-align:center;color:#6b7280;padding:30px">Nothing here yet</div>';
       }
