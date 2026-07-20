@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dares (BETA) — NJ's Unblocked</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:Inter,sans-serif;background:#0f0f1a;color:#fff;min-height:100vh;}
+  ::-webkit-scrollbar{width:6px}
+  ::-webkit-scrollbar-track{background:#0f0f1a}
+  ::-webkit-scrollbar-thumb{background:#3a3a5a;border-radius:3px}
+  ::-webkit-scrollbar-thumb:hover{background:#7c3aed}
+
+  /* ── Header ── */
+  .header{background:linear-gradient(135deg,#1a1a2e,#16213e);border-bottom:1px solid #2a2a4a;padding:0 24px;display:flex;align-items:center;gap:16px;height:60px;position:sticky;top:0;z-index:100;}
+  .header-back{background:none;border:1px solid #3a3a5a;color:#9ca3af;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:13px;display:flex;align-items:center;gap:6px;text-decoration:none;transition:all .2s;}
+  .header-back:hover{border-color:#7c3aed;color:#fff;}
+  .header-title{font-size:20px;font-weight:700;background:linear-gradient(135deg,#a78bfa,#818cf8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+  .header-sub{font-size:12px;color:#6b7280;margin-left:auto;}
+  .header-coins{display:flex;align-items:center;gap:6px;background:#1a1a2e;border:1px solid #2a2a4a;border-radius:8px;padding:6px 12px;font-size:13px;font-weight:700;color:#fbbf24;}
+
+  /* ── Layout ── */
+  .page{max-width:900px;margin:0 auto;padding:32px 24px;}
+
+  /* ── Beta badge ── */
+  .beta-badge{display:inline-block;background:#7c3aed;color:#fff;font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;vertical-align:middle;margin-left:8px;letter-spacing:.5px;}
+
+  /* ── Page Title ── */
+  .page-title{text-align:center;margin-bottom:32px;}
+  .page-title h1{font-size:48px;font-weight:800;margin-bottom:10px;line-height:1;}
+  .page-title p{color:#9ca3af;font-size:15px;}
+
+  /* ── Daily Dare ── */
+  .daily-dare{background:linear-gradient(135deg,#1e1b4b,#1a1a2e);border:1px solid #4f46e5;border-radius:16px;padding:22px 28px;margin-bottom:28px;position:relative;overflow:hidden;}
+  .daily-dare::before{content:'';position:absolute;top:0;right:0;width:120px;height:120px;background:radial-gradient(circle,#4f46e5 0%,transparent 70%);opacity:.15;pointer-events:none;}
+  .daily-dare-label{font-size:11px;font-weight:700;color:#a78bfa;letter-spacing:1px;text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:6px;}
+  .daily-dare-text{font-size:20px;font-weight:700;color:#e5e7eb;line-height:1.4;}
+  .daily-dare-meta{font-size:12px;color:#6b7280;margin-top:8px;}
+
+  /* ── Roulette Card ── */
+  .roulette-card{background:#1a1a2e;border:1px solid #2a2a4a;border-radius:20px;padding:36px;text-align:center;margin-bottom:28px;}
+  .dare-display{min-height:110px;background:#0f0f1a;border:2px solid #2a2a4a;border-radius:14px;padding:24px 28px;margin:0 auto 28px;max-width:600px;display:flex;align-items:center;justify-content:center;transition:border-color .3s;}
+  .dare-display.spinning{border-color:#7c3aed;animation:pulse-border 0.6s ease infinite;}
+  .dare-display.revealed{border-color:#10b981;}
+  @keyframes pulse-border{0%,100%{border-color:#7c3aed;box-shadow:0 0 0 0 rgba(124,58,237,.3)}50%{border-color:#a78bfa;box-shadow:0 0 0 8px rgba(124,58,237,0)}}
+  .dare-text{font-size:22px;font-weight:700;color:#e5e7eb;line-height:1.4;}
+  .dare-text.placeholder{color:#4b5563;font-size:16px;font-weight:400;}
+  .dare-text.spinning-text{color:#a78bfa;font-size:18px;}
+  .spin-btn{background:linear-gradient(135deg,#7c3aed,#4f46e5);color:#fff;border:none;border-radius:12px;padding:14px 40px;font-size:16px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;transition:all .2s;display:inline-flex;align-items:center;gap:10px;margin-bottom:16px;}
+  .spin-btn:hover:not(:disabled){background:linear-gradient(135deg,#6d28d9,#4338ca);transform:translateY(-1px);box-shadow:0 6px 24px rgba(124,58,237,.4);}
+  .spin-btn:disabled{opacity:.5;cursor:not-allowed;transform:none;}
+  .spin-btn .dice-icon{font-size:20px;display:inline-block;transition:transform .2s;}
+  .spin-btn:hover:not(:disabled) .dice-icon{transform:rotate(20deg);}
+  .complete-btn{background:linear-gradient(135deg,#059669,#047857);color:#fff;border:none;border-radius:12px;padding:12px 32px;font-size:15px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;transition:all .2s;display:none;align-items:center;gap:8px;margin:0 auto;}
+  .complete-btn:hover{background:linear-gradient(135deg,#047857,#065f46);transform:translateY(-1px);box-shadow:0 6px 20px rgba(5,150,105,.4);}
+  .complete-btn.visible{display:inline-flex;}
+  .complete-btn.done{background:linear-gradient(135deg,#1f2937,#111827);cursor:not-allowed;opacity:.6;transform:none;box-shadow:none;}
+  .toast-msg{font-size:13px;color:#6ee7b7;margin-top:10px;min-height:20px;font-weight:600;opacity:0;transition:opacity .3s;}
+  .toast-msg.show{opacity:1;}
+
+  /* ── Stats Row ── */
+  .stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:28px;}
+  .stat-card{background:#1a1a2e;border:1px solid #2a2a4a;border-radius:14px;padding:20px;text-align:center;}
+  .stat-card .stat-val{font-size:32px;font-weight:800;margin-bottom:4px;}
+  .stat-card .stat-lbl{font-size:12px;color:#6b7280;font-weight:500;}
+  .stat-card.coins .stat-val{color:#fbbf24;}
+  .stat-card.completed .stat-val{color:#10b981;}
+  .stat-card.streak .stat-val{color:#f97316;}
+
+  /* ── All Dares list ── */
+  .dares-list-section{background:#111827;border:1px solid #1f2937;border-radius:16px;padding:24px;margin-bottom:28px;}
+  .dares-list-section h2{font-size:16px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:8px;}
+  .dare-pill{background:#1a1a2e;border:1px solid #2a2a4a;border-radius:10px;padding:12px 16px;font-size:14px;color:#d1d5db;display:flex;align-items:center;gap:10px;transition:border-color .2s;}
+  .dare-pill:hover{border-color:#7c3aed;}
+  .dare-pill .dare-num{background:#2a2a4a;color:#6b7280;font-size:11px;font-weight:700;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .dare-list-grid{display:grid;gap:8px;}
+
+  /* ── Responsive ── */
+  @media(max-width:600px){
+    .stats-row{grid-template-columns:1fr 1fr;}
+    .stats-row .stat-card:last-child{grid-column:1/-1;}
+    .page-title h1{font-size:32px;}
+    .dare-text{font-size:18px;}
+    .roulette-card{padding:24px 16px;}
+  }
+</style>
+</head>
+<body>
+
+<!-- ── Header ── -->
+<div class="header">
+  <a class="header-back" href="index.html">← Back</a>
+  <div class="header-title">🎲 Dares <span class="beta-badge">BETA</span></div>
+  <div class="header-sub" id="hdr-user-name">Not logged in</div>
+  <div class="header-coins" id="hdr-coins">🪙 0</div>
+</div>
+
+<!-- ── Page ── -->
+<div class="page">
+
+  <!-- Page Title -->
+  <div class="page-title">
+    <h1>🎲 Dare Roulette <span class="beta-badge" style="font-size:14px;vertical-align:middle">BETA</span></h1>
+    <p>Spin the wheel, accept the dare, earn coins — how bold are you?</p>
+  </div>
+
+  <!-- Daily Dare -->
+  <div class="daily-dare" id="daily-dare-box">
+    <div class="daily-dare-label">📅 Daily Dare</div>
+    <div class="daily-dare-text" id="daily-dare-text">Loading today's dare...</div>
+    <div class="daily-dare-meta" id="daily-dare-meta">Refreshes every day · Complete it for +15 🪙</div>
+    <button class="complete-btn" id="daily-complete-btn" onclick="completeDailyDare()" style="margin-top:16px;display:inline-flex;">
+      ✅ Complete Daily Dare (+15 🪙)
+    </button>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-row">
+    <div class="stat-card coins">
+      <div class="stat-val" id="stat-coins">0</div>
+      <div class="stat-lbl">🪙 Dare Coins Earned</div>
+    </div>
+    <div class="stat-card completed">
+      <div class="stat-val" id="stat-completed">0</div>
+      <div class="stat-lbl">✅ Dares Completed</div>
+    </div>
+    <div class="stat-card streak">
+      <div class="stat-val" id="stat-streak">0</div>
+      <div class="stat-lbl">🔥 Day Streak</div>
+    </div>
+  </div>
+
+  <!-- Roulette Card -->
+  <div class="roulette-card">
+    <div class="dare-display" id="dare-display">
+      <div class="dare-text placeholder" id="dare-text">Hit "Spin" to get your dare!</div>
+    </div>
+
+    <div>
+      <button class="spin-btn" id="spin-btn" onclick="spinDare()">
+        <span class="dice-icon">🎲</span> Spin the Dare!
+      </button>
+    </div>
+
+    <button class="complete-btn" id="complete-btn" onclick="completeDare()">
+      ✅ Complete Dare (+10 🪙)
+    </button>
+
+    <div class="toast-msg" id="toast-msg"></div>
+  </div>
+
+  <!-- All Dares List -->
+  <div class="dares-list-section">
+    <h2>📋 All Dares <span id="dare-count-badge" style="background:#1e1b4b;border:1px solid #4f46e5;color:#a78bfa;font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;">0</span></h2>
+    <div class="dare-list-grid" id="dare-list-grid">
+      <!-- filled by JS -->
+    </div>
+  </div>
+
+</div><!-- /page -->
+
+<script>
+// ── Default dares ──
+const DEFAULT_DARES = [
+  "Talk like a robot for 2 minutes",
+  "Do 10 jumping jacks",
+  "Say the alphabet backwards",
+  "Compliment someone near you",
+  "Play a game without jumping",
+  "Clap 20 times fast",
+  "Balance on one foot for 30 seconds",
+  "Do your best impression of a teacher",
+  "Say every word you speak in a funny accent for 1 minute",
+  "Do 5 push-ups right now",
+  "Name 10 animals in 10 seconds",
+  "Hum a song and let others guess it",
+  "Do your best dance move",
+  "Speak in a whisper for the next 2 minutes",
+  "Count to 20 as fast as you can",
+  "Pat your head and rub your belly at the same time",
+  "Do 15 star jumps",
+  "Wiggle your ears (or try to!)",
+  "Name 5 countries in 5 seconds",
+  "Do your best superhero pose for 30 seconds"
+];
+
+// ── LocalStorage helpers ──
+function getStats() {
+  try { return JSON.parse(localStorage.getItem('nj_dare_stats') || '{}'); } catch(e){ return {}; }
+}
+function saveStats(s) { localStorage.setItem('nj_dare_stats', JSON.stringify(s)); }
+
+function getDares() {
+  try {
+    const d = localStorage.getItem('nj_dare_list');
+    if (d) return JSON.parse(d);
+  } catch(e){}
+  return DEFAULT_DARES.slice();
+}
+function saveDares(list) { localStorage.setItem('nj_dare_list', JSON.stringify(list)); }
+
+// ── Coin system — local + try to sync with main site ──
+function getLocalCoins() {
+  return parseInt(localStorage.getItem('nj_dare_coins') || '0', 10);
+}
+function addLocalCoins(amt) {
+  const cur = getLocalCoins();
+  localStorage.setItem('nj_dare_coins', String(cur + amt));
+  return cur + amt;
+}
+
+// ── User info from main site localStorage ──
+const username = localStorage.getItem('nj_username') || null;
+document.getElementById('hdr-user-name').textContent = username ? `👤 ${username}` : 'Not logged in';
+
+// ── Update header coins ──
+function refreshHdrCoins() {
+  document.getElementById('hdr-coins').textContent = `🪙 ${getLocalCoins().toLocaleString()}`;
+}
+
+// ── Update stats display ──
+function refreshStats() {
+  const s = getStats();
+  document.getElementById('stat-coins').textContent = (s.coins || 0).toLocaleString();
+  document.getElementById('stat-completed').textContent = (s.completed || 0).toLocaleString();
+  document.getElementById('stat-streak').textContent = (s.streak || 0);
+  refreshHdrCoins();
+}
+
+// ── Dare list UI ──
+function renderDareList() {
+  const dares = getDares();
+  const grid = document.getElementById('dare-list-grid');
+  document.getElementById('dare-count-badge').textContent = dares.length;
+  grid.innerHTML = dares.map((d, i) => `
+    <div class="dare-pill">
+      <div class="dare-num">${i + 1}</div>
+      <span>${escHtml(d)}</span>
+    </div>
+  `).join('');
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── Daily Dare ──
+function getDailyDare() {
+  const dares = getDares();
+  if (!dares.length) return "No dares available. Ask an admin to add some!";
+  // Use day of year as seed so it changes daily
+  const now = new Date();
+  const start = new Date(now.getFullYear(), 0, 0);
+  const diff = now - start;
+  const day = Math.floor(diff / (1000 * 60 * 60 * 24));
+  return dares[day % dares.length];
+}
+
+function getDailyKey() {
+  const now = new Date();
+  return `nj_daily_dare_${now.getFullYear()}_${now.getMonth()}_${now.getDate()}`;
+}
+
+function initDailyDare() {
+  const dare = getDailyDare();
+  document.getElementById('daily-dare-text').textContent = dare;
+  const completed = localStorage.getItem(getDailyKey()) === '1';
+  const btn = document.getElementById('daily-complete-btn');
+  if (completed) {
+    btn.textContent = '✅ Completed Today!';
+    btn.classList.add('done');
+    btn.disabled = true;
+    document.getElementById('daily-dare-meta').textContent = 'You already completed today\'s dare — come back tomorrow! 🎉';
+  }
+}
+
+function completeDailyDare() {
+  const key = getDailyKey();
+  if (localStorage.getItem(key) === '1') return;
+  localStorage.setItem(key, '1');
+  addLocalCoins(15);
+  const s = getStats();
+  s.coins = (s.coins || 0) + 15;
+  s.completed = (s.completed || 0) + 1;
+  // Streak logic
+  const today = new Date().toDateString();
+  const lastDay = s.lastDay || '';
+  const yesterday = new Date(Date.now() - 86400000).toDateString();
+  if (lastDay === yesterday) { s.streak = (s.streak || 0) + 1; }
+  else if (lastDay !== today) { s.streak = 1; }
+  s.lastDay = today;
+  saveStats(s);
+  refreshStats();
+  const btn = document.getElementById('daily-complete-btn');
+  btn.textContent = '✅ Completed! +15 🪙';
+  btn.classList.add('done');
+  btn.disabled = true;
+  document.getElementById('daily-dare-meta').textContent = 'Amazing! Come back tomorrow for a new dare 🎉';
+  showToastMessage('🎉 Daily dare done! +15 🪙 earned!', 'daily');
+}
+
+// ── Spin logic ──
+let currentDare = null;
+let isDareActive = false;
+let completedCurrent = false;
+
+function spinDare() {
+  const dares = getDares();
+  if (!dares.length) { alert('No dares available! Ask an admin to add some.'); return; }
+  const btn = document.getElementById('spin-btn');
+  const display = document.getElementById('dare-display');
+  const text = document.getElementById('dare-text');
+  const completeBtn = document.getElementById('complete-btn');
+  const toast = document.getElementById('toast-msg');
+
+  btn.disabled = true;
+  completeBtn.classList.remove('visible', 'done');
+  completeBtn.textContent = '✅ Complete Dare (+10 🪙)';
+  completeBtn.disabled = false;
+  toast.classList.remove('show');
+  toast.textContent = '';
+  display.className = 'dare-display spinning';
+  isDareActive = false;
+  completedCurrent = false;
+
+  // Spinning animation: cycle through random dares
+  let ticks = 0;
+  const totalTicks = 14;
+  const intervals = [80, 90, 100, 110, 120, 140, 160, 180, 200, 230, 260, 300, 350, 420];
+
+  function tick(i) {
+    const rand = dares[Math.floor(Math.random() * dares.length)];
+    text.className = 'dare-text spinning-text';
+    text.textContent = rand;
+    if (i < totalTicks) {
+      setTimeout(() => tick(i + 1), intervals[i] || 200);
+    } else {
+      // Final pick
+      currentDare = dares[Math.floor(Math.random() * dares.length)];
+      text.className = 'dare-text';
+      text.textContent = currentDare;
+      display.className = 'dare-display revealed';
+      btn.disabled = false;
+      isDareActive = true;
+      completeBtn.classList.add('visible');
+    }
+  }
+
+  text.className = 'dare-text spinning-text';
+  text.textContent = 'Spinning...';
+  setTimeout(() => tick(0), 200);
+}
+
+function completeDare() {
+  if (!isDareActive || completedCurrent) return;
+  completedCurrent = true;
+  const btn = document.getElementById('complete-btn');
+  btn.classList.add('done');
+  btn.disabled = true;
+  btn.textContent = '✅ Dare Completed!';
+
+  addLocalCoins(10);
+  const s = getStats();
+  s.coins = (s.coins || 0) + 10;
+  s.completed = (s.completed || 0) + 1;
+  const today = new Date().toDateString();
+  const yesterday = new Date(Date.now() - 86400000).toDateString();
+  if (s.lastDay === yesterday) { s.streak = (s.streak || 0) + 1; }
+  else if (s.lastDay !== today) { s.streak = 1; }
+  s.lastDay = today;
+  saveStats(s);
+  refreshStats();
+  showToastMessage('🎉 Dare complete! +10 🪙 earned!', 'spin');
+}
+
+function showToastMessage(msg, type) {
+  const toast = document.getElementById('toast-msg');
+  toast.textContent = msg;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 3500);
+}
+
+// ── Init ──
+initDailyDare();
+refreshStats();
+renderDareList();
+</script>
+</body>
+</html>
