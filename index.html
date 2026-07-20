@@ -547,30 +547,7 @@
             </div>
           </div>
 
-          <!-- Manage Dares Section -->
-          <div id="nj-dares-section">
-            <div class="nj-admin-section-hdr" onclick="njToggleSection('nj-dares-body','nj-dares-chev')">
-              <span>🎲 Manage Dares</span>
-              <span id="nj-dares-count" style="background:#1a1a2e;border:1px solid #7c3aed;color:#a78bfa;border-radius:10px;padding:1px 8px;font-size:11px;font-weight:700;margin-left:6px">0</span>
-              <span id="nj-dares-chev" style="margin-left:auto;color:#6b7280;font-size:12px">▼</span>
-            </div>
-            <div id="nj-dares-body" style="display:none;padding:10px 14px;background:#070712;">
-              <div style="display:flex;gap:6px;margin-bottom:10px;">
-                <input id="nj-dares-input" type="text" placeholder="Type a new dare…" maxlength="120"
-                  onkeydown="if(event.key==='Enter')njAdminAddDare()"
-                  style="flex:1;padding:8px 10px;background:#0a0a15;border:1px solid #2a2a4a;border-radius:7px;color:#e5e7eb;font-size:13px;outline:none;font-family:Inter,sans-serif;"/>
-                <button onclick="njAdminAddDare()" style="background:#7c3aed;color:#fff;border:none;border-radius:7px;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;">+ Add</button>
-              </div>
-              <div id="nj-dares-list" style="display:grid;gap:6px;max-height:320px;overflow-y:auto;margin-bottom:10px;"></div>
-              <div style="display:flex;gap:6px;flex-wrap:wrap;">
-                <button onclick="njAdminSaveDares()" style="background:#064e3b;color:#6ee7b7;border:1px solid #065f46;border-radius:7px;padding:7px 12px;font-size:12px;font-weight:700;cursor:pointer;">💾 Save Changes</button>
-                <button onclick="njAdminResetDares()" style="background:#3f1515;color:#fca5a5;border:1px solid #991b1b;border-radius:7px;padding:7px 12px;font-size:12px;font-weight:700;cursor:pointer;">↩ Reset to Defaults</button>
-              </div>
-              <div id="nj-dares-status" style="color:#6ee7b7;font-size:12px;margin-top:8px;min-height:16px;"></div>
-            </div>
-          </div>
-
-                    <!-- Banned Devices Section -->
+          <!-- Banned Devices Section -->
           <div id="nj-banned-section">
             <div id="nj-banned-section-header" onclick="njToggleBannedSection()">
               <span>🚫 Banned Devices</span>
@@ -3779,7 +3756,7 @@
           <button class="nj-hdr-btn" id="nj-hdr-spin-btn" onclick="njOpenSpin()" style="position:relative">🎡 Daily Spin<span id="nj-spin-dot" style="display:none;position:absolute;top:3px;right:3px;width:6px;height:6px;background:#fbbf24;border-radius:50%"></span></button>
           <button class="nj-hdr-btn" id="nj-hdr-ch-btn" onclick="njOpenChallenges()" style="position:relative">⚡ Challenges<span id="nj-ch-dot" style="display:none;position:absolute;top:3px;right:3px;width:6px;height:6px;background:#22c55e;border-radius:50%"></span></button>
           <button class="nj-hdr-btn" onclick="njOpenProfile()">👤 Profile</button>
-          <button class="nj-hdr-btn" onclick="window.location.href='dares.html'">🎲 Dares (BETA)</button>
+          <button class="nj-hdr-btn" onclick="window.location.href='userscripts.html'">📜 Userscripts</button>
         `;
         ensureSettingsFab();
         return bar;
@@ -4325,99 +4302,7 @@
             });
           }
         }
-      }
-
-      // ── Manage Dares (Admin) ──
-      (function(){
-        const DEFAULT_DARE_LIST = ["Talk like a robot for 2 minutes","Do 10 jumping jacks","Say the alphabet backwards","Compliment someone near you","Play a game without jumping","Clap 20 times fast","Balance on one foot for 30 seconds","Do your best impression of a teacher","Say every word you speak in a funny accent for 1 minute","Do 5 push-ups right now","Name 10 animals in 10 seconds","Hum a song and let others guess it","Do your best dance move","Speak in a whisper for the next 2 minutes","Count to 20 as fast as you can","Pat your head and rub your belly at the same time","Do 15 star jumps","Wiggle your ears (or try to!)","Name 5 countries in 5 seconds","Do your best superhero pose for 30 seconds"];
-        let _adminDares = null;
-
-        function _loadAdminDares() {
-          try { const d = localStorage.getItem('nj_dare_list'); if (d) return JSON.parse(d); } catch(e){}
-          return DEFAULT_DARE_LIST.slice();
-        }
-
-        function _renderAdminDares() {
-          _adminDares = _adminDares || _loadAdminDares();
-          const list = document.getElementById('nj-dares-list');
-          const countEl = document.getElementById('nj-dares-count');
-          if (!list) return;
-          countEl && (countEl.textContent = _adminDares.length);
-          if (!_adminDares.length) {
-            list.innerHTML = '<div style="color:#6b7280;font-size:13px;padding:8px 0;">No dares yet. Add one above!</div>';
-            return;
-          }
-          list.innerHTML = _adminDares.map((d, i) => `
-            <div style="display:flex;align-items:center;gap:8px;background:#0f0f1a;border:1px solid #2a2a4a;border-radius:8px;padding:9px 12px;">
-              <span style="color:#6b7280;font-size:11px;font-weight:700;min-width:20px;">${i+1}</span>
-              <span style="flex:1;font-size:13px;color:#d1d5db;">${_esc(d)}</span>
-              <button onclick="_njDeleteDare(${i})" style="background:#3f1515;color:#fca5a5;border:1px solid #991b1b;border-radius:6px;padding:4px 8px;font-size:11px;font-weight:700;cursor:pointer;">✕ Delete</button>
-            </div>
-          `).join('');
-        }
-
-        function _esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-
-        window._njDeleteDare = function(i) {
-          if (!_adminDares) return;
-          const dare = _adminDares[i];
-          if (!confirm(`Delete this dare?\n\n"${dare}"`)) return;
-          _adminDares.splice(i, 1);
-          _renderAdminDares();
-          _setDaresStatus('Dare deleted — click 💾 Save to apply changes.');
-        };
-
-        window.njAdminAddDare = function() {
-          const inp = document.getElementById('nj-dares-input');
-          if (!inp) return;
-          const val = inp.value.trim();
-          if (!val) { _setDaresStatus('Please type a dare first.', true); return; }
-          if (val.length > 120) { _setDaresStatus('Dare is too long (max 120 chars).', true); return; }
-          if (!_adminDares) _adminDares = _loadAdminDares();
-          if (_adminDares.includes(val)) { _setDaresStatus('That dare already exists.', true); return; }
-          _adminDares.push(val);
-          inp.value = '';
-          _renderAdminDares();
-          _setDaresStatus('Dare added — click 💾 Save to apply changes.');
-        };
-
-        window.njAdminSaveDares = function() {
-          if (!_adminDares) return;
-          localStorage.setItem('nj_dare_list', JSON.stringify(_adminDares));
-          _setDaresStatus('✅ Dares saved! Changes are live on the Dares page.');
-        };
-
-        window.njAdminResetDares = function() {
-          if (!confirm('Reset all dares back to the default list? This will remove any custom dares you added.')) return;
-          _adminDares = DEFAULT_DARE_LIST.slice();
-          localStorage.setItem('nj_dare_list', JSON.stringify(_adminDares));
-          _renderAdminDares();
-          _setDaresStatus('✅ Dares reset to defaults.');
-        };
-
-        function _setDaresStatus(msg, isErr) {
-          const el = document.getElementById('nj-dares-status');
-          if (!el) return;
-          el.textContent = msg;
-          el.style.color = isErr ? '#f87171' : '#6ee7b7';
-          clearTimeout(el._t);
-          el._t = setTimeout(() => { el.textContent = ''; }, 4000);
-        }
-
-        // Hook into njToggleSection to render dares when section opens
-        const _origToggle = window.njToggleSection;
-        window.njToggleSection = function(bodyId, chevId) {
-          _origToggle(bodyId, chevId);
-          if (bodyId === 'nj-dares-body') {
-            const body = document.getElementById('nj-dares-body');
-            if (body && body.style.display !== 'none') {
-              _adminDares = null; // reload from localStorage each time
-              _renderAdminDares();
-            }
-          }
-        };
-      })();
-;
+      };
 
       window.njSaveEconomy = async function(){
         const coin=parseFloat(document.getElementById('nj-econ-coin').value)||1;
