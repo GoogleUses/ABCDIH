@@ -1,11 +1,8 @@
-/* ════════════════════════════════════════════════════════
-   NJ's Unblocked Games — Extended Admin Panel
-   Firebase-connected: users, reports, leaderboard
-   ════════════════════════════════════════════════════════ */
+
 (function () {
   'use strict';
 
-  /* ── Firebase SDK (same project as chat.html) ── */
+  
   const FB_CONFIG = {
     apiKey: "AIzaSyDW9xdFdxFSjAm15f-l107fQpmZbs6_vEw",
     authDomain: "trolling-e3ed8.firebaseapp.com",
@@ -15,7 +12,7 @@
     messagingSenderId: "299260439019",
     appId: "1:299260439019:web:9dedc986334a871e1d51ae"
   };
-  const MASTER = "imhim";
+  const MASTER = atob("aW1oaW0=");
 
   let db = null;
   let _fbRef, _fbSet, _fbRemove, _fbPush, _fbGet, _fbOnValue;
@@ -35,7 +32,7 @@
   function esc(t) { return String(t).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
   function fmt(ts) { return ts ? new Date(ts).toLocaleString() : "-"; }
 
-  /* ════════════════ STYLES ════════════════ */
+  
   const style = document.createElement("style");
   style.textContent = `
     #nj-ext-btn {
@@ -138,13 +135,13 @@
   `;
   document.head.appendChild(style);
 
-  /* ════════════════ LAUNCH BUTTON ════════════════ */
+  
   const btn = document.createElement("button");
   btn.id = "nj-ext-btn";
   btn.innerHTML = "🛡️ Admin";
   document.body.appendChild(btn);
 
-  /* ════════════════ OVERLAY ════════════════ */
+  
   const overlay = document.createElement("div");
   overlay.id = "nj-ext-overlay";
   overlay.innerHTML = `
@@ -180,7 +177,7 @@
   `;
   document.body.appendChild(overlay);
 
-  /* ── State ── */
+  
   let _unlocked = false;
   let _activeTab = "users";
   let _onlineUsers = {};
@@ -202,7 +199,7 @@
     _toastTimer = setTimeout(() => { el.style.display = "none"; }, 3000);
   }
 
-  /* ════════════════ OPEN / CLOSE ════════════════ */
+  
   btn.addEventListener("click", () => {
     overlay.classList.add("open");
     if (_unlocked) {
@@ -222,7 +219,7 @@
     overlay.classList.remove("open");
   }
 
-  /* ── Auth ── */
+  
   document.getElementById("nj-ext-key-submit").addEventListener("click", handleAuth);
   document.getElementById("nj-ext-key-input").addEventListener("keydown", e => { if (e.key === "Enter") handleAuth(); });
 
@@ -245,7 +242,7 @@
     renderTab(_activeTab);
   }
 
-  /* ── Tabs ── */
+  
   document.querySelectorAll(".nj-ext-tab").forEach(t => {
     t.addEventListener("click", () => {
       document.querySelectorAll(".nj-ext-tab").forEach(x => x.classList.remove("active"));
@@ -255,30 +252,30 @@
     });
   });
 
-  /* ════════════════ FIREBASE SUBSCRIPTIONS ════════════════ */
+  
   function subscribeToData() {
-    // Online presence
+
     _unsubscribers.push(
       _fbOnValue(_fbRef("njsgames/presence"), snap => {
         _onlineUsers = snap.val() || {};
         if (_activeTab === "users") renderTab("users");
       })
     );
-    // Bans
+
     _unsubscribers.push(
       _fbOnValue(_fbRef("njsgames/bans"), snap => {
         _bans = snap.val() || {};
         if (_activeTab === "users") renderTab("users");
       })
     );
-    // Reports
+
     _unsubscribers.push(
       _fbOnValue(_fbRef("njsgames/reports"), snap => {
         _reports = snap.val() || {};
         if (_activeTab === "reports") renderTab("reports");
       })
     );
-    // Leaderboard
+
     _unsubscribers.push(
       _fbOnValue(_fbRef("njsgames/leaderboard"), snap => {
         _leaderboard = snap.val() || {};
@@ -287,7 +284,7 @@
     );
   }
 
-  /* ════════════════ RENDER TABS ════════════════ */
+  
   function renderTab(tab) {
     const body = document.getElementById("nj-ext-body");
     if (tab === "users") renderUsers(body);
@@ -295,7 +292,7 @@
     else if (tab === "leaderboard") renderLeaderboard(body);
   }
 
-  /* ─── USERS TAB ─── */
+  
   function renderUsers(body) {
     const onlineEntries = Object.entries(_onlineUsers);
     const banEntries = Object.entries(_bans);
@@ -307,7 +304,7 @@
       </div>
     `;
 
-    // Online users section
+
     html += `<div class="nj-ext-section-title">🟢 Online Users (${onlineEntries.length})</div>`;
     if (!onlineEntries.length) {
       html += `<div class="nj-ext-empty">No users online right now</div>`;
@@ -337,7 +334,7 @@
       });
     }
 
-    // Banned users section
+
     if (banEntries.length) {
       html += `<div class="nj-ext-section-title" style="margin-top:16px">🚫 Banned Users (${banEntries.length})</div>`;
       banEntries.forEach(([key, ban]) => {
@@ -355,7 +352,7 @@
 
     body.innerHTML = html;
 
-    // Offline user search + manual mute/ban
+
     document.getElementById("nj-ext-user-search-btn").addEventListener("click", () => {
       const v = document.getElementById("nj-ext-user-search").value.trim();
       if (!v) return;
@@ -365,14 +362,14 @@
       if (e.key === "Enter") document.getElementById("nj-ext-user-search-btn").click();
     });
 
-    // Action buttons
+
     body.querySelectorAll("[data-action]").forEach(el => {
       el.addEventListener("click", () => handleUserAction(el));
     });
   }
 
   function showOfflineUserActions(username, body) {
-    // Remove old offline panel if any
+
     document.getElementById("nj-ext-offline-panel")?.remove();
     const banKey = fk(username);
     const isBanned = !!_bans[banKey];
@@ -407,7 +404,7 @@
       const dur = parseInt(document.getElementById(`mute-dur-${sessId}`)?.value || "300");
       const expiresAt = Date.now() + dur * 1000;
       await _fbSet(_fbRef(`njsgames/commands/${sessId}`), { type: "mute", expiresAt, ts: Date.now() });
-      // Also write offline mute
+
       if (username) await _fbSet(_fbRef(`njsgames/mutes/${fk(username)}`), { username, expiresAt, ts: Date.now() });
       toast(`🔇 Muted ${username} for ${dur}s`);
     } else if (action === "kick") {
@@ -416,7 +413,7 @@
     } else if (action === "ban") {
       const reason = prompt(`Ban reason for ${username} (optional):`) || "";
       await _fbSet(_fbRef(`njsgames/bans/${fk(username)}`), { username, reason, ts: Date.now(), bannedBy: "admin" });
-      // Also kick them right now
+
       await _fbSet(_fbRef(`njsgames/commands/${sessId}`), { type: "ban", ts: Date.now() });
       toast(`🚫 Banned ${username}`);
     } else if (action === "unban") {
@@ -425,7 +422,7 @@
     } else if (action === "offline-mute") {
       const dur = parseInt(document.getElementById("nj-ext-offline-dur")?.value || "300");
       const expiresAt = Date.now() + dur * 1000;
-      // Try to find their session from username registry
+
       const snap = await _fbGet(_fbRef(`njsgames/usernames/${fk(username)}`));
       if (snap.exists() && snap.val().sessionId) {
         await _fbSet(_fbRef(`njsgames/commands/${snap.val().sessionId}`), { type: "mute", expiresAt, ts: Date.now() });
@@ -444,7 +441,7 @@
     } else if (action === "offline-ban") {
       const reason = prompt(`Ban reason for ${username} (optional):`) || "";
       await _fbSet(_fbRef(`njsgames/bans/${fk(username)}`), { username, reason, ts: Date.now(), bannedBy: "admin" });
-      // Try to send ban command too (works if they're currently online)
+
       const snap = await _fbGet(_fbRef(`njsgames/usernames/${fk(username)}`));
       if (snap.exists() && snap.val().sessionId) {
         await _fbSet(_fbRef(`njsgames/commands/${snap.val().sessionId}`), { type: "ban", ts: Date.now() });
@@ -454,7 +451,7 @@
     }
   }
 
-  /* ─── REPORTS TAB ─── */
+  
   function renderReports(body) {
     const entries = Object.entries(_reports).sort((a, b) => (b[1].ts || 0) - (a[1].ts || 0));
     if (!entries.length) {
@@ -511,7 +508,7 @@
     if (action === "rpt-mute") {
       const dur = parseInt(document.getElementById(`rpt-dur-${key}`)?.value || "300");
       const expiresAt = Date.now() + dur * 1000;
-      // Try to find session
+
       const snap = await _fbGet(_fbRef(`njsgames/usernames/${fk(username)}`));
       if (snap.exists() && snap.val().sessionId) {
         await _fbSet(_fbRef(`njsgames/commands/${snap.val().sessionId}`), { type: "mute", expiresAt, ts: Date.now() });
@@ -542,7 +539,7 @@
     }
   }
 
-  /* ─── LEADERBOARD TAB ─── */
+  
   function renderLeaderboard(body) {
     const entries = Object.entries(_leaderboard).sort((a, b) => (b[1].coins || 0) - (a[1].coins || 0));
 
@@ -605,8 +602,8 @@
     });
   }
 
-  /* ════════════════ REPORT RECEIVER ════════════════ */
-  // Receives reports from the chat iframe
+  
+
   window.njReportMessage = async function (author, text, ts) {
     if (!db) await initFirebase().catch(() => {});
     if (!db) return;
