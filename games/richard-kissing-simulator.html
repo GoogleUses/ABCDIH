@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Richard Kissing Simulator</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #1a0a2e;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    overflow: hidden;
+    font-family: 'Segoe UI', sans-serif;
+    touch-action: none;
+  }
+  canvas {
+    display: block;
+    max-width: 100vw;
+    max-height: 100vh;
+  }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+
+// Responsive size
+const W = 480, H = 600;
+canvas.width = W;
+canvas.height = H;
+
+// Scale canvas to fit screen
+function resize() {
+  const s = Math.min(window.innerWidth / W, window.innerHeight / H);
+  canvas.style.width  = W * s + 'px';
+  canvas.style.height = H * s + 'px';
+}
+resize();
+window.addEventListener('resize', resize);
+
+// ─── Game State ───────────────────────────────────────────────
+const STATES = { TITLE: 0, COUNTDOWN: 1, PLAYING: 2, RESULT: 3, DONE: 4 };
+let state = STATES.TITLE;
+let round = 0;
+const ROUNDS = 5;
+let score = 0;
+let totalScore = 0;
+
+// Timing bar
+let needlePos  = 0;   // 0..1
+let needleDir  = 1;
+let needleSpeed = 0.008;
+let pressed    = false;
+let resultTimer = 0;
+let resultMsg   = '';
+let resultColor = '#fff';
+let kissSuccess = false;
+
+// Characters lean
+let richardLean    = 0;   // 0..1 (toward center)
+let playerLean = 0;
+
+// Particles
+let particles = [];
+
+// Shake
+let shakeX = 0, shakeY = 0, shakeMag = 0;
+
+// Countdown
+let countdownVal = 3;
+let countdownTimer = 0;
+
+// ─── Helpers ──────────────────────────────────────────────────
+function lerp(a, b, t) { return a + (b - a) * t; }
+function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+function rnd(a, b) { return a + Math.random() * (b - a); }
+
+// Timing zones: perfect ±0.10 around 0.5, good ±0.20
+function getZoneAtPos(p) {
+  const d = Math.abs(p - 0.5);
+  if (d < 0.09) return 'perfect';
+  if (d < 0.18) return 'good';
+  return 'miss';
+}
+
+// ─── Particle system ─────────────────────────────────────────
+function spawnParticles(x, y, count, types) {
+  for (let i = 0; i < count; i++) {
+    particles.push({
+      x, y,
+      vx: rnd(-4, 4),
+      vy: rnd(-8, -2),
+      life: 1,
+      decay: rnd(0.01, 0.03),
+      size: rnd(10, 24),
+      type: types[Math.floor(Math.random() * types.length)],
+      rot: rnd(0, Math.PI * 2),
+      rotV: rnd(-0.2, 0.2),
+    });
+  }
+}
+
+function updateParticles() {
+  particles = particles.filter(p => p.life > 0);
+  for (const p of particles) {
+    p.x  += p.vx;
+    p.y  += p.vy;
+    p.vy += 0.2;
+    p.life -= p.decay;
+    p.rot += p.rotV;
+  }
+}
+
+function drawParticles() {
+  for (const p of particles) {
+    ctx.save();
+    ctx.globalAlpha = p.life;
+    ctx.font = p.size + 'px serif';
+    ctx.textAlign = 'center';
+    ctx.translate(p.x, p.y);
+    ctx.rotate(p.rot);
+    ctx.fillText(p.type, 0, 0);
+    ctx.restore();
+  }
+}
+
+// ─── Drawing ──────────────────────────────────────────────────
+function drawBackground() {
+  // Sky gradient
+  const grad = ctx.createLinearGradient(0, 0, 0, H);
+  grad.addColorStop(0, '#1a0a2e');
+  grad.addColorStop(1, '#2d1454');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, W, H);
+
+  // Stars
+  ctx.fillStyle = 'rgba(255,255,255,0.6)';
+  const stars = [[50,40],[120,70],[200,20],[310,55],[400,30],[450,80],[30,100],[380,90]];
+  for (const [sx, sy] of stars) {
+    ctx.beginPath();
+    ctx.arc(sx, sy, 1.5, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // Ground
+  const gGrad = ctx.createLinearGradient(0, 380, 0, H);
+  gGrad.addColorStop(0, '#3a1f6b');
+  gGrad.addColorStop(1, '#1a0a2e');
+  ctx.fillStyle = gGrad;
+  ctx.fillRect(0, 380, W, H - 380);
+
+  // Moon
+  ctx.save();
+  ctx.fillStyle = '#fffae0';
+  ctx.shadowColor = '#fffae0';
+  ctx.shadowBlur = 20;
+  ctx.beginPath();
+  ctx.arc(390, 60, 28, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#2d1454';
+  ctx.beginPath();
+  ctx.arc(400, 52, 22, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+// Draw Richard (Indian guy) — on LEFT side
+function drawRichard(lean) {
+  const cx = 90 + lean * 110;
+  const cy = 290;
+
+  ctx.save();
+
+  // Shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.2)';
+  ctx.beginPath();
+  ctx.ellipse(cx, cy + 92, 32, 10, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Body — orange kurta
+  ctx.fillStyle = '#e67e22';
+  ctx.beginPath();
+  ctx.roundRect(cx - 22, cy + 10, 44, 55, 6);
+  ctx.fill();
+
+  // Kurta pattern (white trim)
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(cx - 2, cy + 12, 4, 30);
+  ctx.fillRect(cx - 10, cy + 12, 20, 3);
+
+  // Legs
+  ctx.fillStyle = '#2c3e50';
+  ctx.beginPath();
+  ctx.roundRect(cx - 18, cy + 63, 14, 30, 4);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.roundRect(cx + 4, cy + 63, 14, 30, 4);
+  ctx.fill();
+
+  // Neck
+  ctx.fillStyle = '#8B6340';
+  ctx.fillRect(cx - 7, cy + 2, 14, 14);
+
+  // Head
+  ctx.fillStyle = '#8B6340';
+  ctx.beginPath();
+  ctx.arc(cx, cy - 12, 28, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Hair — thick black
+  ctx.fillStyle = '#1a0a00';
+  ctx.beginPath();
+  ctx.arc(cx, cy - 22, 24, Math.PI, 0);
+  ctx.fill();
+  // Hair swoosh
+  ctx.beginPath();
+  ctx.arc(cx - 16, cy - 16, 14, Math.PI * 1.2, Math.PI * 1.8);
+  ctx.fill();
+
+  // Eyebrows
+  ctx.strokeStyle = '#1a0a00';
+  ctx.lineWidth = 2.5;
+  ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(cx - 16, cy - 20); ctx.lineTo(cx - 7, cy - 22); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(cx + 7, cy - 22); ctx.lineTo(cx + 16, cy - 20); ctx.stroke();
+
+  // Eyes
+  ctx.fillStyle = '#1a0a00';
+  ctx.beginPath(); ctx.arc(cx - 10, cy - 14, 4, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(cx + 10, cy - 14, 4, 0, Math.PI * 2); ctx.fill();
+  // Eye shine
+  ctx.fillStyle = '#fff';
+  ctx.beginPath(); ctx.arc(cx - 8, cy - 16, 1.5, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(cx + 12, cy - 16, 1.5, 0, Math.PI * 2); ctx.fill();
+
+  // Mustache 😎
+  ctx.fillStyle = '#1a0a00';
+  ctx.beginPath();
+  ctx.arc(cx - 6, cy - 5, 5, 0, Math.PI);
+  ctx.arc(cx + 6, cy - 5, 5, 0, Math.PI);
+  ctx.fill();
+
+  // Smile (lean = happy face approaching)
+  ctx.strokeStyle = '#5c3317';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(cx, cy - 3, 8, 0.2, Math.PI - 0.2);
+  ctx.stroke();
+
+  // Arm reaching out when leaning
+  if (lean > 0.3) {
+    ctx.fillStyle = '#8B6340';
+    ctx.beginPath();
+    ctx.roundRect(cx + 18, cy + 18, lean * 30, 9, 4);
+    ctx.fill();
+  }
+
+  // Label
+  ctx.fillStyle = '#ffe082';
+  ctx.font = 'bold 13px Segoe UI';
+  ctx.textAlign = 'center';
+  ctx.fillText('Richard 😎', cx, cy - 50);
+
+  ctx.restore();
+}
+
+// Draw Player character — on RIGHT side
+function drawPlayer(lean) {
+  const cx = 390 - lean * 110;
+  const cy = 290;
+
+  ctx.save();
+
+  // Shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.2)';
+  ctx.beginPath();
+  ctx.ellipse(cx, cy + 92, 32, 10, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Body — purple hoodie
+  ctx.fillStyle = '#7b2d8b';
+  ctx.beginPath();
+  ctx.roundRect(cx - 22, cy + 10, 44, 55, 6);
+  ctx.fill();
+
+  // Hoodie pocket
+  ctx.fillStyle = '#5a1f6a';
+  ctx.beginPath();
+  ctx.roundRect(cx - 12, cy + 35, 24, 18, 4);
+  ctx.fill();
+
+  // Legs
+  ctx.fillStyle = '#2c3e50';
+  ctx.beginPath();
+  ctx.roundRect(cx - 18, cy + 63, 14, 30, 4);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.roundRect(cx + 4, cy + 63, 14, 30, 4);
+  ctx.fill();
+
+  // Neck
+  ctx.fillStyle = '#f5cba7';
+  ctx.fillRect(cx - 7, cy + 2, 14, 14);
+
+  // Head
+  ctx.fillStyle = '#f5cba7';
+  ctx.beginPath();
+  ctx.arc(cx, cy - 12, 28, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Hair
+  ctx.fillStyle = '#8B4513';
+  ctx.beginPath();
+  ctx.arc(cx, cy - 22, 24, Math.PI, 0);
+  ctx.fill();
+
+  // Eyes — question marks because it's "the player"
+  ctx.fillStyle = '#333';
+  ctx.beginPath(); ctx.arc(cx - 10, cy - 14, 4, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(cx + 10, cy - 14, 4, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#fff';
+  ctx.beginPath(); ctx.arc(cx - 8, cy - 16, 1.5, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(cx + 12, cy - 16, 1.5, 0, Math.PI * 2); ctx.fill();
+
+  // Mouth (shy)
+  ctx.strokeStyle = '#c0826a';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(cx, cy - 3, 6, 0.3, Math.PI - 0.3);
+  ctx.stroke();
+
+  // Arm reaching back when leaning
+  if (lean > 0.3) {
+    ctx.fillStyle = '#f5cba7';
+    ctx.beginPath();
+    ctx.roundRect(cx - 18 - lean * 30, cy + 18, lean * 30, 9, 4);
+    ctx.fill();
+  }
+
+  // Label
+  ctx.fillStyle = '#c3b1e1';
+  ctx.font = 'bold 13px Segoe UI';
+  ctx.textAlign = 'center';
+  ctx.fillText('You 😳', cx, cy - 50);
+
+  ctx.restore();
+}
+
+// Draw the timing bar
+function drawTimingBar() {
+  const bx = 40, by = 480, bw = W - 80, bh = 36;
+  const r = 12;
+
+  // Background
+  ctx.fillStyle = '#2a1550';
+  ctx.beginPath();
+  ctx.roundRect(bx, by, bw, bh, r);
+  ctx.fill();
+
+  // Miss zones (red)
+  ctx.fillStyle = '#e74c3c';
+  ctx.beginPath();
+  ctx.roundRect(bx, by, bw, bh, r);
+  ctx.fill();
+
+  // Good zones (yellow)
+  const goodW = bw * 0.18;
+  const perfectW = bw * 0.09;
+  ctx.fillStyle = '#f1c40f';
+  ctx.fillRect(bx + bw * 0.32, by, goodW, bh);
+  ctx.fillRect(bx + bw * 0.50, by, goodW, bh);
+
+  // Perfect zone (green) — center
+  ctx.fillStyle = '#2ecc71';
+  ctx.fillRect(bx + bw * 0.41, by, perfectW * 2, bh);
+
+  // Zone label
+  ctx.fillStyle = 'rgba(0,0,0,0.5)';
+  ctx.font = 'bold 11px Segoe UI';
+  ctx.textAlign = 'center';
+  ctx.fillText('PERFECT', bx + bw * 0.5, by + 22);
+
+  // Clip rounded edges back
+  ctx.save();
+  ctx.globalCompositeOperation = 'destination-in';
+  ctx.beginPath();
+  ctx.roundRect(bx, by, bw, bh, r);
+  ctx.fill();
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.restore();
+
+  // Border
+  ctx.strokeStyle = '#9b59b6';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.roundRect(bx, by, bw, bh, r);
+  ctx.stroke();
+
+  // Needle
+  const nx = bx + needlePos * bw;
+  ctx.fillStyle = '#fff';
+  ctx.shadowColor = '#fff';
+  ctx.shadowBlur = 10;
+  ctx.beginPath();
+  ctx.roundRect(nx - 4, by - 8, 8, bh + 16, 4);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+
+  // Instruction
+  ctx.fillStyle = 'rgba(255,255,255,0.7)';
+  ctx.font = '13px Segoe UI';
+  ctx.textAlign = 'center';
+  ctx.fillText('SPACE / TAP when in the green zone!', W / 2, by + bh + 22);
+}
+
+// Draw round indicator
+function drawRoundInfo() {
+  ctx.fillStyle = 'rgba(255,255,255,0.85)';
+  ctx.font = 'bold 14px Segoe UI';
+  ctx.textAlign = 'left';
+  ctx.fillText('Round ' + (round + 1) + '/' + ROUNDS, 16, 30);
+  ctx.textAlign = 'right';
+  ctx.fillText('Score: ' + totalScore, W - 16, 30);
+}
+
+// ─── Result overlay ───────────────────────────────────────────
+function drawResult() {
+  ctx.fillStyle = 'rgba(0,0,0,0.55)';
+  ctx.fillRect(0, 0, W, H);
+
+  // Card
+  ctx.save();
+  ctx.shadowColor = 'rgba(0,0,0,0.5)';
+  ctx.shadowBlur = 30;
+  ctx.fillStyle = resultColor;
+  ctx.beginPath();
+  ctx.roundRect(W / 2 - 160, H / 2 - 80, 320, 160, 20);
+  ctx.fill();
+  ctx.restore();
+
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 26px Segoe UI';
+  ctx.textAlign = 'center';
+  ctx.fillText(kissSuccess ? '💋 SMOOCH! 💋' : '💨 MISS!', W / 2, H / 2 - 30);
+
+  ctx.font = '15px Segoe UI';
+  // Word-wrap the message
+  const words = resultMsg.split(' ');
+  let line = '', y = H / 2 + 5;
+  for (const w of words) {
+    const test = line + w + ' ';
+    if (ctx.measureText(test).width > 280 && line) {
+      ctx.fillText(line.trim(), W / 2, y); y += 22; line = w + ' ';
+    } else line = test;
+  }
+  ctx.fillText(line.trim(), W / 2, y);
+
+  ctx.font = '13px Segoe UI';
+  ctx.fillStyle = 'rgba(255,255,255,0.6)';
+  ctx.fillText(round < ROUNDS ? 'Get ready...' : '', W / 2, H / 2 + 60);
+}
+
+// ─── Title Screen ─────────────────────────────────────────────
+let titleBob = 0;
+function drawTitle() {
+  titleBob += 0.04;
+
+  drawBackground();
+
+  // Draw characters just chilling
+  drawRichard(0);
+  drawPlayer(0);
+
+  // Title card
+  ctx.save();
+  ctx.fillStyle = 'rgba(0,0,0,0.65)';
+  ctx.beginPath();
+  ctx.roundRect(30, 100 + Math.sin(titleBob) * 5, W - 60, 200, 20);
+  ctx.fill();
+
+  ctx.fillStyle = '#ffe082';
+  ctx.font = 'bold 32px Segoe UI';
+  ctx.textAlign = 'center';
+  ctx.fillText('💋 Richard Kissing', W / 2, 155 + Math.sin(titleBob) * 5);
+  ctx.fillText('Simulator 💋', W / 2, 193 + Math.sin(titleBob) * 5);
+
+  ctx.fillStyle = 'rgba(255,255,255,0.7)';
+  ctx.font = '14px Segoe UI';
+  ctx.fillText('A game of PERFECT timing', W / 2, 225 + Math.sin(titleBob) * 5);
+
+  // Blinking start prompt
+  if (Math.floor(Date.now() / 500) % 2 === 0) {
+    ctx.fillStyle = '#c3b1e1';
+    ctx.font = 'bold 16px Segoe UI';
+    ctx.fillText('SPACE / TAP to Start', W / 2, 272 + Math.sin(titleBob) * 5);
+  }
+  ctx.restore();
+}
+
+// ─── Done Screen ──────────────────────────────────────────────
+function drawDone() {
+  drawBackground();
+  drawParticles();
+
+  const pct = totalScore / (ROUNDS * 100);
+  let grade, msg;
+  if (pct >= 0.9) { grade = 'S 💍'; msg = 'Richard is OBSESSED. Wedding incoming 😭'; }
+  else if (pct >= 0.7) { grade = 'A 💋'; msg = 'Smooth operator. Richard is blushing.'; }
+  else if (pct >= 0.5) { grade = 'B 😊'; msg = 'Could be worse. Richard forgives you.'; }
+  else if (pct >= 0.3) { grade = 'C 😬'; msg = 'Kinda awkward ngl.'; }
+  else { grade = 'F 💀'; msg = 'Richard walked away. You fumbled it.'; }
+
+  ctx.save();
+  ctx.fillStyle = 'rgba(0,0,0,0.7)';
+  ctx.beginPath();
+  ctx.roundRect(30, 140, W - 60, 300, 20);
+  ctx.fill();
+
+  ctx.fillStyle = '#ffe082';
+  ctx.font = 'bold 30px Segoe UI';
+  ctx.textAlign = 'center';
+  ctx.fillText('Results 📊', W / 2, 190);
+
+  ctx.font = 'bold 64px Segoe UI';
+  ctx.fillStyle = '#fff';
+  ctx.fillText(grade, W / 2, 265);
+
+  ctx.font = 'bold 20px Segoe UI';
+  ctx.fillStyle = '#c3b1e1';
+  ctx.fillText('Score: ' + totalScore + ' / ' + ROUNDS * 100, W / 2, 305);
+
+  ctx.font = '15px Segoe UI';
+  ctx.fillStyle = 'rgba(255,255,255,0.8)';
+  // wrap
+  const words = msg.split(' ');
+  let line = '', y = 335;
+  for (const w of words) {
+    const test = line + w + ' ';
+    if (ctx.measureText(test).width > 340 && line) {
+      ctx.fillText(line.trim(), W / 2, y); y += 22; line = w + ' ';
+    } else line = test;
+  }
+  ctx.fillText(line.trim(), W / 2, y);
+
+  if (Math.floor(Date.now() / 500) % 2 === 0) {
+    ctx.fillStyle = '#ffe082';
+    ctx.font = 'bold 15px Segoe UI';
+    ctx.fillText('SPACE / TAP to Play Again', W / 2, 420);
+  }
+
+  ctx.restore();
+}
+
+// ─── FAIL messages ────────────────────────────────────────────
+const failMsgs = [
+  'TOO SOON! Richard wasn\'t mentally prepared 💀',
+  'TOO LATE! Richard already went home 😤',
+  'MISS! Richard tripped on his kurta 😭',
+  'NOPE! Richard sneezed at the worst moment 🤧',
+  'FUMBLED! Richard got a phone call from his mum 📞',
+  'DISASTER! Richard slipped on a banana peel 🍌',
+  'ABORT! Richard saw someone he knew 😰',
+];
+const successMsgs = [
+  'Richard is SHOOK. Hearts everywhere 💗',
+  'Smooth. Richard did not expect that. 😳',
+  'Richard.exe has STOPPED WORKING 💖',
+  'The ancestors are PROUD 🪔',
+  'Cinema moment. Bollywood music plays 🎵',
+];
+
+// ─── Game Logic ───────────────────────────────────────────────
+function startRound() {
+  pressed   = false;
+  richardLean    = 0;
+  playerLean = 0;
+  needlePos  = Math.random() > 0.5 ? 0 : 1;
+  needleDir  = needlePos < 0.5 ? 1 : -1;
+  // Speed increases each round
+  needleSpeed = 0.006 + round * 0.0025;
+}
+
+function doPress() {
+  if (state === STATES.TITLE || state === STATES.DONE) {
+    startGame(); return;
+  }
+  if (state !== STATES.PLAYING || pressed) return;
+  pressed = true;
+
+  const zone = getZoneAtPos(needlePos);
+  kissSuccess = zone !== 'miss';
+
+  let pts = 0;
+  if (zone === 'perfect') {
+    pts = 100;
+    resultMsg   = successMsgs[Math.floor(Math.random() * successMsgs.length)];
+    resultColor = '#1a7a4a';
+    richardLean = playerLean = 1;
+    spawnParticles(W / 2, 260, 20, ['💋','💖','💗','✨','🌹','💕']);
+    shakeMag = 4;
+  } else if (zone === 'good') {
+    pts = 50;
+    resultMsg   = 'Pretty good! Richard is a little flustered 😊';
+    resultColor = '#7d6608';
+    richardLean = playerLean = 0.7;
+    spawnParticles(W / 2, 260, 10, ['💛','✨','💫']);
+    shakeMag = 2;
+  } else {
+    pts = 0;
+    resultMsg = failMsgs[Math.floor(Math.random() * failMsgs.length)];
+    resultColor = '#7b2d2d';
+    richardLean = playerLean = 0;
+    spawnParticles(W / 2, 260, 8, ['💨','😬','😅','💦']);
+    shakeMag = 10;
+  }
+
+  totalScore += pts;
+  resultTimer = 120; // frames
+  state = STATES.RESULT;
+}
+
+function startGame() {
+  state = STATES.COUNTDOWN;
+  round = 0;
+  totalScore = 0;
+  countdownVal = 3;
+  countdownTimer = 60;
+  particles = [];
+}
+
+// ─── Main Loop ────────────────────────────────────────────────
+let frame = 0;
+function tick() {
+  requestAnimationFrame(tick);
+  frame++;
+
+  // Screen shake decay
+  if (shakeMag > 0) {
+    shakeX = (Math.random() - 0.5) * shakeMag;
+    shakeY = (Math.random() - 0.5) * shakeMag;
+    shakeMag *= 0.85;
+    if (shakeMag < 0.5) shakeMag = 0;
+  } else {
+    shakeX = shakeY = 0;
+  }
+
+  ctx.save();
+  ctx.translate(shakeX, shakeY);
+
+  if (state === STATES.TITLE) {
+    drawTitle();
+    ctx.restore();
+    return;
+  }
+
+  if (state === STATES.DONE) {
+    drawDone();
+    ctx.restore();
+    return;
+  }
+
+  // Background
+  drawBackground();
+
+  if (state === STATES.COUNTDOWN) {
+    drawRichard(0); drawPlayer(0);
+
+    ctx.fillStyle = 'rgba(0,0,0,0.5)';
+    ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = '#ffe082';
+    ctx.font = 'bold 90px Segoe UI';
+    ctx.textAlign = 'center';
+    ctx.fillText(countdownVal > 0 ? countdownVal : 'GO!', W / 2, H / 2 + 30);
+
+    countdownTimer--;
+    if (countdownTimer <= 0) {
+      if (countdownVal > 1) {
+        countdownVal--;
+        countdownTimer = 60;
+      } else if (countdownVal === 1) {
+        countdownVal = 0; // "GO!"
+        countdownTimer = 40;
+      } else {
+        state = STATES.PLAYING;
+        startRound();
+      }
+    }
+
+    ctx.restore();
+    return;
+  }
+
+  // PLAYING
+  if (state === STATES.PLAYING) {
+    // Move needle
+    needlePos += needleDir * needleSpeed;
+    if (needlePos >= 1) { needlePos = 1; needleDir = -1; }
+    if (needlePos <= 0) { needlePos = 0; needleDir = 1;  }
+
+    // Characters drift slightly with needle
+    const tiltLean = (needlePos - 0.5) * 0.15;
+    drawRichard(clamp(tiltLean, 0, 1));
+    drawPlayer(clamp(-tiltLean, 0, 1));
+    updateParticles(); drawParticles();
+    drawTimingBar();
+    drawRoundInfo();
+  }
+
+  // RESULT
+  if (state === STATES.RESULT) {
+    drawRichard(richardLean);
+    drawPlayer(playerLean);
+    updateParticles(); drawParticles();
+    drawResult();
+
+    resultTimer--;
+    if (resultTimer <= 0) {
+      round++;
+      if (round >= ROUNDS) {
+        state = STATES.DONE;
+        spawnParticles(W / 2, 300, 30, ['🎉','🌟','💋','🎊','✨']);
+      } else {
+        state = STATES.COUNTDOWN;
+        countdownVal = 3;
+        countdownTimer = 50;
+      }
+    }
+  }
+
+  ctx.restore();
+}
+
+// ─── Input ────────────────────────────────────────────────────
+window.addEventListener('keydown', e => {
+  if (e.code === 'Space') { e.preventDefault(); doPress(); }
+});
+canvas.addEventListener('pointerdown', () => doPress());
+
+// ─── Boot ─────────────────────────────────────────────────────
+tick();
+</script>
+</body>
+</html>

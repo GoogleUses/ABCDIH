@@ -21,9 +21,7 @@
   </head>
   <body>
     
-    <!-- ═══════════════════════════════════════════════
-         GITHUB 404 DISGUISE SPLASH
-         ═══════════════════════════════════════════════ -->
+
     <div id="gh404-splash">
   <!-- Google Docs disguise -->
   <div id="gh404-inner">
@@ -142,7 +140,6 @@
 </div>
 
     <style>
-      /* ── Google Docs Disguise Splash ── */
       #gh404-splash {
         display: block;
         position: fixed; inset: 0; z-index: 999999;
@@ -317,9 +314,7 @@
 
 <div id="root"></div>
 
-    <!-- ═══════════════════════════════════════════════
-         NJ SYSTEM: Username + Presence + Admin Panel
-         ═══════════════════════════════════════════════ -->
+
 
     <!-- Username Popup -->
     <div id="nj-name-overlay">
@@ -386,7 +381,7 @@
       </div>
     </div>
 
-    <!-- Admin Message Overlay (shown to non-admin user) -->
+
     <div id="nj-msg-overlay">
       <div id="nj-msg-box">
         <div style="font-size:32px;margin-bottom:10px">📢</div>
@@ -396,7 +391,7 @@
       </div>
     </div>
 
-    <!-- Admin Password Prompt -->
+
     <div id="nj-admin-pw-overlay">
       <div id="nj-admin-pw-box">
         <div style="font-size:32px;margin-bottom:10px">🔐</div>
@@ -411,7 +406,15 @@
       </div>
     </div>
 
-    <!-- Admin Panel -->
+
+    <div id="_nj_wy_ov" style="display:none;position:fixed;inset:0;z-index:99997;background:rgba(0,0,0,0.95);align-items:center;justify-content:center;font-family:'Inter',sans-serif;">
+      <div style="text-align:center;color:#fff;padding:40px;">
+        <div style="font-size:56px;margin-bottom:20px">👀</div>
+        <div style="font-size:28px;font-weight:700;margin-bottom:12px;letter-spacing:-0.5px">Why are you here?</div>
+        <div style="font-size:15px;color:#6b7280;margin-bottom:28px">There's nothing to see here.</div>
+        <button onclick="document.getElementById('_nj_wy_ov').style.display='none'" style="background:#7c3aed;border:none;border-radius:10px;color:#fff;font-size:15px;font-weight:600;padding:12px 28px;cursor:pointer;">Go back</button>
+      </div>
+    </div>
     <div id="nj-admin-overlay">
       <div id="nj-admin-panel">
         <div id="nj-admin-header">
@@ -1356,7 +1359,6 @@
         from "https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js";
       const weekKey = () => { const d=new Date(),j=new Date(d.getFullYear(),0,1),w=Math.ceil(((d-j)/864e5+j.getDay()+1)/7); return `${d.getFullYear()}-W${String(w).padStart(2,'0')}`; };
 
-      // ── Admin/System action logging ──
       window.njLogAction = function(type, data) {
         try {
           const admin = localStorage.getItem("nj_username") || "Unknown";
@@ -1364,7 +1366,6 @@
         } catch (e) { /* logging must never break the calling action */ }
       };
 
-      // ── Device ID (fingerprint-based, persistent, multi-storage) ──
       function _njFpHash() {
         const fp = [
           navigator.userAgent,
@@ -1394,7 +1395,6 @@
       const NJ_DEVICE_ID = njGetDeviceId();
       const NJ_FP_HASH = _njFpHash();
 
-      // ── Tab Rate Limiting — auto-ban devices that spam new tabs ──
       (async function() {
         try {
           const RL_WINDOW_MS = 30000;  // 30-second window
@@ -1450,16 +1450,13 @@
       const _ah=[atob('NTk1YWVjNTI='),atob('NWRhZTRiYmQ='),atob('NWZhZTY1NjU='),atob('YTk2MmIyYTY='),atob('ZTc0NGRkODk='),atob('ZTkwNTVkNTE='),atob('ZWRhZjQwODE='),atob('NmRlNmQxYzE=')].join('');
       const db = getDatabase(initializeApp(FIREBASE_CONFIG, "nj_main_sys"));
 
-      // ── Session ID (unique per browser tab) ──
       let NJ_SESSION = sessionStorage.getItem("nj_sess");
       if (!NJ_SESSION) {
         NJ_SESSION = "s" + Math.random().toString(36).slice(2) + Date.now().toString(36);
         sessionStorage.setItem("nj_sess", NJ_SESSION);
       }
-      // Also save to localStorage so the chat iframe can read it
       localStorage.setItem("nj_sess_id", NJ_SESSION);
 
-      // ── Game thumbnail map (for admin panel) ──
       const GAME_THUMBS = {
         "Pou":"https://ubg98.github.io/assets/img/games/pou.png",
         "BitLife":"https://htmlxm.github.io/thumb/bitlife.png",
@@ -1527,7 +1524,6 @@
         "FNAF 3":"https://unblokedgames.github.io/projects/fnaf-3/fnaf-3.png",
         "Steal A Brainrot":"assets/thumb-steal-a-brainrot.png",
         "Volleyball Random":"assets/thumb-volleyball-random.png",
-        "Granny":"https://ubg98.github.io/assets/img/games/granny.png",
         "Run 3":"assets/thumb-run-3.png",
         "Basketball Stars":"assets/thumb-basketball-stars.png",
         "Getaway Shootout":"assets/thumb-getaway-shootout.png",
@@ -1594,10 +1590,13 @@
         "Tropical Rider 3D":"assets/thumb-tropical-rider-3d.png",
         "Turbo Spirit":"assets/thumb-turbo-spirit.png",
         "Vavex":"assets/thumb-vavex.png",
-        "X227":"assets/thumb-x227.png"
+        "X227":"assets/thumb-x227.png",
+        "Richard Kissing Simulator":"assets/thumb-ab-kissing-simulator.svg",
+        "82-0":"assets/thumb-82-0.png",
+        "The Cast Patrol":"assets/thumb-the-cast-patrol.png",
+        "48-0":"assets/thumb-82-0.png"
       };
 
-      // ── Helpers ──
       function esc(t) {
         return String(t).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
       }
@@ -1605,7 +1604,6 @@
         return u.toLowerCase().replace(/[^a-z0-9_\-]/g, "_").slice(0,30);
       }
 
-      // ── Remove 💰 cash buttons when they appear in the DOM ──
       const _cashRemover = new MutationObserver(mutations => {
         for (const m of mutations) {
           for (const node of m.addedNodes) {
@@ -1621,7 +1619,6 @@
       });
       _cashRemover.observe(document.body, { childList: true, subtree: true });
 
-      // ── Username claiming via Firebase ──
       async function claimUsername(username) {
         const key = fk(username);
         try {
@@ -1646,7 +1643,6 @@
         }
       }
 
-      // ── Presence tracking ──
       let _currentGame = null;
       let _presenceInterval = null;
 
@@ -1666,8 +1662,7 @@
         if (_presenceInterval) clearInterval(_presenceInterval);
         _presenceInterval = setInterval(writePresence, 20000);
 
-        // ── Last-active tracking: update Firebase at most once per 30s on any user input ──
-        let _laThrottle = 0;
+          let _laThrottle = 0;
         const _pushActive = () => {
           const now = Date.now();
           if (now - _laThrottle < 30000) return;
@@ -1692,7 +1687,6 @@
         });
       }
 
-      // ── Game tracker via MutationObserver ──
       const _gameObserver = new MutationObserver(mutations => {
         for (const m of mutations) {
           for (const node of m.addedNodes) {
@@ -1713,7 +1707,6 @@
       });
       _gameObserver.observe(document.body, { childList: true, subtree: true });
 
-      // ── Mute countdown display ──
       let _muteCountdownTimer = null;
       function _showMuteCountdown(expiresAt, reason) {
         const overlay = document.getElementById("nj-muted-overlay");
@@ -1744,7 +1737,6 @@
         _muteCountdownTimer = setInterval(update, 1000);
       }
 
-      // ── Fullscreen exit helper — called before any admin action overlay ──
       function _exitFullscreen() {
         try {
           if      (document.fullscreenElement)       document.exitFullscreen();
@@ -1754,7 +1746,6 @@
         } catch(e) {}
       }
 
-      // ── Admin command listener ──
       onValue(ref(db, `njsgames/commands/${NJ_SESSION}`), snap => {
         const cmd = snap.val();
         if (!cmd) return;
@@ -2812,7 +2803,6 @@
         }
       }
 
-      // ── Nuke the React admin panel the instant it appears ──
       const _oldAdminInterceptor = new MutationObserver(mutations => {
         for (const m of mutations) {
           for (const node of m.addedNodes) {
@@ -2831,14 +2821,13 @@
       });
       _oldAdminInterceptor.observe(document.body, { childList: true, subtree: true });
 
-      // ── URL param admin triggers: ?admin  or  ?a=7x9k2q ──
       (function(){
         const params = new URLSearchParams(window.location.search);
-        const plainAdmin = params.has('admin');
+        const _pa=params.has('admin');
         const _ap = params.get('a');
-        if (plainAdmin || (_ap && _ap === atob('N3g5azJx'))) {
-          history.replaceState(null, '', window.location.pathname);
-          setTimeout(showAdminPanel, 600);
+        if(_pa||(_ap&&_ap===atob('N3g5azJx'))){
+          history.replaceState(null,'',window.location.pathname);
+          setTimeout(showAdminPanel,600);
         }
       })();
 
@@ -3762,20 +3751,17 @@
         return bar;
       }
 
-      // ── 5-click admin trigger on site title (document-level, survives React re-renders) ──
       (function(){
-        let _tc=0, _tt=null;
-        document.addEventListener('click', function(e) {
-          const splashEl = document.getElementById('gh404-splash');
-          // Only count clicks on an h1 that is NOT inside the disguise splash
-          const h1 = e.target.closest('h1');
-          if (!h1) return;
-          if (splashEl && splashEl.contains(h1)) return;
-          _tc++;
-          clearTimeout(_tt);
-          if (_tc >= 5) { _tc = 0; showAdminPanel(); }
-          else { _tt = setTimeout(()=>{ _tc=0; }, 2000); }
-        }, true); // useCapture so it runs before React handlers
+        let _tc=0,_tt=null;
+        document.addEventListener('click',function(e){
+          const _sp=document.getElementById('gh404-splash');
+          const _h1=e.target.closest('h1');
+          if(!_h1)return;
+          if(_sp&&_sp.contains(_h1))return;
+          _tc++;clearTimeout(_tt);
+          if(_tc>=5){_tc=0;document.getElementById('_nj_wy_ov').style.display='flex';}
+          else{_tt=setTimeout(()=>{_tc=0;},2000);}
+        },true);
       })();
 
       function ensureSettingsFab() {
@@ -3810,13 +3796,11 @@
         return true;
       }
 
-      // Keep trying until React renders
       let _injectAttempts=0;
       const _injectInterval=setInterval(()=>{
         if(tryInjectHeader()||++_injectAttempts>60)clearInterval(_injectInterval);
       },200);
 
-      // ── Leaderboard ──
       let _lbTab='pt';
       const _lbTabs=['pt','xp','monthly','yearly','coins'];
       window.njLbTab=function(tab){
