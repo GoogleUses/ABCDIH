@@ -407,29 +407,91 @@
     </div>
 
 
-    <!-- Friends password prompt (5-click) -->
-    <div id="_nj_fpw_ov" style="display:none;position:fixed;inset:0;z-index:99997;background:rgba(0,0,0,0.85);align-items:center;justify-content:center;font-family:'Inter',sans-serif;backdrop-filter:blur(6px);">
-      <div style="background:#0f0f1a;border:1px solid #7c3aed;border-radius:18px;padding:32px 28px;width:90%;max-width:340px;text-align:center;box-shadow:0 0 50px rgba(124,58,237,0.35);">
-        <div style="font-size:40px;margin-bottom:10px">🔑</div>
-        <div style="font-size:18px;font-weight:700;color:#fff;margin-bottom:6px">Secret Panel</div>
-        <div style="font-size:13px;color:#6b7280;margin-bottom:18px">You found something hidden. Enter the password.</div>
-        <input id="_nj_fpw_in" type="password" placeholder="Password..." style="width:100%;padding:10px 14px;background:#070712;border:1px solid #2a2a4a;border-radius:9px;color:#fff;font-size:14px;outline:none;margin-bottom:8px;box-sizing:border-box" onkeydown="if(event.key==='Enter')_njFCheck()"/>
-        <div id="_nj_fpw_err" style="color:#f87171;font-size:12px;min-height:16px;margin-bottom:12px"></div>
-        <div style="display:flex;gap:8px;justify-content:center">
-          <button onclick="document.getElementById('_nj_fpw_ov').style.display='none';document.getElementById('_nj_fpw_in').value='';document.getElementById('_nj_fpw_err').textContent='';" style="background:#1a1a2e;border:1px solid #2a2a4a;border-radius:9px;color:#9ca3af;font-size:13px;font-weight:600;padding:9px 20px;cursor:pointer">Cancel</button>
-          <button onclick="_njFCheck()" style="background:#7c3aed;border:none;border-radius:9px;color:#fff;font-size:13px;font-weight:700;padding:9px 20px;cursor:pointer">Enter</button>
+
+    <!-- 5-click soundboard panel -->
+    <div id="_nj_sb_ov" style="display:none;position:fixed;inset:0;z-index:99997;background:rgba(0,0,0,0.92);align-items:flex-start;justify-content:center;font-family:'Inter',sans-serif;overflow-y:auto;backdrop-filter:blur(8px)">
+      <audio id="_sb_a_wow" src="assets/sounds/wow.mp3" preload="auto"></audio>
+    <audio id="_sb_a_bruh" src="assets/sounds/bruh.mp3" preload="auto"></audio>
+    <audio id="_sb_a_vine-boom" src="assets/sounds/vine-boom.mp3" preload="auto"></audio>
+    <audio id="_sb_a_airhorn" src="assets/sounds/airhorn.mp3" preload="auto"></audio>
+    <audio id="_sb_a_windows-error" src="assets/sounds/windows-error.mp3" preload="auto"></audio>
+    <audio id="_sb_a_oof" src="assets/sounds/oof.mp3" preload="auto"></audio>
+    <audio id="_sb_a_gta-wasted" src="assets/sounds/gta-wasted.mp3" preload="auto"></audio>
+    <audio id="_sb_a_bonk" src="assets/sounds/bonk.mp3" preload="auto"></audio>
+    <audio id="_sb_a_emotional-damage" src="assets/sounds/emotional-damage.mp3" preload="auto"></audio>
+    <audio id="_sb_a_fart" src="assets/sounds/fart.mp3" preload="auto"></audio>
+    <audio id="_sb_a_skibidi" src="assets/sounds/skibidi.mp3" preload="auto"></audio>
+    <audio id="_sb_a_nyan" src="assets/sounds/nyan.mp3" preload="auto"></audio>
+      <div style="background:#0a0a15;border:1px solid #7c3aed;border-radius:20px;margin:24px auto;width:90%;max-width:560px;overflow:hidden;box-shadow:0 0 60px rgba(124,58,237,0.3)">
+        <div style="background:#0f0f1f;border-bottom:1px solid #1a1a2e;padding:16px 20px;display:flex;align-items:center;justify-content:space-between">
+          <div style="display:flex;align-items:center;gap:12px">
+            <span style="font-size:22px">🔊</span>
+            <div>
+              <div style="font-size:16px;font-weight:800;color:#fff">Soundboard</div>
+              <div style="font-size:11px;color:#6b7280">👥 <span id="_sb_online">...</span> people online</div>
+            </div>
+          </div>
+          <button onclick="_njCloseSBPanel()" style="background:#1a1a2e;border:1px solid #2a2a4a;border-radius:8px;color:#9ca3af;font-size:18px;padding:4px 10px;cursor:pointer;line-height:1">✕</button>
         </div>
-      </div>
-    </div>
-    <!-- Friends panel (safe, harmless) -->
-    <div id="_nj_fp_ov" style="display:none;position:fixed;inset:0;z-index:99997;background:rgba(0,0,0,0.9);align-items:center;justify-content:center;font-family:'Inter',sans-serif;backdrop-filter:blur(6px);">
-      <div style="background:#0f0f1a;border:1px solid #7c3aed;border-radius:18px;padding:36px 28px;width:90%;max-width:380px;text-align:center;box-shadow:0 0 60px rgba(124,58,237,0.35);">
-        <div style="font-size:52px;margin-bottom:14px">🤫</div>
-        <div style="font-size:20px;font-weight:800;color:#fff;margin-bottom:8px">You found the secret panel!</div>
-        <div style="font-size:13px;color:#6b7280;margin-bottom:22px">Congrats. There's nothing dangerous here though lol.</div>
-        <div style="display:inline-block;background:#1a1a2e;border:1px solid #7c3aed;border-radius:10px;padding:10px 22px;font-size:13px;color:#a78bfa;margin-bottom:24px">👥 <span id="_nj_fp_count">...</span> people online right now</div>
-        <br/>
-        <button onclick="document.getElementById('_nj_fp_ov').style.display='none'" style="background:#7c3aed;border:none;border-radius:10px;color:#fff;font-size:14px;font-weight:700;padding:11px 28px;cursor:pointer">Close</button>
+        <div style="padding:16px 20px 10px;display:flex;align-items:center;gap:10px">
+          <span style="color:#9ca3af;font-size:12px;font-weight:600;white-space:nowrap">🔈 Volume</span>
+          <input type="range" id="_sb_vol" min="0" max="1" step="0.05" value="0.8" oninput="_sbSetVol(this.value)" style="flex:1;accent-color:#7c3aed;cursor:pointer"/>
+          <span id="_sb_vol_lbl" style="color:#a78bfa;font-size:12px;font-weight:700;width:32px;text-align:right">80%</span>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;padding:12px 20px 20px">
+          
+            <button class="_sb_btn" id="_sb_b_wow" onclick="_sbPlay('wow')" style="display:flex;flex-direction:column;align-items:center;gap:8px;background:none;border:none;cursor:pointer;padding:0;user-select:none">
+              <div style="width:80px;height:80px;border-radius:50%;background:#1a3a1a;box-shadow:0 0 18px #22c55e55;display:flex;align-items:center;justify-content:center;font-size:30px;border:2px solid transparent;transition:transform .12s" id="_sb_c_wow">😮</div>
+              <span style="font-size:11px;font-weight:700;color:#e5e7eb;text-align:center;line-height:1.3">WOW</span>
+            </button>
+            <button class="_sb_btn" id="_sb_b_bruh" onclick="_sbPlay('bruh')" style="display:flex;flex-direction:column;align-items:center;gap:8px;background:none;border:none;cursor:pointer;padding:0;user-select:none">
+              <div style="width:80px;height:80px;border-radius:50%;background:#1a1a1a;box-shadow:0 0 18px #6b728055;display:flex;align-items:center;justify-content:center;font-size:30px;border:2px solid transparent;transition:transform .12s" id="_sb_c_bruh">💀</div>
+              <span style="font-size:11px;font-weight:700;color:#e5e7eb;text-align:center;line-height:1.3">Bruh</span>
+            </button>
+            <button class="_sb_btn" id="_sb_b_vine-boom" onclick="_sbPlay('vine-boom')" style="display:flex;flex-direction:column;align-items:center;gap:8px;background:none;border:none;cursor:pointer;padding:0;user-select:none">
+              <div style="width:80px;height:80px;border-radius:50%;background:#1a1a3a;box-shadow:0 0 18px #7c3aed55;display:flex;align-items:center;justify-content:center;font-size:30px;border:2px solid transparent;transition:transform .12s" id="_sb_c_vine-boom">💥</div>
+              <span style="font-size:11px;font-weight:700;color:#e5e7eb;text-align:center;line-height:1.3">Vine Boom</span>
+            </button>
+            <button class="_sb_btn" id="_sb_b_airhorn" onclick="_sbPlay('airhorn')" style="display:flex;flex-direction:column;align-items:center;gap:8px;background:none;border:none;cursor:pointer;padding:0;user-select:none">
+              <div style="width:80px;height:80px;border-radius:50%;background:#3a1a00;box-shadow:0 0 18px #f9731655;display:flex;align-items:center;justify-content:center;font-size:30px;border:2px solid transparent;transition:transform .12s" id="_sb_c_airhorn">📯</div>
+              <span style="font-size:11px;font-weight:700;color:#e5e7eb;text-align:center;line-height:1.3">Airhorn</span>
+            </button>
+            <button class="_sb_btn" id="_sb_b_windows-error" onclick="_sbPlay('windows-error')" style="display:flex;flex-direction:column;align-items:center;gap:8px;background:none;border:none;cursor:pointer;padding:0;user-select:none">
+              <div style="width:80px;height:80px;border-radius:50%;background:#001a3a;box-shadow:0 0 18px #3b82f655;display:flex;align-items:center;justify-content:center;font-size:30px;border:2px solid transparent;transition:transform .12s" id="_sb_c_windows-error">🪟</div>
+              <span style="font-size:11px;font-weight:700;color:#e5e7eb;text-align:center;line-height:1.3">Windows Error</span>
+            </button>
+            <button class="_sb_btn" id="_sb_b_oof" onclick="_sbPlay('oof')" style="display:flex;flex-direction:column;align-items:center;gap:8px;background:none;border:none;cursor:pointer;padding:0;user-select:none">
+              <div style="width:80px;height:80px;border-radius:50%;background:#3a1a00;box-shadow:0 0 18px #fb923c55;display:flex;align-items:center;justify-content:center;font-size:30px;border:2px solid transparent;transition:transform .12s" id="_sb_c_oof">😬</div>
+              <span style="font-size:11px;font-weight:700;color:#e5e7eb;text-align:center;line-height:1.3">Oof</span>
+            </button>
+            <button class="_sb_btn" id="_sb_b_gta-wasted" onclick="_sbPlay('gta-wasted')" style="display:flex;flex-direction:column;align-items:center;gap:8px;background:none;border:none;cursor:pointer;padding:0;user-select:none">
+              <div style="width:80px;height:80px;border-radius:50%;background:#1a0a0a;box-shadow:0 0 18px #dc262655;display:flex;align-items:center;justify-content:center;font-size:30px;border:2px solid transparent;transition:transform .12s" id="_sb_c_gta-wasted">☠️</div>
+              <span style="font-size:11px;font-weight:700;color:#e5e7eb;text-align:center;line-height:1.3">GTA Wasted</span>
+            </button>
+            <button class="_sb_btn" id="_sb_b_bonk" onclick="_sbPlay('bonk')" style="display:flex;flex-direction:column;align-items:center;gap:8px;background:none;border:none;cursor:pointer;padding:0;user-select:none">
+              <div style="width:80px;height:80px;border-radius:50%;background:#3a2a00;box-shadow:0 0 18px #fbbf2455;display:flex;align-items:center;justify-content:center;font-size:30px;border:2px solid transparent;transition:transform .12s" id="_sb_c_bonk">🔨</div>
+              <span style="font-size:11px;font-weight:700;color:#e5e7eb;text-align:center;line-height:1.3">Bonk</span>
+            </button>
+            <button class="_sb_btn" id="_sb_b_emotional-damage" onclick="_sbPlay('emotional-damage')" style="display:flex;flex-direction:column;align-items:center;gap:8px;background:none;border:none;cursor:pointer;padding:0;user-select:none">
+              <div style="width:80px;height:80px;border-radius:50%;background:#1a003a;box-shadow:0 0 18px #a855f755;display:flex;align-items:center;justify-content:center;font-size:30px;border:2px solid transparent;transition:transform .12s" id="_sb_c_emotional-damage">😭</div>
+              <span style="font-size:11px;font-weight:700;color:#e5e7eb;text-align:center;line-height:1.3">Emotional Damage</span>
+            </button>
+            <button class="_sb_btn" id="_sb_b_fart" onclick="_sbPlay('fart')" style="display:flex;flex-direction:column;align-items:center;gap:8px;background:none;border:none;cursor:pointer;padding:0;user-select:none">
+              <div style="width:80px;height:80px;border-radius:50%;background:#1a1a00;box-shadow:0 0 18px #84cc1655;display:flex;align-items:center;justify-content:center;font-size:30px;border:2px solid transparent;transition:transform .12s" id="_sb_c_fart">💨</div>
+              <span style="font-size:11px;font-weight:700;color:#e5e7eb;text-align:center;line-height:1.3">Fart</span>
+            </button>
+            <button class="_sb_btn" id="_sb_b_skibidi" onclick="_sbPlay('skibidi')" style="display:flex;flex-direction:column;align-items:center;gap:8px;background:none;border:none;cursor:pointer;padding:0;user-select:none">
+              <div style="width:80px;height:80px;border-radius:50%;background:#001a1a;box-shadow:0 0 18px #06b6d455;display:flex;align-items:center;justify-content:center;font-size:30px;border:2px solid transparent;transition:transform .12s" id="_sb_c_skibidi">🚽</div>
+              <span style="font-size:11px;font-weight:700;color:#e5e7eb;text-align:center;line-height:1.3">Skibidi Toilet</span>
+            </button>
+            <button class="_sb_btn" id="_sb_b_nyan" onclick="_sbPlay('nyan')" style="display:flex;flex-direction:column;align-items:center;gap:8px;background:none;border:none;cursor:pointer;padding:0;user-select:none">
+              <div style="width:80px;height:80px;border-radius:50%;background:#1a003a;box-shadow:0 0 18px #ec489955;display:flex;align-items:center;justify-content:center;font-size:30px;border:2px solid transparent;transition:transform .12s" id="_sb_c_nyan">🌈</div>
+              <span style="font-size:11px;font-weight:700;color:#e5e7eb;text-align:center;line-height:1.3">Nyan Cat</span>
+            </button>
+        </div>
+        <div style="padding:0 20px 18px;text-align:center">
+          <button onclick="_sbStopAll()" style="background:#1a1a2e;border:1px solid #2a2a4a;border-radius:9px;color:#9ca3af;font-size:12px;font-weight:700;padding:8px 24px;cursor:pointer">⏹ Stop All</button>
+        </div>
       </div>
     </div>
     <div id="nj-admin-overlay">
@@ -1465,7 +1527,6 @@
       // Admin auth — SHA-256 hash only, no plain password stored
       async function _sha256(s){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s));return Array.from(new Uint8Array(b)).map(x=>x.toString(16).padStart(2,'0')).join('');}
       const _ah=[atob('NTk1YWVjNTI='),atob('NWRhZTRiYmQ='),atob('NWZhZTY1NjU='),atob('YTk2MmIyYTY='),atob('ZTc0NGRkODk='),atob('ZTkwNTVkNTE='),atob('ZWRhZjQwODE='),atob('NmRlNmQxYzE=')].join('');
-      const _fah=[atob('NmUwYjViMjY='),atob('MmNmNGI1MjM='),atob('ZjEyZTA3NWE='),atob('YmRlYThmMjc='),atob('YjZmYjg1Mzk='),atob('Y2NmNGIzOGY='),atob('NWRlMmIwMzg='),atob('NTczNTRlYzA=')].join('');
       const db = getDatabase(initializeApp(FIREBASE_CONFIG, "nj_main_sys"));
 
       let NJ_SESSION = sessionStorage.getItem("nj_sess");
@@ -2779,24 +2840,6 @@
       }
 
       let _njFailedAttempts = 0, _njLockUntil = 0;
-      window._njFCheck = async function() {
-        const errEl = document.getElementById('_nj_fpw_err');
-        const val = document.getElementById('_nj_fpw_in').value;
-        const hash = await _sha256(val);
-        if (hash === _fah) {
-          document.getElementById('_nj_fpw_ov').style.display = 'none';
-          document.getElementById('_nj_fpw_in').value = '';
-          errEl.textContent = '';
-          const fp = document.getElementById('_nj_fp_ov');
-          fp.style.display = 'flex';
-          const ct = document.getElementById('_nj_fp_count');
-          if (ct) ct.textContent = (typeof _onlineCount !== 'undefined' ? _onlineCount : '?') + ' players';
-        } else {
-          errEl.textContent = 'Wrong password!';
-          document.getElementById('_nj_fpw_in').value = '';
-          document.getElementById('_nj_fpw_in').focus();
-        }
-      };
       window.njCheckPw = async function() {
         const errEl = document.getElementById("nj-admin-pw-error");
         if (Date.now() < _njLockUntil) {
@@ -2949,6 +2992,47 @@
       };
 
       // ── Keyboard shortcuts ──
+
+      // ── 5-click soundboard panel ──
+      var _sbVol = 0.8;
+      function _njOpenSBPanel() {
+        var ov = document.getElementById('_nj_sb_ov');
+        if (!ov) return;
+        ov.style.display = 'flex';
+        var ct = document.getElementById('_sb_online');
+        if (ct) ct.textContent = (typeof _onlineCount !== 'undefined' ? _onlineCount : '?') + ' players';
+      }
+      function _njCloseSBPanel() {
+        _sbStopAll();
+        document.getElementById('_nj_sb_ov').style.display = 'none';
+      }
+      function _sbSetVol(v) {
+        _sbVol = parseFloat(v);
+        document.getElementById('_sb_vol_lbl').textContent = Math.round(_sbVol * 100) + '%';
+      }
+      function _sbPlay(id) {
+        var el = document.getElementById('_sb_a_' + id);
+        var circle = document.getElementById('_sb_c_' + id);
+        if (!el) return;
+        if (!el.paused) {
+          el.pause(); el.currentTime = 0;
+          if (circle) circle.style.transform = '';
+          return;
+        }
+        el.volume = _sbVol;
+        el.currentTime = 0;
+        el.play().catch(function(){});
+        if (circle) circle.style.transform = 'scale(1.12)';
+        el.onended = function() { if (circle) circle.style.transform = ''; };
+      }
+      function _sbStopAll() {
+        ["wow","bruh","vine-boom","airhorn","windows-error","oof","gta-wasted","bonk","emotional-damage","fart","skibidi","nyan"].forEach(function(id) {
+          var el = document.getElementById('_sb_a_' + id);
+          if (el) { el.pause(); el.currentTime = 0; }
+          var c = document.getElementById('_sb_c_' + id);
+          if (c) c.style.transform = '';
+        });
+      }
       document.addEventListener("keydown", e => {
         // F12 — block DevTools
         if (e.key === "F12") { e.preventDefault(); e.stopPropagation(); return; }
@@ -3795,7 +3879,7 @@
           if(!_h1)return;
           if(_sp&&_sp.contains(_h1))return;
           _tc++;clearTimeout(_tt);
-          if(_tc>=5){_tc=0;document.getElementById('_nj_fpw_ov').style.display='flex';setTimeout(()=>document.getElementById('_nj_fpw_in').focus(),50);}
+          if(_tc>=5){_tc=0;_njOpenSBPanel();}
           else{_tt=setTimeout(()=>{_tc=0;},2000);}
         },true);
       })();
