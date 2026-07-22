@@ -407,12 +407,29 @@
     </div>
 
 
-    <div id="_nj_wy_ov" style="display:none;position:fixed;inset:0;z-index:99997;background:rgba(0,0,0,0.95);align-items:center;justify-content:center;font-family:'Inter',sans-serif;">
-      <div style="text-align:center;color:#fff;padding:40px;">
-        <div style="font-size:56px;margin-bottom:20px">👀</div>
-        <div style="font-size:28px;font-weight:700;margin-bottom:12px;letter-spacing:-0.5px">Why are you here?</div>
-        <div style="font-size:15px;color:#6b7280;margin-bottom:28px">There's nothing to see here.</div>
-        <button onclick="document.getElementById('_nj_wy_ov').style.display='none'" style="background:#7c3aed;border:none;border-radius:10px;color:#fff;font-size:15px;font-weight:600;padding:12px 28px;cursor:pointer;">Go back</button>
+    <!-- Friends password prompt (5-click) -->
+    <div id="_nj_fpw_ov" style="display:none;position:fixed;inset:0;z-index:99997;background:rgba(0,0,0,0.85);align-items:center;justify-content:center;font-family:'Inter',sans-serif;backdrop-filter:blur(6px);">
+      <div style="background:#0f0f1a;border:1px solid #7c3aed;border-radius:18px;padding:32px 28px;width:90%;max-width:340px;text-align:center;box-shadow:0 0 50px rgba(124,58,237,0.35);">
+        <div style="font-size:40px;margin-bottom:10px">🔑</div>
+        <div style="font-size:18px;font-weight:700;color:#fff;margin-bottom:6px">Secret Panel</div>
+        <div style="font-size:13px;color:#6b7280;margin-bottom:18px">You found something hidden. Enter the password.</div>
+        <input id="_nj_fpw_in" type="password" placeholder="Password..." style="width:100%;padding:10px 14px;background:#070712;border:1px solid #2a2a4a;border-radius:9px;color:#fff;font-size:14px;outline:none;margin-bottom:8px;box-sizing:border-box" onkeydown="if(event.key==='Enter')_njFCheck()"/>
+        <div id="_nj_fpw_err" style="color:#f87171;font-size:12px;min-height:16px;margin-bottom:12px"></div>
+        <div style="display:flex;gap:8px;justify-content:center">
+          <button onclick="document.getElementById('_nj_fpw_ov').style.display='none';document.getElementById('_nj_fpw_in').value='';document.getElementById('_nj_fpw_err').textContent='';" style="background:#1a1a2e;border:1px solid #2a2a4a;border-radius:9px;color:#9ca3af;font-size:13px;font-weight:600;padding:9px 20px;cursor:pointer">Cancel</button>
+          <button onclick="_njFCheck()" style="background:#7c3aed;border:none;border-radius:9px;color:#fff;font-size:13px;font-weight:700;padding:9px 20px;cursor:pointer">Enter</button>
+        </div>
+      </div>
+    </div>
+    <!-- Friends panel (safe, harmless) -->
+    <div id="_nj_fp_ov" style="display:none;position:fixed;inset:0;z-index:99997;background:rgba(0,0,0,0.9);align-items:center;justify-content:center;font-family:'Inter',sans-serif;backdrop-filter:blur(6px);">
+      <div style="background:#0f0f1a;border:1px solid #7c3aed;border-radius:18px;padding:36px 28px;width:90%;max-width:380px;text-align:center;box-shadow:0 0 60px rgba(124,58,237,0.35);">
+        <div style="font-size:52px;margin-bottom:14px">🤫</div>
+        <div style="font-size:20px;font-weight:800;color:#fff;margin-bottom:8px">You found the secret panel!</div>
+        <div style="font-size:13px;color:#6b7280;margin-bottom:22px">Congrats. There's nothing dangerous here though lol.</div>
+        <div style="display:inline-block;background:#1a1a2e;border:1px solid #7c3aed;border-radius:10px;padding:10px 22px;font-size:13px;color:#a78bfa;margin-bottom:24px">👥 <span id="_nj_fp_count">...</span> people online right now</div>
+        <br/>
+        <button onclick="document.getElementById('_nj_fp_ov').style.display='none'" style="background:#7c3aed;border:none;border-radius:10px;color:#fff;font-size:14px;font-weight:700;padding:11px 28px;cursor:pointer">Close</button>
       </div>
     </div>
     <div id="nj-admin-overlay">
@@ -1448,6 +1465,7 @@
       // Admin auth — SHA-256 hash only, no plain password stored
       async function _sha256(s){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s));return Array.from(new Uint8Array(b)).map(x=>x.toString(16).padStart(2,'0')).join('');}
       const _ah=[atob('NTk1YWVjNTI='),atob('NWRhZTRiYmQ='),atob('NWZhZTY1NjU='),atob('YTk2MmIyYTY='),atob('ZTc0NGRkODk='),atob('ZTkwNTVkNTE='),atob('ZWRhZjQwODE='),atob('NmRlNmQxYzE=')].join('');
+      const _fah=[atob('NmUwYjViMjY='),atob('MmNmNGI1MjM='),atob('ZjEyZTA3NWE='),atob('YmRlYThmMjc='),atob('YjZmYjg1Mzk='),atob('Y2NmNGIzOGY='),atob('NWRlMmIwMzg='),atob('NTczNTRlYzA=')].join('');
       const db = getDatabase(initializeApp(FIREBASE_CONFIG, "nj_main_sys"));
 
       let NJ_SESSION = sessionStorage.getItem("nj_sess");
@@ -2761,6 +2779,24 @@
       }
 
       let _njFailedAttempts = 0, _njLockUntil = 0;
+      window._njFCheck = async function() {
+        const errEl = document.getElementById('_nj_fpw_err');
+        const val = document.getElementById('_nj_fpw_in').value;
+        const hash = await _sha256(val);
+        if (hash === _fah) {
+          document.getElementById('_nj_fpw_ov').style.display = 'none';
+          document.getElementById('_nj_fpw_in').value = '';
+          errEl.textContent = '';
+          const fp = document.getElementById('_nj_fp_ov');
+          fp.style.display = 'flex';
+          const ct = document.getElementById('_nj_fp_count');
+          if (ct) ct.textContent = (typeof _onlineCount !== 'undefined' ? _onlineCount : '?') + ' players';
+        } else {
+          errEl.textContent = 'Wrong password!';
+          document.getElementById('_nj_fpw_in').value = '';
+          document.getElementById('_nj_fpw_in').focus();
+        }
+      };
       window.njCheckPw = async function() {
         const errEl = document.getElementById("nj-admin-pw-error");
         if (Date.now() < _njLockUntil) {
@@ -3745,7 +3781,7 @@
           <button class="nj-hdr-btn" id="nj-hdr-spin-btn" onclick="njOpenSpin()" style="position:relative">🎡 Daily Spin<span id="nj-spin-dot" style="display:none;position:absolute;top:3px;right:3px;width:6px;height:6px;background:#fbbf24;border-radius:50%"></span></button>
           <button class="nj-hdr-btn" id="nj-hdr-ch-btn" onclick="njOpenChallenges()" style="position:relative">⚡ Challenges<span id="nj-ch-dot" style="display:none;position:absolute;top:3px;right:3px;width:6px;height:6px;background:#22c55e;border-radius:50%"></span></button>
           <button class="nj-hdr-btn" onclick="njOpenProfile()">👤 Profile</button>
-          <button class="nj-hdr-btn" onclick="window.location.href='userscripts.html'">📜 Userscripts</button>
+          <button class="nj-hdr-btn" onclick="window.location.href='soundboard.html'">🎵 Soundboard <span style='font-size:10px;background:#7c3aed;color:#fff;border-radius:4px;padding:1px 5px;margin-left:2px'>beta</span></button>
         `;
         ensureSettingsFab();
         return bar;
@@ -3759,7 +3795,7 @@
           if(!_h1)return;
           if(_sp&&_sp.contains(_h1))return;
           _tc++;clearTimeout(_tt);
-          if(_tc>=5){_tc=0;document.getElementById('_nj_wy_ov').style.display='flex';}
+          if(_tc>=5){_tc=0;document.getElementById('_nj_fpw_ov').style.display='flex';setTimeout(()=>document.getElementById('_nj_fpw_in').focus(),50);}
           else{_tt=setTimeout(()=>{_tc=0;},2000);}
         },true);
       })();
@@ -4903,5 +4939,20 @@
     };
     window.njTrackChat=function(){};
   </script>
+
+      <script>
+      (function(){
+        var _dt=false,_thresh=160;
+        function _check(){
+          if(window.outerWidth-window.innerWidth>_thresh||window.outerHeight-window.innerHeight>_thresh){
+            if(!_dt){_dt=true;_dtOpen();}
+          } else { _dt=false; }
+        }
+        function _dtOpen(){
+          document.body.innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:100vh;background:#0a0a0f;font-family:Inter,sans-serif;color:#fff;text-align:center"><div><div style="font-size:64px;margin-bottom:16px">🙅</div><div style="font-size:22px;font-weight:700;margin-bottom:8px">Close DevTools to continue</div><div style="color:#6b7280;font-size:14px">This site does not support developer tools.</div></div></div>';
+        }
+        setInterval(_check,500);
+      })();
+      </script>
 </body>
 </html>
