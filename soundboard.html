@@ -6,131 +6,28 @@
   <title>Soundboard — NJ's Unblocked Games</title>
   <link rel="icon" href="favicon.svg" type="image/svg+xml"/>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body { background: #0a0a0f; color: #fff; font-family: 'Inter', sans-serif; min-height: 100vh; padding: 0 0 60px; }
-
-    .hdr { background: rgba(10,10,15,0.95); border-bottom: 1px solid #1a1a2e; padding: 14px 24px; display: flex; align-items: center; gap: 16px; position: sticky; top: 0; z-index: 99; backdrop-filter: blur(12px); }
+    body { background: #0a0a0f; color: #fff; font-family: 'Inter', sans-serif; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+    .hdr { background: rgba(10,10,15,0.95); border-bottom: 1px solid #1a1a2e; padding: 14px 24px; display: flex; align-items: center; gap: 16px; flex-shrink: 0; backdrop-filter: blur(12px); }
     .hdr a { background: #1a1a2e; border: 1px solid #2a2a4a; border-radius: 8px; color: #9ca3af; font-size: 13px; font-weight: 600; padding: 7px 14px; text-decoration: none; transition: background .15s; }
     .hdr a:hover { background: #7c3aed; color: #fff; border-color: #7c3aed; }
     .hdr-title { font-size: 18px; font-weight: 800; background: linear-gradient(135deg, #a78bfa, #7c3aed); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-    .hdr-badge { background: #7c3aed; color: #fff; font-size: 10px; font-weight: 700; border-radius: 5px; padding: 2px 7px; }
-
-    .hero { text-align: center; padding: 44px 24px 28px; }
-    .hero span { font-size: 60px; display: block; margin-bottom: 12px; }
-    .hero h1 { font-size: 28px; font-weight: 800; background: linear-gradient(135deg,#fff 30%,#a78bfa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 6px; }
-    .hero p { color: #6b7280; font-size: 14px; }
-
-    .vol-row { display: flex; align-items: center; gap: 10px; justify-content: center; max-width: 300px; margin: 0 auto 32px; padding: 0 20px; }
-    .vol-row label { color: #9ca3af; font-size: 12px; font-weight: 600; white-space: nowrap; }
-    .vol-row input { flex: 1; accent-color: #7c3aed; cursor: pointer; }
-    .vol-row span { color: #a78bfa; font-size: 12px; font-weight: 700; width: 32px; text-align: right; }
-
-    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px,1fr)); gap: 20px; max-width: 860px; margin: 0 auto; padding: 0 24px; }
-
-    .snd { display: flex; flex-direction: column; align-items: center; gap: 9px; background: none; border: none; cursor: pointer; padding: 0; user-select: none; }
-    .snd-circle { width: 90px; height: 90px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 34px; border: 2px solid transparent; transition: transform .12s; }
-    .snd:hover .snd-circle { transform: scale(1.08); }
-    .snd:active .snd-circle { transform: scale(0.92); }
-    .snd.playing .snd-circle { transform: scale(1.1); border-color: rgba(255,255,255,0.4); animation: pulse .7s ease-in-out infinite alternate; }
-    @keyframes pulse { from { box-shadow: 0 0 0 0 rgba(255,255,255,.25); } to { box-shadow: 0 0 0 12px rgba(255,255,255,0); } }
-    .snd-label { font-size: 11px; font-weight: 700; color: #e5e7eb; text-align: center; line-height: 1.3; }
-
-    .stop-btn { display: block; margin: 32px auto 0; background: #1a1a2e; border: 1px solid #2a2a4a; border-radius: 9px; color: #9ca3af; font-size: 13px; font-weight: 700; padding: 10px 28px; cursor: pointer; transition: background .15s, color .15s; }
-    .stop-btn:hover { background: #dc2626; color: #fff; border-color: #dc2626; }
-
-    @media (max-width: 460px) { .grid { grid-template-columns: repeat(3,1fr); gap: 14px; padding: 0 14px; } .snd-circle { width: 72px; height: 72px; font-size: 26px; } }
+    .frame-wrap { flex: 1; position: relative; }
+    .frame-wrap iframe { width: 100%; height: 100%; border: none; display: block; }
   </style>
 </head>
 <body>
   <div class="hdr">
     <a href="index.html">← Back</a>
     <span class="hdr-title">🎵 Soundboard</span>
-    <span class="hdr-badge">BETA</span>
   </div>
-  <div class="hero">
-    <span>🔊</span>
-    <h1>The NJ Soundboard</h1>
-    <p>Click a sound. Annoy your friends. You're welcome.</p>
+  <div class="frame-wrap">
+    <iframe 
+      src="https://voicechanger.easeus.com/soundboards"
+      allow="autoplay; microphone"
+      allowfullscreen
+      title="EaseUS Soundboard"
+    ></iframe>
   </div>
-  <div class="vol-row">
-    <label>🔈 Vol</label>
-    <input type="range" id="vol" min="0" max="1" step="0.05" value="0.8" oninput="setVol(this.value)"/>
-    <span id="vol-lbl">80%</span>
-  </div>
-  <div class="grid" id="grid"></div>
-  <button class="stop-btn" onclick="stopAll()">⏹ Stop All</button>
-
-  <script>
-    var SOUNDS = [
-      {id:'wow',              label:'WOW',              emoji:'😮', bg:'#1a3a1a', accent:'#22c55e'},
-      {id:'bruh',             label:'Bruh',             emoji:'💀', bg:'#1a1a1a', accent:'#6b7280'},
-      {id:'vine-boom',        label:'Vine Boom',        emoji:'💥', bg:'#1a1a3a', accent:'#7c3aed'},
-      {id:'airhorn',          label:'Airhorn',          emoji:'📯', bg:'#3a1a00', accent:'#f97316'},
-      {id:'windows-error',    label:'Windows Error',    emoji:'🪟', bg:'#001a3a', accent:'#3b82f6'},
-      {id:'oof',              label:'Oof',              emoji:'😬', bg:'#3a1a00', accent:'#fb923c'},
-      {id:'gta-wasted',       label:'GTA Wasted',       emoji:'☠️',  bg:'#1a0a0a', accent:'#dc2626'},
-      {id:'bonk',             label:'Bonk',             emoji:'🔨', bg:'#3a2a00', accent:'#fbbf24'},
-      {id:'emotional-damage', label:'Emotional Damage', emoji:'😭', bg:'#1a003a', accent:'#a855f7'},
-      {id:'fart',             label:'Fart',             emoji:'💨', bg:'#1a1a00', accent:'#84cc16'},
-      {id:'skibidi',          label:'Skibidi Toilet',   emoji:'🚽', bg:'#001a1a', accent:'#06b6d4'},
-      {id:'nyan',             label:'Nyan Cat',         emoji:'🌈', bg:'#1a003a', accent:'#ec4899'},
-    ];
-
-    var vol = 0.8;
-    var audios = {};
-
-    function setVol(v) {
-      vol = parseFloat(v);
-      document.getElementById('vol-lbl').textContent = Math.round(vol*100) + '%';
-      Object.values(audios).forEach(function(a){ if(a) a.volume = vol; });
-    }
-
-    function getAudio(id) {
-      if (!audios[id]) {
-        audios[id] = new Audio('assets/sounds/' + id + '.mp3');
-        audios[id].preload = 'auto';
-      }
-      return audios[id];
-    }
-
-    function play(id) {
-      var a = getAudio(id);
-      var btn = document.getElementById('btn-' + id);
-      if (!a.paused) {
-        a.pause(); a.currentTime = 0;
-        if (btn) btn.classList.remove('playing');
-        return;
-      }
-      a.volume = vol;
-      a.currentTime = 0;
-      a.play().then(function() {
-        if (btn) btn.classList.add('playing');
-      }).catch(function(e){ console.warn('Audio play failed:', e); });
-      a.onended = function() { if (btn) btn.classList.remove('playing'); };
-    }
-
-    function stopAll() {
-      SOUNDS.forEach(function(s){
-        var a = audios[s.id];
-        if (a) { a.pause(); a.currentTime = 0; }
-        var btn = document.getElementById('btn-' + s.id);
-        if (btn) btn.classList.remove('playing');
-      });
-    }
-
-    // Build grid
-    var grid = document.getElementById('grid');
-    SOUNDS.forEach(function(s) {
-      var btn = document.createElement('button');
-      btn.className = 'snd';
-      btn.id = 'btn-' + s.id;
-      btn.onclick = function(){ play(s.id); };
-      btn.innerHTML =
-        '<div class="snd-circle" style="background:' + s.bg + ';box-shadow:0 0 20px ' + s.accent + '55">' + s.emoji + '</div>' +
-        '<span class="snd-label">' + s.label + '</span>';
-      grid.appendChild(btn);
-    });
-  </script>
 </body>
 </html>
