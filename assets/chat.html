@@ -23,6 +23,8 @@
     #rooms-view{padding:16px;}
     .header{text-align:center;margin-bottom:14px;}
     .header h1{font-size:24px;color:#333;}
+    .plaza-link{display:inline-block;margin-top:7px;color:#667eea;font-size:12px;font-weight:700;text-decoration:none;}
+    .plaza-link:hover{text-decoration:underline;}
     .search-row{display:flex;gap:8px;margin-bottom:14px;}
     .search-row input{flex:1;padding:9px 16px;border:2px solid #ddd;border-radius:20px;font-size:14px;outline:none;background:#fff;}
     .search-row input:focus{border-color:#667eea;}
@@ -58,7 +60,7 @@
     .msg-del:hover{background:#b91c1c;}
     .msg-report{position:absolute;top:-8px;right:16px;background:#f59e0b;border:none;color:#fff;border-radius:50%;width:20px;height:20px;font-size:10px;cursor:pointer;opacity:0;transition:opacity .15s;line-height:20px;padding:0;display:flex;align-items:center;justify-content:center;font-style:normal;}
     .msg-report:hover{background:#d97706;}
-    .msg:hover .msg-report{opacity:1;}
+    .msg:hover .msg-report,.msg-report:focus{opacity:1;}
     /* Report message modal */
     #reportMsgOverlay .modal-box{background:#1a1a2e;border:1px solid #7c3aed;color:#fff;}
     #reportMsgOverlay .modal-box h3{color:#a78bfa;}
@@ -140,7 +142,10 @@
 </div>
 
 <div id="rooms-view">
-  <div class="header"><h1>Chat Rooms</h1></div>
+  <div class="header">
+    <h1>Chat Rooms</h1>
+    <a class="plaza-link" href="../trading-plaza.html">🤝 Trading Plaza</a>
+  </div>
   <div class="search-row">
     <input id="searchInput" type="text" placeholder="Search rooms…"/>
     <button class="btn-create" onclick="openCreate()">+ New Room</button>
@@ -265,6 +270,33 @@
     <div class="mbtns">
       <button class="btn-cancel" onclick="closeOverlay('delMsgOverlay')">Cancel</button>
       <button class="btn-danger" onclick="doDeleteMsg()">Delete Message</button>
+    </div>
+  </div>
+</div>
+
+<!-- Report message fallback modal (used when chat is opened directly) -->
+<div class="overlay" id="reportMsgOverlay">
+  <div class="modal-box">
+    <h3>🚩 Report Message</h3>
+    <p>Tell the moderators what is wrong with this message.</p>
+    <div class="reported-msg-box" id="reportedMsgPreview"></div>
+    <div class="fg">
+      <label>Reason</label>
+      <select id="reportReason">
+        <option>Harassment / Bullying</option>
+        <option>Hate speech or harassment</option>
+        <option>Spam</option>
+        <option>Inappropriate content</option>
+        <option>Other</option>
+      </select>
+    </div>
+    <div class="fg">
+      <label>Additional details</label>
+      <textarea id="reportDetails" rows="3" maxlength="300" placeholder="Describe what happened…"></textarea>
+    </div>
+    <div class="mbtns">
+      <button class="btn-cancel" onclick="closeOverlay('reportMsgOverlay')">Cancel</button>
+      <button class="btn-danger" id="submitReportBtn" onclick="submitLocalReport()">Submit Report</button>
     </div>
   </div>
 </div>
@@ -644,7 +676,7 @@ function loadMsgs(id) {
       }
       const msgTextRaw = m.type==="gif" ? "[GIF]" : (m.text||"");
       const reportBtn = !isMe
-        ? `<button class="msg-report" onclick="promptReportMsg('${esc(m.author)}',this,event)" title="Report message">🚩</button>`
+        ? `<button class="msg-report" type="button" title="Report message" aria-label="Report message">🚩</button>`
         : "";
       d.innerHTML=
         (isMe?"":_buildAuthorHtml(m.author, equip))
@@ -654,7 +686,7 @@ function loadMsgs(id) {
         +reportBtn;
       d.querySelector('.msg-report')?.addEventListener('click', (ev) => {
         ev.stopPropagation();
-        ev.currentTarget._msgText = msgTextRaw;
+        promptReportMsg(m.author || "Unknown", ev.currentTarget, ev);
       });
       area.appendChild(d);
     });
@@ -669,7 +701,7 @@ window.promptDeleteMsg = function(roomId, msgKey, event) {
   openOverlay("delMsgOverlay");
 };
 window.promptReportMsg = function(author, btnEl, event) {
-  event.stopPropagation();
+  if (event) event.stopPropagation();
   // Walk up to the message div to extract the message text
   let msgEl = btnEl;
   while (msgEl && !msgEl.classList.contains('msg')) msgEl = msgEl.parentElement;
@@ -681,11 +713,48 @@ window.promptReportMsg = function(author, btnEl, event) {
     msgText = clone.textContent.trim();
   }
   if (msgText.length > 300) msgText = msgText.slice(0, 300) + "…";
+  // The main page owns the full report workflow. Keep this fallback for
+  // direct visits to chat.html and for cases where the parent is unavailable.
   try {
-    if (window.parent && window.parent.njReportMessage) {
+    if (window.parent && window.parent !== window && typeof window.parent.njReportMessage === "function") {
       window.parent.njReportMessage(author, msgText, Date.now());
+      return;
     }
   } catch(e) {}
+  window._pendingLocalReport = {author: author || "Unknown", text: msgText, ts: Date.now()};
+  document.getElementById("reportedMsgPreview").textContent =
+    `${author || "Unknown"}: ${msgText || "[Image]"}`;
+  document.getElementById("reportReason").selectedIndex = 0;
+  document.getElementById("reportDetails").value = "";
+  openOverlay("reportMsgOverlay");
+};
+window.submitLocalReport = async function() {
+  const pending = window._pendingLocalReport;
+  if (!pending) return;
+  const btn = document.getElementById("submitReportBtn");
+  const reason = document.getElementById("reportReason").value;
+  const details = document.getElementById("reportDetails").value.trim();
+  btn.disabled = true;
+  btn.textContent = "Sending…";
+  try {
+    await push(ref(db, "njsgames/reports"), {
+      reportedUser: pending.author,
+      reporter: getName() || localStorage.getItem("nj_username") || "chat_user",
+      reason,
+      message: details || "Reported from chat.",
+      chatMessage: pending.text || "",
+      ts: pending.ts || Date.now(),
+      status: "open"
+    });
+    closeOverlay("reportMsgOverlay");
+    window._pendingLocalReport = null;
+    alert("Report submitted. Thanks for helping keep the community safe.");
+  } catch (e) {
+    alert("Could not submit the report. Please try again.");
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Submit Report";
+  }
 };
 window.doDeleteMsg = async function() {
   const key = document.getElementById("delMsgKey").value;
