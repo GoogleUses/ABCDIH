@@ -130,6 +130,12 @@
       if(!listing||listing.status!=="open"){status("This listing is no longer available.",true);return;}
       if(listing.seller===user){status("You can't buy your own listing.",true);return;}
       const price=Number(listing.price)||0;
+      // Always fetch a fresh coin balance so the check reflects admin-granted coins
+      try{
+        const freshSnap=await get(ref(db,`njsgames/users/${user}/coins`));
+        state.coins=Number(freshSnap.val())||0;
+        $("balance").textContent=`🪙 ${state.coins.toLocaleString()}`;
+      }catch(e){/* non-fatal; fall through to transaction */}
       if(state.coins<price){status("You do not have enough coins.",true);return;}
 
       const buyBtn=document.querySelector(`[data-buy="${id}"]`);

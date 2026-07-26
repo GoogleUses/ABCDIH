@@ -3844,7 +3844,7 @@
           const isCoins=_lbTab==='coins';
           const path=paths[_lbTab];
           const snap=await get(ref(njDb,path));
-          const entries=Object.entries(snap.val()||{}).sort((a,b)=>b[1]-a[1]).slice(0,10);
+          const entries=Object.entries(snap.val()||{}).filter(([u])=>u&&u!=='Unknown').sort((a,b)=>b[1]-a[1]).slice(0,100);
           if(!entries.length){
             const emptyMsgs={pt:'No entries yet — start playing!',xp:'No XP data yet — play games to earn XP!',monthly:'No entries yet this cycle!',yearly:'No entries yet this year!',coins:'No coins earned yet!'};
             listEl.innerHTML='<div style="text-align:center;color:#6b7280;padding:30px">'+(emptyMsgs[_lbTab]||'No entries yet!')+'</div>';
