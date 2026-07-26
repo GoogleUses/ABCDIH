@@ -104,7 +104,7 @@
       padding:5px 10px; color:#9ca3af; font-size:11px; font-weight:600;
       cursor:pointer;
     }
-    .nj-ext-user-row, .nj-ext-report-row, .nj-ext-lb-row {
+    .nj-ext-user-row, .nj-ext-lb-row {
       display:flex; align-items:center; gap:10px;
       padding:10px; border-radius:10px; background:#1a1a2e;
       border:1px solid #2a2a4a; margin-bottom:6px;
@@ -150,7 +150,7 @@
         <span style="font-size:22px">🛡️</span>
         <div style="flex:1">
           <div style="color:#fff;font-weight:700;font-size:15px">Site Admin Panel</div>
-          <div style="color:#6b7280;font-size:11px">Firebase-connected — full user & report management</div>
+          <div style="color:#6b7280;font-size:11px">Firebase-connected — full user management</div>
         </div>
         <button id="nj-ext-close" style="background:none;border:none;color:#6b7280;font-size:22px;cursor:pointer;line-height:1">✕</button>
       </div>
@@ -166,7 +166,6 @@
       <div id="nj-ext-panel" style="display:none;flex:1;overflow:hidden;flex-direction:column">
         <div id="nj-ext-tabs">
           <button class="nj-ext-tab active" data-tab="users">👥 Users</button>
-          <button class="nj-ext-tab" data-tab="reports">🚩 Reports</button>
           <button class="nj-ext-tab" data-tab="leaderboard">🏆 Leaderboard</button>
         </div>
         <div id="nj-ext-body">
@@ -182,7 +181,6 @@
   let _activeTab = "users";
   let _onlineUsers = {};
   let _bans = {};
-  let _reports = {};
   let _leaderboard = {};
   let _toastTimer = null;
   let _unsubscribers = [];
@@ -270,13 +268,6 @@
     );
 
     _unsubscribers.push(
-      _fbOnValue(_fbRef("njsgames/reports"), snap => {
-        _reports = snap.val() || {};
-        if (_activeTab === "reports") renderTab("reports");
-      })
-    );
-
-    _unsubscribers.push(
       _fbOnValue(_fbRef("njsgames/leaderboard"), snap => {
         _leaderboard = snap.val() || {};
         if (_activeTab === "leaderboard") renderTab("leaderboard");
@@ -288,7 +279,6 @@
   function renderTab(tab) {
     const body = document.getElementById("nj-ext-body");
     if (tab === "users") renderUsers(body);
-    else if (tab === "reports") renderReports(body);
     else if (tab === "leaderboard") renderLeaderboard(body);
   }
 
@@ -452,94 +442,6 @@
   }
 
   
-  function renderReports(body) {
-    const entries = Object.entries(_reports).sort((a, b) => (b[1].ts || 0) - (a[1].ts || 0));
-    if (!entries.length) {
-      body.innerHTML = `<div class="nj-ext-empty">📭 No reports yet</div>`;
-      return;
-    }
-    let html = `<div class="nj-ext-section-title">🚩 Reports (${entries.length})</div>`;
-    entries.forEach(([key, r]) => {
-      const author = r.reportedUser || r.author || "Unknown";
-      const reporter = r.reporter || r.reportedBy || "Anonymous";
-      html += `
-        <div class="nj-ext-report-row" id="report-row-${esc(key)}">
-          <div style="flex:1;min-width:0">
-            <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
-              <span style="color:#f87171;font-weight:700;font-size:12px">🚩 ${esc(author)}</span>
-              <span style="color:#6b7280;font-size:10px">reported by ${esc(reporter)}</span>
-              <span style="color:#4b5563;font-size:10px">• ${fmt(r.ts)}</span>
-            </div>
-            <div style="background:#0f0f1a;border:1px solid #2a2a4a;border-radius:6px;padding:6px 8px;font-size:12px;color:#d1d5db;max-height:60px;overflow-y:auto;">${esc(r.text || r.message || "")}</div>
-          </div>
-          <div class="nj-ext-actions" style="flex-direction:column;align-items:flex-end">
-            <div style="display:flex;gap:4px;margin-bottom:4px">
-              <select class="nj-ext-input" id="rpt-dur-${esc(key)}" style="padding:3px 6px;font-size:10px">
-                <option value="300">5m</option><option value="1800">30m</option>
-                <option value="3600">1h</option><option value="86400">24h</option>
-              </select>
-              <button class="nj-ext-btn-mute" data-action="rpt-mute" data-key="${esc(key)}" data-name="${esc(author)}">🔇</button>
-              <button class="nj-ext-btn-danger" data-action="rpt-ban" data-key="${esc(key)}" data-name="${esc(author)}">🚫</button>
-              <button class="nj-ext-btn-warn" data-action="rpt-kick" data-key="${esc(key)}" data-name="${esc(author)}">👢</button>
-            </div>
-            <button class="nj-ext-btn-dismiss" data-action="rpt-dismiss" data-key="${esc(key)}">✓ Dismiss</button>
-          </div>
-        </div>`;
-    });
-    body.innerHTML = html;
-
-    body.querySelectorAll("[data-action]").forEach(el => {
-      el.addEventListener("click", () => handleReportAction(el));
-    });
-  }
-
-  async function handleReportAction(el) {
-    const action = el.dataset.action;
-    const key = el.dataset.key;
-    const username = el.dataset.name;
-
-    if (action === "rpt-dismiss") {
-      await _fbRemove(_fbRef(`njsgames/reports/${key}`));
-      document.getElementById(`report-row-${key}`)?.remove();
-      toast("✓ Report dismissed");
-      return;
-    }
-
-    if (action === "rpt-mute") {
-      const dur = parseInt(document.getElementById(`rpt-dur-${key}`)?.value || "300");
-      const expiresAt = Date.now() + dur * 1000;
-
-      const snap = await _fbGet(_fbRef(`njsgames/usernames/${fk(username)}`));
-      if (snap.exists() && snap.val().sessionId) {
-        await _fbSet(_fbRef(`njsgames/commands/${snap.val().sessionId}`), { type: "mute", expiresAt, ts: Date.now() });
-      }
-      await _fbSet(_fbRef(`njsgames/mutes/${fk(username)}`), { username, expiresAt, ts: Date.now() });
-      await _fbRemove(_fbRef(`njsgames/reports/${key}`));
-      document.getElementById(`report-row-${key}`)?.remove();
-      toast(`🔇 Muted ${username}`);
-    } else if (action === "rpt-ban") {
-      await _fbSet(_fbRef(`njsgames/bans/${fk(username)}`), { username, reason: "Reported user", ts: Date.now(), bannedBy: "admin" });
-      const snap = await _fbGet(_fbRef(`njsgames/usernames/${fk(username)}`));
-      if (snap.exists() && snap.val().sessionId) {
-        await _fbSet(_fbRef(`njsgames/commands/${snap.val().sessionId}`), { type: "ban", ts: Date.now() });
-      }
-      await _fbRemove(_fbRef(`njsgames/reports/${key}`));
-      document.getElementById(`report-row-${key}`)?.remove();
-      toast(`🚫 Banned ${username}`);
-    } else if (action === "rpt-kick") {
-      const snap = await _fbGet(_fbRef(`njsgames/usernames/${fk(username)}`));
-      if (snap.exists() && snap.val().sessionId) {
-        await _fbSet(_fbRef(`njsgames/commands/${snap.val().sessionId}`), { type: "kick", ts: Date.now() });
-        toast(`👢 Kicked ${username}`);
-      } else {
-        toast(`⚠️ ${username} is not online`, true);
-      }
-      await _fbRemove(_fbRef(`njsgames/reports/${key}`));
-      document.getElementById(`report-row-${key}`)?.remove();
-    }
-  }
-
-  
   function renderLeaderboard(body) {
     const entries = Object.entries(_leaderboard).sort((a, b) => (b[1].coins || 0) - (a[1].coins || 0));
 
@@ -601,19 +503,5 @@
       });
     });
   }
-
-  
-
-  window.njReportMessage = async function (author, text, ts) {
-    if (!db) await initFirebase().catch(() => {});
-    if (!db) return;
-    const key = "r" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
-    await _fbPush(_fbRef("njsgames/reports"), {
-      reportedUser: author,
-      text: text || "",
-      ts: ts || Date.now(),
-      reporter: "chat_user"
-    }).catch(() => {});
-  };
 
 })();

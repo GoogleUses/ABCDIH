@@ -19,6 +19,16 @@
     .ev-join:hover{opacity:.9;}
     .ev-dismiss{background:none;border:none;color:#6b7280;cursor:pointer;font-size:16px;flex-shrink:0;}
 
+    /* WEEKLY DEAL COUNTDOWN BANNER */
+    #weekly-deal-banner{display:none;background:linear-gradient(135deg,#0f1f0f,#1a0f3a);border-bottom:2px solid #7c3aed;padding:9px 14px;align-items:center;gap:10px;flex-shrink:0;}
+    .wd-icon{font-size:20px;flex-shrink:0;}
+    .wd-body{flex:1;}
+    .wd-label{font-size:10px;font-weight:700;color:#a78bfa;text-transform:uppercase;letter-spacing:1px;margin-bottom:1px;}
+    .wd-desc{font-size:12px;color:#d1d5db;line-height:1.4;}
+    .wd-countdown{font-size:13px;font-weight:800;color:#fbbf24;font-variant-numeric:tabular-nums;white-space:nowrap;flex-shrink:0;}
+    .wd-live{background:linear-gradient(135deg,#7c3aed,#4f46e5);border:none;color:#fff;border-radius:8px;padding:6px 13px;cursor:pointer;font-weight:700;font-size:12px;white-space:nowrap;flex-shrink:0;}
+    .wd-live:hover{opacity:.9;}
+
     /* ROOMS VIEW */
     #rooms-view{padding:16px;}
     .header{text-align:center;margin-bottom:14px;}
@@ -58,16 +68,6 @@
     .msg:hover .msg-del{opacity:1;}
     .msg-del{position:absolute;top:-8px;right:-8px;background:#dc2626;border:none;color:#fff;border-radius:50%;width:20px;height:20px;font-size:10px;cursor:pointer;opacity:0;transition:opacity .15s;line-height:20px;padding:0;display:flex;align-items:center;justify-content:center;}
     .msg-del:hover{background:#b91c1c;}
-    .msg-report{position:absolute;top:-8px;right:16px;background:#f59e0b;border:none;color:#fff;border-radius:50%;width:20px;height:20px;font-size:10px;cursor:pointer;opacity:0;transition:opacity .15s;line-height:20px;padding:0;display:flex;align-items:center;justify-content:center;font-style:normal;}
-    .msg-report:hover{background:#d97706;}
-    .msg:hover .msg-report,.msg-report:focus{opacity:1;}
-    /* Report message modal */
-    #reportMsgOverlay .modal-box{background:#1a1a2e;border:1px solid #7c3aed;color:#fff;}
-    #reportMsgOverlay .modal-box h3{color:#a78bfa;}
-    #reportMsgOverlay .modal-box p{color:#9ca3af;}
-    #reportMsgOverlay .fg label{color:#9ca3af;}
-    #reportMsgOverlay .fg select,#reportMsgOverlay .fg textarea{background:#0f0f1a;border-color:#2a2a4a;color:#e5e7eb;}
-    #reportMsgOverlay .reported-msg-box{background:#0f0f1a;border:1px solid #374151;border-radius:8px;padding:8px 10px;font-size:12px;color:#d1d5db;margin-bottom:12px;max-height:80px;overflow-y:auto;line-height:1.5;}
     .msg-author{font-size:10px;font-weight:700;margin-bottom:2px;opacity:.65;}
     .msg-time{font-size:10px;opacity:.45;margin-top:2px;}
     .msg-gif{max-width:220px;border-radius:8px;display:block;margin:3px 0;}
@@ -139,6 +139,17 @@
   </div>
   <button class="ev-join" id="ev-join-btn" style="display:none" onclick="joinEvent()">▶ Join Now</button>
   <button class="ev-dismiss" onclick="dismissEvent()" title="Dismiss">✕</button>
+</div>
+
+<!-- Weekly Deal countdown banner -->
+<div id="weekly-deal-banner">
+  <div class="wd-icon">🤖</div>
+  <div class="wd-body">
+    <div class="wd-label">Weekly Deal</div>
+    <div class="wd-desc" id="wd-desc">Every Sunday at 5 PM a bot lists a random item for 1 coin!</div>
+  </div>
+  <div class="wd-countdown" id="wd-countdown"></div>
+  <button class="wd-live" id="wd-plaza-btn" onclick="window.top.location.href='../trading-plaza.html'" style="display:none">View Deal →</button>
 </div>
 
 <div id="rooms-view">
@@ -274,33 +285,6 @@
   </div>
 </div>
 
-<!-- Report message fallback modal (used when chat is opened directly) -->
-<div class="overlay" id="reportMsgOverlay">
-  <div class="modal-box">
-    <h3>🚩 Report Message</h3>
-    <p>Tell the moderators what is wrong with this message.</p>
-    <div class="reported-msg-box" id="reportedMsgPreview"></div>
-    <div class="fg">
-      <label>Reason</label>
-      <select id="reportReason">
-        <option>Harassment / Bullying</option>
-        <option>Hate speech or harassment</option>
-        <option>Spam</option>
-        <option>Inappropriate content</option>
-        <option>Other</option>
-      </select>
-    </div>
-    <div class="fg">
-      <label>Additional details</label>
-      <textarea id="reportDetails" rows="3" maxlength="300" placeholder="Describe what happened…"></textarea>
-    </div>
-    <div class="mbtns">
-      <button class="btn-cancel" onclick="closeOverlay('reportMsgOverlay')">Cancel</button>
-      <button class="btn-danger" id="submitReportBtn" onclick="submitLocalReport()">Submit Report</button>
-    </div>
-  </div>
-</div>
-
 <!-- Event admin modal -->
 <div class="overlay" id="eventAdminOverlay">
   <div class="modal-box">
@@ -408,10 +392,8 @@ window.saveName = async function() {
   if (!v){errEl.textContent="Please enter a name.";return;}
   if (v.length<2){errEl.textContent="Must be at least 2 characters.";return;}
   if (!/^[a-zA-Z0-9_\- ]+$/.test(v)){errEl.textContent="Letters, numbers, spaces, _ and - only.";return;}
-  // Word filter check
   const _vLow=v.toLowerCase();
   for(const e of _wordFilter){if(e&&_vLow.includes(e)){errEl.textContent="That name contains a blocked word.";return;}}
-  // 24-hour name-change cooldown
   const _existN=localStorage.getItem("nj_username");
   if(_existN){
     const _lastNC=parseInt(localStorage.getItem("nj_name_changed_at")||"0");
@@ -423,7 +405,6 @@ window.saveName = async function() {
   const ok = await claimUsername(v);
   btn.disabled=false; btn.textContent="Save";
   if (!ok){errEl.textContent=`"${v}" is already taken. Try another!`;return;}
-  // Save name-change timestamp if this was a change
   if(_prevN&&_prevN!==v){localStorage.setItem("nj_name_changed_at",Date.now().toString());}
   document.getElementById("nameDisplay").textContent=v;
   closeOverlay("nameOverlay");
@@ -497,6 +478,61 @@ window.saveEvent = async function() {
   closeOverlay("eventAdminOverlay");
 };
 
+/* ── Weekly Deal countdown ── */
+function getNextSunday5PM() {
+  const now = new Date();
+  const day = now.getDay(); // 0=Sun
+  const daysUntilSun = day === 0 ? 0 : 7 - day;
+  const next = new Date(now);
+  next.setDate(now.getDate() + daysUntilSun);
+  next.setHours(17, 0, 0, 0);
+  // If today is Sunday but past 5PM (or past 6PM window), advance to next week
+  if (daysUntilSun === 0 && now >= new Date(next.getTime() + 3600000)) {
+    next.setDate(next.getDate() + 7);
+  }
+  return next;
+}
+
+function formatCountdown(ms) {
+  if (ms <= 0) return "NOW!";
+  const s = Math.floor(ms / 1000);
+  const m = Math.floor(s / 60);
+  const h = Math.floor(m / 60);
+  const d = Math.floor(h / 24);
+  if (d > 0) return `${d}d ${h%24}h ${m%60}m`;
+  if (h > 0) return `${h}h ${m%60}m ${s%60}s`;
+  if (m > 0) return `${m}m ${s%60}s`;
+  return `${s}s`;
+}
+
+let _wdInterval = null;
+function startWeeklyDealCountdown() {
+  const banner = document.getElementById("weekly-deal-banner");
+  const countdownEl = document.getElementById("wd-countdown");
+  const plazaBtn = document.getElementById("wd-plaza-btn");
+  const descEl = document.getElementById("wd-desc");
+  banner.style.display = "flex";
+
+  function tick() {
+    const target = getNextSunday5PM();
+    const now = new Date();
+    const msLeft = target - now;
+    const isSunday5PM = now.getDay() === 0 && now.getHours() === 17;
+
+    if (isSunday5PM) {
+      countdownEl.textContent = "🔴 LIVE";
+      descEl.textContent = "Weekly Deal is live! Grab a random item for 1 coin on the Trading Plaza.";
+      plazaBtn.style.display = "block";
+    } else {
+      countdownEl.textContent = formatCountdown(msLeft);
+      descEl.textContent = "Every Sunday at 5 PM — a bot lists a random item for just 1 coin!";
+      plazaBtn.style.display = "none";
+    }
+  }
+  tick();
+  _wdInterval = setInterval(tick, 1000);
+}
+
 /* ── Rooms list ── */
 let allRooms={}, msgUnsub=null, curRoomId=null;
 onValue(ref(db,ROOMS), snap => { allRooms=snap.val()||{}; renderRooms(); });
@@ -565,7 +601,7 @@ window.backToRooms=function() {
 };
 
 /* ── User equipment cache for chat styling ── */
-const _equipCache = {}; // username → {chatColor, badge, title} or {}
+const _equipCache = {};
 const SHOP_ITEMS = {
   'col-purple':{type:'chatColor',val:'#a855f7'},
   'col-gold':{type:'chatColor',val:'#f59e0b'},
@@ -613,7 +649,7 @@ const SHOP_ITEMS = {
 
 async function _fetchEquip(author) {
   if (_equipCache[author] !== undefined) return _equipCache[author];
-  _equipCache[author] = {}; // mark as loading to avoid duplicate fetches
+  _equipCache[author] = {};
   try {
     const snap = await get(ref(db, `njsgames/users/${author}/equipped`));
     _equipCache[author] = snap.val() || {};
@@ -658,7 +694,6 @@ function loadMsgs(id) {
       area.innerHTML='<div style="text-align:center;color:#aaa;padding:30px;font-size:13px">No messages yet — say hello!</div>';
       return;
     }
-    // Pre-fetch equipment for all unique authors not yet cached
     const unknownAuthors=[...new Set(list.map(([,m])=>m.author).filter(a=>a&&_equipCache[a]===undefined))];
     await Promise.all(unknownAuthors.map(a=>_fetchEquip(a)));
 
@@ -674,20 +709,11 @@ function loadMsgs(id) {
       } else {
         content=_applyColor(m.text, equip, isMe);
       }
-      const msgTextRaw = m.type==="gif" ? "[GIF]" : (m.text||"");
-      const reportBtn = !isMe
-        ? `<button class="msg-report" type="button" title="Report message" aria-label="Report message">🚩</button>`
-        : "";
       d.innerHTML=
         (isMe?"":_buildAuthorHtml(m.author, equip))
         +content
         +`<div class="msg-time">${fmt(m.ts)}</div>`
-        +`<button class="msg-del" onclick="promptDeleteMsg('${id}','${msgKey}',event)" title="Delete">✕</button>`
-        +reportBtn;
-      d.querySelector('.msg-report')?.addEventListener('click', (ev) => {
-        ev.stopPropagation();
-        promptReportMsg(m.author || "Unknown", ev.currentTarget, ev);
-      });
+        +`<button class="msg-del" onclick="promptDeleteMsg('${id}','${msgKey}',event)" title="Delete">✕</button>`;
       area.appendChild(d);
     });
     area.scrollTop=area.scrollHeight;
@@ -699,62 +725,6 @@ window.promptDeleteMsg = function(roomId, msgKey, event) {
   _pendingDelMsgKey = {roomId, msgKey};
   document.getElementById("delMsgKey").value="";
   openOverlay("delMsgOverlay");
-};
-window.promptReportMsg = function(author, btnEl, event) {
-  if (event) event.stopPropagation();
-  // Walk up to the message div to extract the message text
-  let msgEl = btnEl;
-  while (msgEl && !msgEl.classList.contains('msg')) msgEl = msgEl.parentElement;
-  let msgText = "";
-  if (msgEl) {
-    // Clone the element, remove the buttons and timestamps to get clean text
-    const clone = msgEl.cloneNode(true);
-    clone.querySelectorAll('.msg-del,.msg-report,.msg-time,.msg-author,.msg-gif').forEach(n=>n.remove());
-    msgText = clone.textContent.trim();
-  }
-  if (msgText.length > 300) msgText = msgText.slice(0, 300) + "…";
-  // The main page owns the full report workflow. Keep this fallback for
-  // direct visits to chat.html and for cases where the parent is unavailable.
-  try {
-    if (window.parent && window.parent !== window && typeof window.parent.njReportMessage === "function") {
-      window.parent.njReportMessage(author, msgText, Date.now());
-      return;
-    }
-  } catch(e) {}
-  window._pendingLocalReport = {author: author || "Unknown", text: msgText, ts: Date.now()};
-  document.getElementById("reportedMsgPreview").textContent =
-    `${author || "Unknown"}: ${msgText || "[Image]"}`;
-  document.getElementById("reportReason").selectedIndex = 0;
-  document.getElementById("reportDetails").value = "";
-  openOverlay("reportMsgOverlay");
-};
-window.submitLocalReport = async function() {
-  const pending = window._pendingLocalReport;
-  if (!pending) return;
-  const btn = document.getElementById("submitReportBtn");
-  const reason = document.getElementById("reportReason").value;
-  const details = document.getElementById("reportDetails").value.trim();
-  btn.disabled = true;
-  btn.textContent = "Sending…";
-  try {
-    await push(ref(db, "njsgames/reports"), {
-      reportedUser: pending.author,
-      reporter: getName() || localStorage.getItem("nj_username") || "chat_user",
-      reason,
-      message: details || "Reported from chat.",
-      chatMessage: pending.text || "",
-      ts: pending.ts || Date.now(),
-      status: "open"
-    });
-    closeOverlay("reportMsgOverlay");
-    window._pendingLocalReport = null;
-    alert("Report submitted. Thanks for helping keep the community safe.");
-  } catch (e) {
-    alert("Could not submit the report. Please try again.");
-  } finally {
-    btn.disabled = false;
-    btn.textContent = "Submit Report";
-  }
 };
 window.doDeleteMsg = async function() {
   const key = document.getElementById("delMsgKey").value;
@@ -778,7 +748,6 @@ window.sendMsg=async function() {
     _showMutedBanner(`You're muted for another ${s}s.`); return;
   } else if (mutedUntil) localStorage.removeItem("nj_muted_until");
 
-  // If a GIF is staged in the preview bar, send it instead of text
   if (_pendingGifUrl) {
     await doSendGif(_pendingGifUrl);
     return;
@@ -797,13 +766,12 @@ window.sendMsg=async function() {
   await push(ref(db,`${ROOMS}/${curRoomId}/messages`),{author,text,ts:Date.now()});
   const cSnap=await get(ref(db,`${ROOMS}/${curRoomId}/messageCount`));
   set(ref(db,`${ROOMS}/${curRoomId}/messageCount`),(cSnap.val()||0)+1);
-  // Track chat message challenge in parent window
   try{ if(window.parent&&window.parent.njTrackChat) window.parent.njTrackChat(); }catch(e){}
 };
 
-/* ── Image URL functionality (replaces Tenor GIF picker) ── */
+/* ── Image URL functionality ── */
 let _imgPanelOpen=false;
-let _pendingGifUrl=null;  // URL of image staged in Discord-style preview
+let _pendingGifUrl=null;
 
 window.toggleImgPanel = function() {
   _imgPanelOpen=!_imgPanelOpen;
@@ -832,7 +800,6 @@ window.confirmImgUrl = function() {
 
 /* ── Discord-style paste image (Ctrl+V) ── */
 document.addEventListener('paste', function(e) {
-  // Only handle if chat view is active
   if (document.getElementById('chat-view').style.display === 'none') return;
   const items = e.clipboardData && e.clipboardData.items;
   if (!items) return;
@@ -845,7 +812,6 @@ document.addEventListener('paste', function(e) {
       reader.onload = function(ev) {
         const img = new Image();
         img.onload = function() {
-          // Compress: max 640px, JPEG 65% quality
           const MAX = 640;
           let w = img.width, h = img.height;
           if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; }
@@ -854,7 +820,6 @@ document.addEventListener('paste', function(e) {
           canvas.width = w; canvas.height = h;
           canvas.getContext('2d').drawImage(img, 0, 0, w, h);
           const dataUrl = canvas.toDataURL('image/jpeg', 0.65);
-          // Stage in preview bar exactly like a URL send
           window.closeImgPanel();
           _pendingGifUrl = dataUrl;
           document.getElementById('gif-preview-img').src = dataUrl;
@@ -957,7 +922,6 @@ function _showBanScreen(reason) {
     const snap = await get(ref(db, `njsgames/bans/${fk(username)}`));
     if (snap.exists()) { _showBanScreen(snap.val().reason || ""); return; }
   } catch(e) { /* ignore */ }
-  /* Also check mute store for offline mutes applied while away */
   try {
     const msnap = await get(ref(db, `njsgames/mutes/${fk(username)}`));
     if (msnap.exists()) {
@@ -1005,6 +969,9 @@ onValue(ref(db,"njsgames/broadcast"), snap => {
 function esc(t){return String(t).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
 function fmt(ts){if(!ts)return"";return new Date(ts).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});}
 window.esc=esc;
+
+/* ── Start weekly deal countdown on load ── */
+startWeeklyDealCountdown();
 </script>
 </body>
 </html>

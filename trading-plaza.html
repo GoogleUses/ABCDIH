@@ -23,7 +23,11 @@
     .tabs{display:flex;gap:8px;overflow:auto;margin-bottom:14px}.tab{white-space:nowrap;border:1px solid #30294a;border-radius:999px;background:#11101e;color:#9ca3af;padding:8px 13px;font-size:12px;font-weight:700}.tab.active{border-color:#8b5cf6;background:#2a174e;color:#e9d5ff}
     #status{min-height:20px;color:#94a3b8;font-size:12px;margin:8px 0}.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
     .card{border:1px solid #29253e;border-radius:15px;background:linear-gradient(145deg,#151326,#0f0e1a);padding:16px;min-height:190px;display:flex;flex-direction:column;gap:9px;box-shadow:0 10px 30px #0003}
-    .card:hover{border-color:#6d4bb1;transform:translateY(-2px);transition:.18s}.item-icon{font-size:36px}.item-name{font-weight:850}.muted{color:#8b8ba0;font-size:12px;line-height:1.45}.price{color:#fbbf24;font-weight:850;font-size:14px}.seller{color:#a78bfa;font-size:11px}.card .buy{margin-top:auto;width:100%;border:1px solid #6241a0;border-radius:9px;background:#271746;color:#e9d5ff;padding:9px;font-weight:800}.card .buy:hover{background:#7c3aed;color:#fff}.card .buy:disabled{opacity:.5;cursor:not-allowed}
+    .card:hover{border-color:#6d4bb1;transform:translateY(-2px);transition:.18s}
+    .card.deal-card{border-color:#22c55e;box-shadow:0 10px 30px rgba(34,197,94,.15)}
+    .deal-badge{display:inline-block;background:#14532d;border:1px solid #22c55e;border-radius:6px;padding:2px 7px;font-size:10px;font-weight:800;color:#4ade80;text-transform:uppercase;letter-spacing:.08em;margin-bottom:2px}
+    .item-icon{font-size:36px}.item-name{font-weight:850}.muted{color:#8b8ba0;font-size:12px;line-height:1.45}.price{color:#fbbf24;font-weight:850;font-size:14px}.seller{color:#a78bfa;font-size:11px}.card .buy{margin-top:auto;width:100%;border:1px solid #6241a0;border-radius:9px;background:#271746;color:#e9d5ff;padding:9px;font-weight:800}.card .buy:hover{background:#7c3aed;color:#fff}.card .buy:disabled{opacity:.5;cursor:not-allowed}
+    .card.deal-card .buy{border-color:#22c55e;background:#0f2818;color:#4ade80}.card.deal-card .buy:hover{background:#166534;color:#fff}
     .empty{grid-column:1/-1;border:1px dashed #3b3655;border-radius:15px;padding:38px 20px;text-align:center;color:#8b8ba0}
     .modal{display:none;position:fixed;inset:0;z-index:5;align-items:center;justify-content:center;padding:16px;background:#000b}.modal.open{display:flex}.dialog{width:min(470px,100%);border:1px solid #493875;border-radius:16px;background:#11101e;padding:20px;box-shadow:0 20px 80px #000}.dialog h2{margin:0 0 6px;font-size:19px}.dialog p{margin:0 0 16px;color:#9292a8;font-size:12px;line-height:1.5}.field{margin:12px 0}.field label{display:block;color:#a1a1b5;font-size:11px;font-weight:800;margin-bottom:5px;text-transform:uppercase}.field select,.field input{width:100%;border:1px solid #342d4c;border-radius:9px;background:#0c0b15;color:#fff;padding:10px;outline:none}.actions{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}.secondary{border:1px solid #38324e;border-radius:9px;background:#1a1828;color:#b6b2c7;padding:9px 13px;font-weight:700}
     @media(max-width:680px){.top{padding:12px}.top a{font-size:0}.top a::after{content:"←";font-size:16px}.hero{display:block}.hero-note{margin-top:18px;max-width:none}main{width:min(100% - 24px,1120px);padding-top:28px}.grid{grid-template-columns:repeat(auto-fill,minmax(170px,1fr))}}
@@ -39,7 +43,7 @@
   <main>
     <section class="hero">
       <div><div class="eyebrow">Community marketplace</div><h1>Trade your style.</h1><p class="lead">Buy and sell collectible cosmetics from the site shop: chat colors, badges, titles, and backgrounds. Your profile and leaderboard stay separate and safe.</p></div>
-      <div class="hero-note"><strong>How it works</strong><br/>List an owned cosmetic for coins, or grab one from another player. Items remain yours until a sale completes, and you can cancel your own listings anytime.</div>
+      <div class="hero-note"><strong>How it works</strong><br/>List an owned cosmetic for coins, or grab one from another player. Items remain yours until a sale completes, and you can cancel your own listings anytime.<br/><br/>🤖 <strong>Weekly Deal</strong> — every Sunday at 5 PM a bot lists a random item for just 1 coin!</div>
     </section>
     <div class="toolbar"><input id="search" type="search" placeholder="Search the plaza…"/><button class="primary" id="listItem" type="button">+ List an item</button></div>
     <div class="tabs"><button class="tab active" data-tab="all">All listings</button><button class="tab" data-tab="chatColor">Chat colors</button><button class="tab" data-tab="badge">Badges</button><button class="tab" data-tab="title">Titles</button><button class="tab" data-tab="background">Backgrounds</button><button class="tab" data-tab="mine">My listings</button></div>
@@ -50,22 +54,170 @@
   </div>
   <script type="module">
     import{initializeApp,getApps}from"https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
-    import{getDatabase,ref,get,set,update,push,onValue,runTransaction}from"https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js";
+    import{getDatabase,ref,get,set,update,push,onValue,runTransaction,remove}from"https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js";
     const config={apiKey:"AIzaSyDW9xdFdxFSjAm15f-l107fQpmZbs6_vEw",authDomain:"trolling-e3ed8.firebaseapp.com",databaseURL:"https://trolling-e3ed8-default-rtdb.firebaseio.com",projectId:"trolling-e3ed8",storageBucket:"trolling-e3ed8.appspot.com",messagingSenderId:"299260439019",appId:"1:299260439019:web:9dedc986334a871e1d51ae"};
     const app=getApps().find(a=>a.name==="nj_trading_plaza")||initializeApp(config,"nj_trading_plaza"),db=getDatabase(app);
     const catalog={
       "col-purple":{name:"Purple Glow",type:"chatColor",icon:"🟣",desc:"Purple chat text"},"col-gold":{name:"Gold Text",type:"chatColor",icon:"🟡",desc:"Gold chat text"},"col-red":{name:"Red Hot",type:"chatColor",icon:"🔴",desc:"Red chat text"},"col-cyan":{name:"Cyan Wave",type:"chatColor",icon:"🔵",desc:"Cyan chat text"},"col-green":{name:"Neon Green",type:"chatColor",icon:"🟢",desc:"Green chat text"},"col-pink":{name:"Hot Pink",type:"chatColor",icon:"🩷",desc:"Pink chat text"},"col-rainbow":{name:"Rainbow",type:"chatColor",icon:"🌈",desc:"Animated rainbow text"},"col-orange":{name:"Orange Fire",type:"chatColor",icon:"🟠",desc:"Orange chat text"},"bdg-star":{name:"Star",type:"badge",icon:"⭐",desc:"Star badge by your name"},"bdg-fire":{name:"Fire",type:"badge",icon:"🔥",desc:"Fire badge"},"bdg-crown":{name:"Crown",type:"badge",icon:"👑",desc:"Crown badge"},"bdg-diamond":{name:"Diamond",type:"badge",icon:"💎",desc:"Diamond badge"},"bdg-gamer":{name:"Gamer",type:"badge",icon:"🎮",desc:"Gamer badge"},"bdg-skull":{name:"Skull",type:"badge",icon:"💀",desc:"Skull badge"},"bdg-rocket":{name:"Rocket",type:"badge",icon:"🚀",desc:"Rocket badge"},"ttl-grinder":{name:"Grinder",type:"title",icon:"💪",desc:'The "Grinder" title'},"ttl-nolife":{name:"No Life",type:"title",icon:"😴",desc:'The "No Life" title'},"ttl-legend":{name:"Legend",type:"title",icon:"🌟",desc:'The "Legend" title'},"ttl-speed":{name:"Speed Runner",type:"title",icon:"⚡",desc:'The "Speed Runner" title'},"ttl-pro":{name:"Pro Gamer",type:"title",icon:"🏆",desc:'The "Pro Gamer" title'},"ttl-casual":{name:"Casual",type:"title",icon:"🎯",desc:'The "Casual" title'},"bg-portal":{name:"Portal",type:"background",icon:"🌀",desc:"Animated profile background"},"bg-corridor":{name:"Corridor",type:"background",icon:"🌌",desc:"Animated profile background"},"bg-triangle":{name:"Triangle",type:"background",icon:"🔺",desc:"Animated profile background"},"bg-waves":{name:"Waves",type:"background",icon:"🌊",desc:"Animated profile background"},"bg-meteor":{name:"Meteor",type:"background",icon:"☄️",desc:"Animated profile background"},"bg-crystal":{name:"Crystal",type:"background",icon:"💎",desc:"Animated profile background"},"bg-drops":{name:"Drops",type:"background",icon:"💧",desc:"Animated profile background"},"bg-mist":{name:"Mist",type:"background",icon:"🌫️",desc:"Animated profile background"},"bg-forest":{name:"Forest",type:"background",icon:"🌲",desc:"Animated profile background"}};
+    const CATALOG_KEYS=Object.keys(catalog);
+    const BOT_NAME="🤖 WeeklyBot";
     const user=(localStorage.getItem("nj_username")||"").trim(),state={tab:"all",query:"",listings:{},coins:0,owned:{}};
     const $=id=>document.getElementById(id), esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
     const item=id=>catalog[id]||{name:"Unknown cosmetic",type:"other",icon:"?",desc:"Unavailable item"};
     function status(text,error=false){$("status").textContent=text;$("status").style.color=error?"#f87171":"#94a3b8";setTimeout(()=>{if($("status").textContent===text)$("status").textContent=""},4500)}
     async function loadUser(){if(!user){$("balance").textContent="🪙 Sign in on the main page";return}const s=await get(ref(db,`njsgames/users/${user}`));const d=s.val()||{};state.coins=Number(d.coins)||0;state.owned=d.items||{};$("balance").textContent=`🪙 ${state.coins.toLocaleString()}`}
-    function render(){const q=state.query.toLowerCase(),entries=Object.entries(state.listings).filter(([,v])=>v&&v.status!=="sold").filter(([,v])=>state.tab==="mine"?v.seller===user:state.tab==="all"||v.type===state.tab).filter(([,v])=>{const x=item(v.itemId);return !q||x.name.toLowerCase().includes(q)||String(v.seller||"").toLowerCase().includes(q)}).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));$("listings").innerHTML=entries.length?entries.map(([id,v])=>{const x=item(v.itemId),own=v.seller===user,canBuy=!!user&&!own&&state.coins>=Number(v.price);return `<article class="card"><div class="item-icon">${x.icon}</div><div class="item-name">${esc(x.name)}</div><div class="muted">${esc(x.desc)}</div><div class="seller">Listed by ${esc(v.seller||"Unknown")}</div><div class="price">🪙 ${Number(v.price||0).toLocaleString()}</div>${own?`<button class="buy" data-cancel="${esc(id)}">Cancel listing</button>`:`<button class="buy" data-buy="${esc(id)}" ${canBuy?"":"disabled"}>${user?(state.coins>=Number(v.price)?"Buy item":"Not enough coins"):"Choose a username first"}</button>`}</article>`}).join(""):'<div class="empty">No matching listings yet. Be the first to list a cosmetic.</div>';document.querySelectorAll("[data-buy]").forEach(b=>b.onclick=()=>buy(b.dataset.buy));document.querySelectorAll("[data-cancel]").forEach(b=>b.onclick=()=>cancel(b.dataset.cancel))}
+
+    /* ── Weekly deal bot ── */
+    function getWeekKey(){const now=new Date();const day=now.getDay();const diff=now.getDate()-day+(day===0?0:7-day+7);const sun=new Date(now);sun.setDate(diff);return`${sun.getFullYear()}-W${String(Math.floor((sun-new Date(sun.getFullYear(),0,1))/(7*86400000))+1).padStart(2,"0")}`;}
+    async function maybeRunWeeklyDeal(){
+      const now=new Date();
+      if(now.getDay()!==0)return; // not Sunday
+      const h=now.getHours(),m=now.getMinutes();
+      if(h!==17&&!(h===17&&m<60))return; // not 5 PM hour
+      const weekKey=getWeekKey();
+      const dealRef=ref(db,`njsgames/trading/weeklyDeal/${weekKey}`);
+      const snap=await get(dealRef);
+      if(snap.exists())return; // already posted this week
+      // pick a random cosmetic
+      const itemId=CATALOG_KEYS[Math.floor(Math.random()*CATALOG_KEYS.length)];
+      const c=catalog[itemId];
+      // mark deal posted atomically
+      try{
+        await set(dealRef,{postedAt:Date.now(),itemId});
+        await push(ref(db,"njsgames/trading/listings"),{seller:BOT_NAME,itemId,type:c.type,price:1,createdAt:Date.now(),status:"open",isWeeklyDeal:true});
+      }catch(e){console.warn("Weekly deal post failed:",e);}
+    }
+
+    function render(){
+      const q=state.query.toLowerCase(),
+        entries=Object.entries(state.listings)
+          .filter(([,v])=>v&&v.status!=="sold"&&v.status!=="cancelled")
+          .filter(([,v])=>state.tab==="mine"?v.seller===user:state.tab==="all"||v.type===state.tab)
+          .filter(([,v])=>{const x=item(v.itemId);return !q||x.name.toLowerCase().includes(q)||String(v.seller||"").toLowerCase().includes(q)})
+          .sort((a,b)=>{
+            // deals first, then newest
+            const ad=a[1].isWeeklyDeal?1:0,bd=b[1].isWeeklyDeal?1:0;
+            if(bd!==ad)return bd-ad;
+            return(b[1].createdAt||0)-(a[1].createdAt||0);
+          });
+      $("listings").innerHTML=entries.length?entries.map(([id,v])=>{
+        const x=item(v.itemId),
+          own=v.seller===user,
+          isBot=v.seller===BOT_NAME,
+          isDeal=!!v.isWeeklyDeal,
+          canBuy=!!user&&!own&&state.coins>=Number(v.price);
+        return `<article class="card${isDeal?" deal-card":""}">
+          ${isDeal?'<div class="deal-badge">⚡ Weekly Deal</div>':""}
+          <div class="item-icon">${x.icon}</div>
+          <div class="item-name">${esc(x.name)}</div>
+          <div class="muted">${esc(x.desc)}</div>
+          <div class="seller">Listed by ${isBot?"🤖 WeeklyBot":esc(v.seller||"Unknown")}</div>
+          <div class="price">🪙 ${Number(v.price||0).toLocaleString()}</div>
+          ${own&&!isBot?`<button class="buy" data-cancel="${esc(id)}">Cancel listing</button>`:`<button class="buy" data-buy="${esc(id)}" ${canBuy?"":"disabled"}>${user?(state.coins>=Number(v.price)?"Buy item":"Not enough coins"):"Choose a username first"}</button>`}
+        </article>`;
+      }).join(""):'<div class="empty">No matching listings yet. Be the first to list a cosmetic.</div>';
+      document.querySelectorAll("[data-buy]").forEach(b=>b.onclick=()=>buy(b.dataset.buy));
+      document.querySelectorAll("[data-cancel]").forEach(b=>b.onclick=()=>cancel(b.dataset.cancel));
+    }
+
     function openList(){if(!user){status("Choose a username on the main page before trading.",true);return}const owned=Object.keys(state.owned).filter(id=>state.owned[id]&&catalog[id]);$("item").innerHTML=owned.length?owned.map(id=>`<option value="${esc(id)}">${esc(item(id).icon+" "+item(id).name)}</option>`).join(""):'<option value="">No tradeable cosmetics owned</option>';$("submitList").disabled=!owned.length;$("listModal").classList.add("open")}
     async function publish(){const id=$("item").value,price=Math.floor(Number($("price").value));if(!id||!catalog[id]||!state.owned[id]||price<1){status("Choose an owned item and a valid price.",true);return}const alreadyListed=Object.values(state.listings).some(v=>v&&v.status==="open"&&v.seller===user&&v.itemId===id);if(alreadyListed){status("That item is already listed.",true);return}try{await push(ref(db,"njsgames/trading/listings"),{seller:user,itemId:id,type:catalog[id].type,price,createdAt:Date.now(),status:"open"});$("listModal").classList.remove("open");status("Listing published.");}catch(e){status("Could not publish listing. Try again.",true)}}
     async function cancel(id){const v=state.listings[id];if(!v||v.seller!==user)return;try{await update(ref(db,`njsgames/trading/listings/${id}`),{status:"cancelled",closedAt:Date.now()});status("Listing cancelled.")}catch(e){status("Could not cancel listing.",true)}}
-    async function buy(id){if(!user){status("Choose a username on the main page before trading.",true);return}const listing=state.listings[id];if(!listing||listing.status!=="open"||listing.seller===user)return;const price=Number(listing.price)||0;if(state.coins<price){status("You do not have enough coins.",true);return}let sellerItemClaimed=false,buyerCoinsReserved=false;try{const claimed=await runTransaction(ref(db,`njsgames/trading/listings/${id}/status`),v=>v==="open"?"processing":v);if(!claimed.committed){status("That listing was just taken. Refreshing…",true);return}const itemClaim=await runTransaction(ref(db,`njsgames/users/${listing.seller}/items/${listing.itemId}`),v=>v===true?null:v);if(!itemClaim.committed){await update(ref(db,`njsgames/trading/listings/${id}`),{status:"open"});status("The seller no longer owns that item.",true);return}sellerItemClaimed=true;const coinClaim=await runTransaction(ref(db,`njsgames/users/${user}/coins`),v=>{const n=Number(v)||0;return n>=price?n-price:undefined});if(!coinClaim.committed){await update(ref(db,`njsgames/users/${listing.seller}/items/${listing.itemId}`),true);await update(ref(db,`njsgames/trading/listings/${id}`),{status:"open"});status("You do not have enough coins.",true);return}const remaining=Number(coinClaim.snapshot.val())||0;buyerCoinsReserved=true;const sellerCoins=await get(ref(db,`njsgames/users/${listing.seller}/coins`));const updates={};updates[`njsgames/users/${listing.seller}/coins`]=(Number(sellerCoins.val())||0)+price;updates[`njsgames/users/${user}/items/${listing.itemId}`]=true;updates[`njsgames/trading/listings/${id}/status`]="sold";updates[`njsgames/trading/listings/${id}/buyer`]=user;updates[`njsgames/trading/listings/${id}/closedAt`]=Date.now();await update(ref(db),updates);state.coins=remaining;state.owned[listing.itemId]=true;$("balance").textContent=`🪙 ${state.coins.toLocaleString()}`;status(`Bought ${item(listing.itemId).name}.`)}catch(e){if(buyerCoinsReserved)await runTransaction(ref(db,`njsgames/users/${user}/coins`),v=>(Number(v)||0)+price);if(sellerItemClaimed)await update(ref(db,`njsgames/users/${listing.seller}/items/${listing.itemId}`),true);try{await update(ref(db,`njsgames/trading/listings/${id}`),{status:"open"})}catch{}status("Purchase failed safely. The listing was reopened.",true)}}
-    onValue(ref(db,"njsgames/trading/listings"),s=>{state.listings=s.val()||{};render()});$("search").oninput=e=>{state.query=e.target.value;render()};document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));b.classList.add("active");state.tab=b.dataset.tab;render()});$("listItem").onclick=openList;$("cancelList").onclick=()=>$("listModal").classList.remove("open");$("submitList").onclick=publish;$("refresh").onclick=async()=>{await loadUser();render();status("Plaza refreshed.")};$("listModal").onclick=e=>{if(e.target.id==="listModal")$("listModal").classList.remove("open")};await loadUser();render();
+
+    async function buy(id){
+      if(!user){status("Choose a username on the main page before trading.",true);return;}
+      const listing=state.listings[id];
+      if(!listing||listing.status!=="open"){status("This listing is no longer available.",true);return;}
+      if(listing.seller===user){status("You can't buy your own listing.",true);return;}
+      const price=Number(listing.price)||0;
+      if(state.coins<price){status("You do not have enough coins.",true);return;}
+
+      const buyBtn=document.querySelector(`[data-buy="${id}"]`);
+      if(buyBtn){buyBtn.disabled=true;buyBtn.textContent="Buying…";}
+      status("Processing purchase…");
+
+      try{
+        /* Step 1 — claim the listing slot atomically */
+        const claimResult=await runTransaction(ref(db,`njsgames/trading/listings/${id}/status`),current=>{
+          if(current==="open")return"processing";
+          return undefined; // abort — already taken
+        });
+        if(!claimResult.committed){
+          status("That listing was just taken by someone else.",true);
+          if(buyBtn){buyBtn.disabled=false;buyBtn.textContent="Buy item";}
+          return;
+        }
+
+        /* Step 2 — deduct buyer coins */
+        const coinResult=await runTransaction(ref(db,`njsgames/users/${user}/coins`),current=>{
+          const n=Number(current)||0;
+          if(n>=price)return n-price;
+          return undefined; // abort — not enough coins
+        });
+        if(!coinResult.committed){
+          // Undo listing claim
+          await update(ref(db,`njsgames/trading/listings/${id}`),{status:"open"}).catch(()=>{});
+          status("You do not have enough coins. The listing is still available.",true);
+          if(buyBtn){buyBtn.disabled=false;buyBtn.textContent="Buy item";}
+          return;
+        }
+
+        /* Step 3 — apply all remaining changes (give item to buyer, pay seller, close listing) */
+        const newBuyerCoins=Number(coinResult.snapshot.val())||0;
+        const sellerSnap=await get(ref(db,`njsgames/users/${listing.seller}/coins`));
+        const sellerCoins=Number(sellerSnap.val())||0;
+        const isBot=listing.seller===BOT_NAME;
+
+        const updates={};
+        updates[`njsgames/users/${user}/items/${listing.itemId}`]=true;
+        updates[`njsgames/trading/listings/${id}/status`]="sold";
+        updates[`njsgames/trading/listings/${id}/buyer`]=user;
+        updates[`njsgames/trading/listings/${id}/closedAt`]=Date.now();
+        // Only credit seller coins if it's a real player (not the bot)
+        if(!isBot){
+          updates[`njsgames/users/${listing.seller}/coins`]=sellerCoins+price;
+        }
+        await update(ref(db),updates);
+
+        state.coins=newBuyerCoins;
+        state.owned[listing.itemId]=true;
+        $("balance").textContent=`🪙 ${state.coins.toLocaleString()}`;
+        status(`✅ Bought ${item(listing.itemId).name}! Check your inventory.`);
+      }catch(e){
+        console.error("Buy failed:",e);
+        // Best-effort rollback: reopen listing
+        try{
+          const cur=await get(ref(db,`njsgames/trading/listings/${id}/status`));
+          if(cur.val()==="processing"){
+            await update(ref(db,`njsgames/trading/listings/${id}`),{status:"open"});
+          }
+        }catch{}
+        // Best-effort coin refund
+        try{
+          const curCoins=await get(ref(db,`njsgames/users/${user}/coins`));
+          const c=Number(curCoins.val())||0;
+          // Only refund if coins were actually deducted (they'd be less than before)
+          if(c<state.coins){
+            await set(ref(db,`njsgames/users/${user}/coins`),state.coins);
+          }
+        }catch{}
+        status("Purchase failed — the listing has been reopened. Please try again.",true);
+        if(buyBtn){buyBtn.disabled=false;buyBtn.textContent="Buy item";}
+      }
+    }
+
+    onValue(ref(db,"njsgames/trading/listings"),s=>{state.listings=s.val()||{};render()});
+    $("search").oninput=e=>{state.query=e.target.value;render()};
+    document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));b.classList.add("active");state.tab=b.dataset.tab;render()});
+    $("listItem").onclick=openList;
+    $("cancelList").onclick=()=>$("listModal").classList.remove("open");
+    $("submitList").onclick=publish;
+    $("refresh").onclick=async()=>{await loadUser();render();status("Plaza refreshed.")};
+    $("listModal").onclick=e=>{if(e.target.id==="listModal")$("listModal").classList.remove("open")};
+    await loadUser();
+    render();
+    // Try to trigger weekly deal on page load (if it's Sunday 5PM)
+    maybeRunWeeklyDeal().catch(()=>{});
   </script>
 </body>
 </html>
