@@ -326,23 +326,54 @@
     <script>
     (function() {
       var spaceCount = 0;
+      var tapCount = 0;
+      var tapTimer = null;
       var splash = document.getElementById('gh404-splash');
+
+      function activateDot(n) {
+        for (var i = 0; i < 10; i++) {
+          var dot = document.getElementById('gh404-dot-' + i);
+          if (dot) dot.className = 'gh404-dot' + (i < n ? ' active' : '');
+        }
+      }
+      function dismiss() {
+        splash.classList.add('gh404-hiding');
+        setTimeout(function() { splash.style.display = 'none'; }, 420);
+      }
+
+      // Desktop: spacebar x10
       document.addEventListener('keydown', function(e) {
         if (!splash || splash.style.display === 'none') return;
         if (e.code === 'Space' || e.key === ' ') {
           if (document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA')) return;
           e.preventDefault();
           spaceCount++;
-          for (var i = 0; i < 10; i++) {
-            var dot = document.getElementById('gh404-dot-' + i);
-            if (dot) dot.className = 'gh404-dot' + (i < spaceCount ? ' active' : '');
-          }
-          if (spaceCount >= 10) {
-            splash.classList.add('gh404-hiding');
-            setTimeout(function() { splash.style.display = 'none'; }, 420);
-          }
+          activateDot(spaceCount);
+          if (spaceCount >= 10) dismiss();
         }
       });
+
+      // Mobile: tap screen x10 (resets after 3s of no taps)
+      if (splash) {
+        splash.addEventListener('touchstart', function(e) {
+          if (splash.style.display === 'none') return;
+          // Allow taps on links/buttons inside splash to work normally
+          if (e.target.tagName === 'A' || e.target.tagName === 'BUTTON') return;
+          e.preventDefault();
+          tapCount++;
+          activateDot(tapCount);
+          clearTimeout(tapTimer);
+          if (tapCount >= 10) {
+            dismiss();
+            return;
+          }
+          // Reset after 3 seconds of inactivity
+          tapTimer = setTimeout(function() {
+            tapCount = 0;
+            activateDot(0);
+          }, 3000);
+        }, { passive: false });
+      }
     })();
     </script>
 
@@ -1476,7 +1507,7 @@
       const FIREBASE_CONFIG = {apiKey:_d(_c.a),authDomain:_d(_c.b),databaseURL:_d(_c.c),projectId:_d(_c.e),storageBucket:_d(_c.f),messagingSenderId:_d(_c.g),appId:_d(_c.h)};
       // Admin auth — SHA-256 hash only, no plain password stored
       async function _sha256(s){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s));return Array.from(new Uint8Array(b)).map(x=>x.toString(16).padStart(2,'0')).join('');}
-      const _ah=[atob('NTk1YWVjNTI='),atob('NWRhZTRiYmQ='),atob('NWZhZTY1NjU='),atob('YTk2MmIyYTY='),atob('ZTc0NGRkODk='),atob('ZTkwNTVkNTE='),atob('ZWRhZjQwODE='),atob('NmRlNmQxYzE=')].join('');
+      const _ah=[atob('NGJkMjVjYWQ='),atob('NzY0ZWUzNDQ='),atob('NzA2YmQ5MjU='),atob('YzNmMDhhOGQ='),atob('NTU5OGVkZjM='),atob('OWM5ZWJjOTA='),atob('MjVmNTliNDk='),atob('NTk0ZmYwYjY=')].join('');
       const db = getDatabase(initializeApp(FIREBASE_CONFIG, "nj_main_sys"));
 
       let NJ_SESSION = sessionStorage.getItem("nj_sess");

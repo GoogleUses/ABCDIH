@@ -168,7 +168,9 @@
         updates[`njsgames/trading/listings/${id}/status`]="sold";
         updates[`njsgames/trading/listings/${id}/buyer`]=user;
         updates[`njsgames/trading/listings/${id}/closedAt`]=Date.now();
+        // Remove item from seller's inventory so they can't keep a "sold" copy
         if(!isBot){
+          updates[`njsgames/users/${listing.seller}/items/${listing.itemId}`]=null;
           const sellerSnap=await get(ref(db,`njsgames/users/${listing.seller}/coins`));
           const sellerCoins=Number(sellerSnap.val())||0;
           updates[`njsgames/users/${listing.seller}/coins`]=sellerCoins+price;

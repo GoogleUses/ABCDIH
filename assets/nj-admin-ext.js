@@ -12,7 +12,7 @@
     messagingSenderId: "299260439019",
     appId: "1:299260439019:web:9dedc986334a871e1d51ae"
   };
-  const MASTER = atob("aW1oaW0=");
+  const MASTER = "ABCDIH";
 
   let db = null;
   let _fbRef, _fbSet, _fbRemove, _fbPush, _fbGet, _fbOnValue;
