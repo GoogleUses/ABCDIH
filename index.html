@@ -2932,7 +2932,7 @@
         ['nj-admin-overlay','nj-admin-pw-overlay','nj-sendmsg-overlay','nj-mute-overlay',
          'nj-announce-overlay','nj-events-overlay','nj-lb-overlay','nj-shop-overlay',
          'nj-challenges-overlay','nj-profile-overlay','nj-lootbox-overlay','nj-jomg-overlay',
-         'nj-spin-overlay','nj-lucky-overlay','nj-ach-overlay','nj-quiz-overlay','nj-settings-overlay'].forEach(id => {
+         'nj-spin-overlay','nj-lucky-overlay','nj-ach-overlay','nj-quiz-overlay','nj-settings-overlay','nj-soundboard-overlay'].forEach(id => {
           const el = document.getElementById(id); if (el) el.style.display = 'none';
         });
         _adminOpen = false;
@@ -3103,19 +3103,31 @@
     <div id="nj-settings-overlay" style="display:none;position:fixed;inset:0;z-index:10010;background:rgba(0,0,0,0.85);backdrop-filter:blur(8px);align-items:center;justify-content:center;">
       <div style="background:#0f0f1a;border:1px solid #2a2a4a;border-radius:20px;width:600px;max-width:calc(100vw - 32px);max-height:85vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.8);">
         <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 20px;border-bottom:1px solid #2a2a4a;">
-          <div>
-            <div style="color:#fff;font-weight:800;font-size:18px">⚙️ Settings</div>
-            <div style="color:#6b7280;font-size:12px;margin-top:2px">Choose your background</div>
-          </div>
+          <div style="color:#fff;font-weight:800;font-size:18px">⚙️ Settings</div>
           <button onclick="njCloseSettings()" style="background:none;border:none;color:#6b7280;cursor:pointer;font-size:22px;line-height:1;padding:4px">✕</button>
         </div>
-        <div id="nj-settings-grid" style="overflow-y:auto;flex:1;padding:16px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
-          <div style="text-align:center;color:#6b7280;padding:30px;grid-column:1/-1">Loading...</div>
+        <div style="display:flex;border-bottom:1px solid #2a2a4a;flex-shrink:0;">
+          <button id="nj-stab-bg" onclick="njSettingsTab('bg')" style="flex:1;background:#7c3aed;border:none;border-bottom:2px solid #a78bfa;color:#fff;padding:11px;font-size:13px;font-weight:700;cursor:pointer;">🎨 Backgrounds</button>
+          <button id="nj-stab-reset" onclick="njSettingsTab('reset')" style="flex:1;background:none;border:none;border-bottom:2px solid transparent;color:#6b7280;padding:11px;font-size:13px;font-weight:700;cursor:pointer;">🔄 Reset</button>
         </div>
-        <div style="padding:14px 20px;border-top:1px solid #2a2a4a;text-align:center;">
+        <div id="nj-settings-content" style="overflow-y:auto;flex:1;padding:16px;">
+          <div id="nj-settings-grid" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
+            <div style="text-align:center;color:#6b7280;padding:30px;grid-column:1/-1">Loading...</div>
+          </div>
+        </div>
+        <div id="nj-settings-footer" style="padding:14px 20px;border-top:1px solid #2a2a4a;text-align:center;">
           <button onclick="njCloseSettings();njOpenShop();njShopTab('background');" style="background:#7c3aed;color:#fff;border:none;border-radius:8px;padding:10px 18px;font-size:13px;font-weight:700;cursor:pointer">🛒 Get more backgrounds in the Shop</button>
         </div>
       </div>
+    </div>
+
+    <!-- Soundboard Overlay -->
+    <div id="nj-soundboard-overlay" style="display:none;position:fixed;inset:0;z-index:10015;background:#0a0a0f;flex-direction:column;">
+      <div style="background:rgba(10,10,15,0.97);border-bottom:1px solid #1a1a2e;padding:12px 20px;display:flex;align-items:center;gap:14px;flex-shrink:0;">
+        <button onclick="njCloseSoundboard()" style="background:#1a1a2e;border:1px solid #2a2a4a;border-radius:8px;color:#9ca3af;font-size:13px;font-weight:600;padding:7px 14px;cursor:pointer;">← Back</button>
+        <span style="font-size:17px;font-weight:800;background:linear-gradient(135deg,#a78bfa,#7c3aed);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">🎵 Soundboard</span>
+      </div>
+      <iframe id="nj-soundboard-frame" src="about:blank" allow="autoplay; microphone" style="flex:1;border:none;width:100%;height:100%;"></iframe>
     </div>
 
     <!-- Challenges Overlay -->
@@ -3754,7 +3766,7 @@
           <button class="nj-hdr-btn" id="nj-hdr-ch-btn" onclick="njOpenChallenges()" style="position:relative">⚡ Challenges<span id="nj-ch-dot" style="display:none;position:absolute;top:3px;right:3px;width:6px;height:6px;background:#22c55e;border-radius:50%"></span></button>
           <button class="nj-hdr-btn" onclick="njOpenProfile()">👤 Profile</button>
           <!-- v23: soundboard.html now embeds https://voicechanger.easeus.com/soundboards — old custom soundboard removed -->
-          <button class="nj-hdr-btn" onclick="window.location.href='soundboard.html'">🎵 Soundboard <span style='font-size:10px;background:#7c3aed;color:#fff;border-radius:4px;padding:1px 5px;margin-left:2px'>beta</span></button>
+          <button class="nj-hdr-btn" onclick="njOpenSoundboard()">🎵 Soundboard <span style='font-size:10px;background:#7c3aed;color:#fff;border-radius:4px;padding:1px 5px;margin-left:2px'>beta</span></button>
         `;
         ensureSettingsFab();
         return bar;
@@ -3875,8 +3887,42 @@
         renderShop();
       };
       window.njCloseShop=function(){ document.getElementById('nj-shop-overlay').style.display='none'; };
-      window.njOpenSettings=function(){ document.getElementById('nj-settings-overlay').style.display='flex'; renderSettings(); };
+      window.njOpenSettings=function(){ document.getElementById('nj-settings-overlay').style.display='flex'; _njStTab='bg'; var bgBtn=document.getElementById('nj-stab-bg'); var rsBtn=document.getElementById('nj-stab-reset'); var footer=document.getElementById('nj-settings-footer'); if(bgBtn){bgBtn.style.background='#7c3aed';bgBtn.style.color='#fff';bgBtn.style.borderBottom='2px solid #a78bfa';} if(rsBtn){rsBtn.style.background='none';rsBtn.style.color='#6b7280';rsBtn.style.borderBottom='2px solid transparent';} if(footer)footer.style.display='block'; var cnt=document.getElementById('nj-settings-content'); if(cnt&&!document.getElementById('nj-settings-grid'))cnt.innerHTML='<div id="nj-settings-grid" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;"></div>'; renderSettings(); };
       window.njCloseSettings=function(){ document.getElementById('nj-settings-overlay').style.display='none'; };
+      window.njOpenSoundboard=function(){
+        const ov=document.getElementById('nj-soundboard-overlay');
+        ov.style.display='flex';
+        const fr=document.getElementById('nj-soundboard-frame');
+        if(!fr.src||fr.src==='about:blank')fr.src='https://voicechanger.easeus.com/soundboards';
+      };
+      window.njCloseSoundboard=function(){
+        document.getElementById('nj-soundboard-overlay').style.display='none';
+      };
+      let _njStTab='bg';
+      window.njSettingsTab=function(tab){
+        _njStTab=tab;
+        const bgBtn=document.getElementById('nj-stab-bg');
+        const rsBtn=document.getElementById('nj-stab-reset');
+        const footer=document.getElementById('nj-settings-footer');
+        if(bgBtn){bgBtn.style.background=tab==='bg'?'#7c3aed':'none';bgBtn.style.color=tab==='bg'?'#fff':'#6b7280';bgBtn.style.borderBottom=tab==='bg'?'2px solid #a78bfa':'2px solid transparent';}
+        if(rsBtn){rsBtn.style.background=tab==='reset'?'#1a1a2e':'none';rsBtn.style.color=tab==='reset'?'#fff':'#6b7280';rsBtn.style.borderBottom=tab==='reset'?'2px solid #ef4444':'2px solid transparent';}
+        if(footer)footer.style.display=tab==='bg'?'block':'none';
+        const cnt=document.getElementById('nj-settings-content');
+        if(!cnt)return;
+        if(tab==='bg'){
+          cnt.innerHTML='<div id="nj-settings-grid" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;"></div>';
+          renderSettings();
+        } else {
+          cnt.innerHTML='<div style="max-width:420px;margin:20px auto 0"><div style="background:#1a0f0f;border:1px solid #7f1d1d;border-radius:14px;padding:22px;text-align:center"><div style="font-size:36px;margin-bottom:10px">⚠️</div><div style="color:#fff;font-weight:800;font-size:16px;margin-bottom:8px">Reset Everything</div><div style="color:#9ca3af;font-size:13px;line-height:1.6;margin-bottom:18px">Clears your saved username, all local settings, session data, and cookies on this device. Use this if the site is glitching or not signing you in properly.<br/><br/><strong style="color:#fbbf24">Your coins, stats, and cosmetics stay safe in the cloud.</strong></div><button onclick="njResetEverything()" style="background:linear-gradient(135deg,#dc2626,#991b1b);border:none;border-radius:10px;color:#fff;padding:12px 24px;font-size:14px;font-weight:800;cursor:pointer;width:100%">🗑️ Reset & Reload</button></div></div>';
+        }
+      };
+      window.njResetEverything=function(){
+        if(!confirm('This will clear all local data and reload the page.\nYour account data (coins, stats, cosmetics) stays in the cloud.\n\nContinue?'))return;
+        try{localStorage.clear();}catch(e){}
+        try{sessionStorage.clear();}catch(e){}
+        try{document.cookie.split(';').forEach(function(c){var k=c.trim().split('=')[0];if(k)document.cookie=k+'=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;'});}catch(e){}
+        location.reload(true);
+      };
       window.njSelectBackground=async function(id){
         if(!njUser)return;
         if(!njOwned[id]){showToast('You don\'t own this background yet');return;}
@@ -3887,6 +3933,7 @@
         renderSettings();
       };
       function renderSettings(){
+        if(typeof _njStTab!=='undefined'&&_njStTab!=='bg')return;
         const g=document.getElementById('nj-settings-grid');
         const owned=Object.entries(SHOP).filter(([id,v])=>v.type==='background'&&njOwned[id]);
         g.innerHTML=owned.map(([id,it])=>{

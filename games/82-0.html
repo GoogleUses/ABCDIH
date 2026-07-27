@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>82-0 — Can Your All-Time NBA Roster Go Undefeated?</title>
+<meta name="viewport" content="initial-scale=1, maximum-scale=1, user-scalable=no, shrink-to-fit=no" />
+<style>
+  html, body { margin: 0; padding: 0; width: 100%; height: 100%; background: #0a0a12; overflow: hidden; }
+  #fr { width: 100%; height: 100%; border: 0; display: block; }
+  #loading {
+    position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
+    flex-direction: column; gap: 12px; background: #0a0a12; color: #fbbf24;
+    font-family: Arial, Helvetica, sans-serif; font-size: 16px; font-weight: bold; z-index: 5;
+  }
+  #loading span { font-size: 42px; }
+</style>
+</head>
+<body>
+  <div id="loading"><span>🏀</span>Loading 82-0...</div>
+  <iframe id="fr" src="https://82-0.com/" allowfullscreen
+    sandbox="allow-scripts allow-same-origin allow-pointer-lock allow-forms allow-popups allow-modals"
+    onload="document.getElementById('loading').style.display='none'"></iframe>
+</body>
+</html>

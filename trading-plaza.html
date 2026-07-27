@@ -130,20 +130,22 @@
       if(!listing||listing.status!=="open"){status("This listing is no longer available.",true);return;}
       if(listing.seller===user){status("You can't buy your own listing.",true);return;}
       const price=Number(listing.price)||0;
-      // Always fetch a fresh coin balance so the check reflects admin-granted coins
+      /* Always fetch a fresh coin balance — avoids stale local cache issues */
+      let freshCoins=0;
       try{
         const freshSnap=await get(ref(db,`njsgames/users/${user}/coins`));
-        state.coins=Number(freshSnap.val())||0;
-        $("balance").textContent=`🪙 ${state.coins.toLocaleString()}`;
-      }catch(e){/* non-fatal; fall through to transaction */}
-      if(state.coins<price){status("You do not have enough coins.",true);return;}
+        freshCoins=Number(freshSnap.val())||0;
+        state.coins=freshCoins;
+        $("balance").textContent=`🪙 ${freshCoins.toLocaleString()}`;
+      }catch(e){ freshCoins=state.coins; /* fall back to last known */ }
+      if(freshCoins<price){status("You do not have enough coins.",true);return;}
 
       const buyBtn=document.querySelector(`[data-buy="${id}"]`);
       if(buyBtn){buyBtn.disabled=true;buyBtn.textContent="Buying…";}
       status("Processing purchase…");
 
       try{
-        /* Step 1 — claim the listing slot atomically */
+        /* Step 1 — atomically claim the listing to prevent double-buys */
         const claimResult=await runTransaction(ref(db,`njsgames/trading/listings/${id}/status`),current=>{
           if(current==="open")return"processing";
           return undefined; // abort — already taken
@@ -154,57 +156,36 @@
           return;
         }
 
-        /* Step 2 — deduct buyer coins */
-        const coinResult=await runTransaction(ref(db,`njsgames/users/${user}/coins`),current=>{
-          const n=Number(current)||0;
-          if(n>=price)return n-price;
-          return undefined; // abort — not enough coins
-        });
-        if(!coinResult.committed){
-          // Undo listing claim
-          await update(ref(db,`njsgames/trading/listings/${id}`),{status:"open"}).catch(()=>{});
-          status("You do not have enough coins. The listing is still available.",true);
-          if(buyBtn){buyBtn.disabled=false;buyBtn.textContent="Buy item";}
-          return;
-        }
-
-        /* Step 3 — apply all remaining changes (give item to buyer, pay seller, close listing) */
-        const newBuyerCoins=Number(coinResult.snapshot.val())||0;
-        const sellerSnap=await get(ref(db,`njsgames/users/${listing.seller}/coins`));
-        const sellerCoins=Number(sellerSnap.val())||0;
+        /* Step 2 — one atomic batch: deduct coins, give item, close listing, pay seller */
+        // Listing claim above prevents double-buy; fresh coin read above ensures accuracy.
+        // We avoid a coin runTransaction because Firebase RTDB transactions may see a
+        // null cache value on first run, causing false "not enough coins" aborts.
         const isBot=listing.seller===BOT_NAME;
-
+        const newBuyerCoins=freshCoins-price;
         const updates={};
+        updates[`njsgames/users/${user}/coins`]=newBuyerCoins;
         updates[`njsgames/users/${user}/items/${listing.itemId}`]=true;
         updates[`njsgames/trading/listings/${id}/status`]="sold";
         updates[`njsgames/trading/listings/${id}/buyer`]=user;
         updates[`njsgames/trading/listings/${id}/closedAt`]=Date.now();
-        // Only credit seller coins if it's a real player (not the bot)
         if(!isBot){
+          const sellerSnap=await get(ref(db,`njsgames/users/${listing.seller}/coins`));
+          const sellerCoins=Number(sellerSnap.val())||0;
           updates[`njsgames/users/${listing.seller}/coins`]=sellerCoins+price;
         }
         await update(ref(db),updates);
 
         state.coins=newBuyerCoins;
         state.owned[listing.itemId]=true;
-        $("balance").textContent=`🪙 ${state.coins.toLocaleString()}`;
+        $("balance").textContent=`🪙 ${newBuyerCoins.toLocaleString()}`;
         status(`✅ Bought ${item(listing.itemId).name}! Check your inventory.`);
       }catch(e){
         console.error("Buy failed:",e);
-        // Best-effort rollback: reopen listing
+        // Best-effort rollback: reopen listing if still in processing state
         try{
           const cur=await get(ref(db,`njsgames/trading/listings/${id}/status`));
           if(cur.val()==="processing"){
             await update(ref(db,`njsgames/trading/listings/${id}`),{status:"open"});
-          }
-        }catch{}
-        // Best-effort coin refund
-        try{
-          const curCoins=await get(ref(db,`njsgames/users/${user}/coins`));
-          const c=Number(curCoins.val())||0;
-          // Only refund if coins were actually deducted (they'd be less than before)
-          if(c<state.coins){
-            await set(ref(db,`njsgames/users/${user}/coins`),state.coins);
           }
         }catch{}
         status("Purchase failed — the listing has been reopened. Please try again.",true);
