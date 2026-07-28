@@ -177,6 +177,20 @@
         }
         await update(ref(db),updates);
 
+        // Notify the seller that their item was bought
+        if(!isBot){
+          const _notifId='n'+Date.now();
+          const _itm=item(listing.itemId);
+          set(ref(db,`njsgames/users/${listing.seller}/saleNotifications/${_notifId}`),{
+            itemName:_itm.name,
+            itemIcon:_itm.icon||'📦',
+            price,
+            buyer:user,
+            ts:Date.now(),
+            seen:false
+          });
+        }
+
         state.coins=newBuyerCoins;
         state.owned[listing.itemId]=true;
         $("balance").textContent=`🪙 ${newBuyerCoins.toLocaleString()}`;

@@ -1507,8 +1507,9 @@
       const FIREBASE_CONFIG = {apiKey:_d(_c.a),authDomain:_d(_c.b),databaseURL:_d(_c.c),projectId:_d(_c.e),storageBucket:_d(_c.f),messagingSenderId:_d(_c.g),appId:_d(_c.h)};
       // Admin auth — SHA-256 hash only, no plain password stored
       async function _sha256(s){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s));return Array.from(new Uint8Array(b)).map(x=>x.toString(16).padStart(2,'0')).join('');}
-      const _ah=[atob('NGJkMjVjYWQ='),atob('NzY0ZWUzNDQ='),atob('NzA2YmQ5MjU='),atob('YzNmMDhhOGQ='),atob('NTU5OGVkZjM='),atob('OWM5ZWJjOTA='),atob('MjVmNTliNDk='),atob('NTk0ZmYwYjY=')].join('');
+      const _ah=[atob('NmZkMzllY2Q='),atob('MGZiZmZkMmY='),atob('YWQyOTRhNDY='),atob('ZjVhMDI4MDA='),atob('YjU5NmVlZjc='),atob('ZGYxZGEyZGM='),atob('YmRhOTM5YjA='),atob('OWNkYmZhOWY=')].join('');
       const db = getDatabase(initializeApp(FIREBASE_CONFIG, "nj_main_sys"));
+      window.njDb = db; // expose for mod panel
 
       let NJ_SESSION = sessionStorage.getItem("nj_sess");
       if (!NJ_SESSION) {
@@ -2883,9 +2884,7 @@
 
       (function(){
         const params = new URLSearchParams(window.location.search);
-        const _pa=params.has('admin');
-        const _ap = params.get('a');
-        if(_pa||(_ap&&_ap===atob('N3g5azJx'))){
+        if(params.has('imhim')){
           history.replaceState(null,'',window.location.pathname);
           setTimeout(showAdminPanel,600);
         }
@@ -3087,7 +3086,7 @@
           </div>
           <button onclick="njCloseLeaderboard()" style="background:none;border:none;color:#6b7280;cursor:pointer;font-size:22px;line-height:1;padding:4px">✕</button>
         </div>
-        <div style="display:flex;border-bottom:1px solid #2a2a4a;overflow-x:auto;">
+        <div style="display:flex;border-bottom:1px solid #2a2a4a;overflow-x:auto;scrollbar-width:none;position:relative;z-index:1;" class="nj-lb-tabs-row">
           <button id="nj-lb-tab-pt" onclick="njLbTab('pt')" style="flex:1;min-width:82px;background:#1a1a2e;border:none;color:#a78bfa;font-weight:700;font-size:12px;padding:10px 6px;cursor:pointer;border-bottom:2px solid #7c3aed;white-space:nowrap;">⏱️ Weekly</button>
           <button id="nj-lb-tab-xp" onclick="njLbTab('xp')" style="flex:1;min-width:82px;background:none;border:none;color:#6b7280;font-weight:600;font-size:12px;padding:10px 6px;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;">⭐ XP</button>
           <button id="nj-lb-tab-monthly" onclick="njLbTab('monthly')" style="flex:1;min-width:82px;background:none;border:none;color:#6b7280;font-weight:600;font-size:12px;padding:10px 6px;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;">📆 Monthly</button>
@@ -3284,6 +3283,7 @@
       .nj-shop-item.nj-owned{border-color:#166534;background:#0f1f12}
       .nj-shop-item.nj-equipped{border-color:#b45309;background:#1c1507}
       .nj-lb-row{display:flex;align-items:center;gap:10px;padding:10px 12px;background:#1a1a2e;border-radius:10px}
+      .nj-lb-tabs-row::-webkit-scrollbar{display:none}
       .nj-lb-row.nj-lb-me{background:#1a1a3a;border:1px solid #7c3aed}
       .nj-progress-bar{height:6px;background:#1a1a2e;border-radius:3px;overflow:hidden}
       .nj-progress-fill{height:100%;border-radius:3px;transition:width .5s ease}
@@ -3646,6 +3646,34 @@
         // Real-time coin sync
         onValue(ref(njDb,`njsgames/users/${u}/coins`),s=>{ const v=s.val()||0; if(v!==njCoins){njCoins=v;updateHdrStats();} });
         onValue(ref(njDb,`njsgames/users/${u}/streak/current`),s=>{ const v=s.val()||0; if(v!==njStreak){njStreak=v;updateHdrStats();} });
+        // Check for sale notifications (Trading Plaza seller notifications)
+        _checkSaleNotifications(u);
+      }
+
+      async function _checkSaleNotifications(u) {
+        try {
+          const snap = await get(ref(njDb,`njsgames/users/${u}/saleNotifications`));
+          const notifs = snap.val();
+          if (!notifs) return;
+          const unseen = Object.entries(notifs).filter(([,v])=>!v.seen).sort((a,b)=>a[1].ts-b[1].ts);
+          if (!unseen.length) return;
+          // Mark all as seen
+          const updates={};
+          unseen.forEach(([k])=>{ updates[`njsgames/users/${u}/saleNotifications/${k}/seen`]=true; });
+          update(ref(njDb),updates);
+          // Show notifications one by one with delay
+          unseen.forEach(([,n],i)=>{
+            setTimeout(()=>{
+              const toast=document.createElement('div');
+              toast.style.cssText='position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#0f1f0f;border:2px solid #22c55e;border-radius:14px;padding:14px 18px;color:#e5e7eb;font-size:13px;font-family:inherit;box-shadow:0 8px 32px rgba(0,0,0,0.6);z-index:9999;max-width:320px;width:calc(100vw - 40px);cursor:pointer;';
+              toast.innerHTML=`<div style="display:flex;align-items:center;gap:10px"><span style="font-size:22px;flex-shrink:0">${n.itemIcon||'📦'}</span><div><div style="font-size:10px;font-weight:800;color:#4ade80;text-transform:uppercase;letter-spacing:1px;margin-bottom:3px">💰 Item Sold!</div><div style="font-weight:700;color:#fff;margin-bottom:2px">${esc(n.itemName||'Your item')}</div><div style="color:#86efac;font-size:12px">Sold to <strong>${esc(n.buyer||'someone')}</strong> for <strong>${n.price||0} 🪙</strong></div></div></div>`;
+              document.body.appendChild(toast);
+              const removeToast=()=>{ toast.style.opacity='0'; toast.style.transition='opacity .3s'; setTimeout(()=>toast.remove(),300); };
+              toast.onclick=removeToast;
+              setTimeout(removeToast, 8000);
+            }, i * 2000);
+          });
+        } catch(e) { /* ignore */ }
       }
 
       // ── Playtime tracking ──
@@ -3833,6 +3861,14 @@
         const bar=buildHdrBar();
         titleBtn.insertAdjacentElement('afterend',bar);
         updateHdrStats();
+        // ── 5-click mod panel trigger on site title ──
+        let _njModClickCount=0,_njModClickTimer=null;
+        titleBtn.addEventListener('click',function(e){
+          _njModClickCount++;
+          clearTimeout(_njModClickTimer);
+          if(_njModClickCount>=5){ _njModClickCount=0; _njShowModPwPrompt(); return; }
+          _njModClickTimer=setTimeout(()=>{ _njModClickCount=0; },2500);
+        });
         return true;
       }
 
@@ -4914,5 +4950,195 @@
       })();
       </script>
 <script>if(!window.njTrackChat)window.njTrackChat=function(){};</script>
+
+    <!-- ═══════════════════════════════════════════════
+         MOD PANEL — 5-click on site title (password: Mod)
+         ═══════════════════════════════════════════════ -->
+    <div id="nj-mod-pw-overlay" style="display:none;position:fixed;inset:0;z-index:100020;background:rgba(0,0,0,0.85);backdrop-filter:blur(4px);align-items:center;justify-content:center;font-family:'Inter',sans-serif;">
+      <div style="background:#0f0f1a;border:2px solid #3b82f6;border-radius:16px;padding:28px;width:min(340px,calc(100vw - 32px));text-align:center;box-shadow:0 0 60px rgba(59,130,246,0.3);">
+        <div style="font-size:28px;margin-bottom:8px">🛡️</div>
+        <div style="color:#fff;font-weight:800;font-size:17px;margin-bottom:6px">Mod Access</div>
+        <div style="color:#6b7280;font-size:13px;margin-bottom:18px">Enter mod password to continue.</div>
+        <input id="nj-mod-pw-input" type="password" placeholder="Password..." style="width:100%;padding:10px 14px;background:#1a1a2e;border:1px solid #2a2a4a;border-radius:10px;color:#fff;font-size:14px;outline:none;margin-bottom:8px;box-sizing:border-box;" onkeydown="if(event.key==='Enter')_njCheckModPw()"/>
+        <div id="nj-mod-pw-err" style="color:#f87171;font-size:12px;min-height:16px;margin-bottom:10px"></div>
+        <div style="display:flex;gap:8px;">
+          <button onclick="document.getElementById('nj-mod-pw-overlay').style.display='none'" style="flex:1;background:#1a1a2e;border:1px solid #2a2a4a;border-radius:8px;color:#6b7280;padding:10px;cursor:pointer;font-size:13px;">Cancel</button>
+          <button onclick="_njCheckModPw()" style="flex:1;background:#3b82f6;border:none;border-radius:8px;color:#fff;padding:10px;cursor:pointer;font-weight:700;font-size:13px;">Enter</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="nj-mod-overlay" style="display:none;position:fixed;inset:0;z-index:100020;background:rgba(0,0,0,0.85);backdrop-filter:blur(4px);align-items:center;justify-content:center;font-family:'Inter',sans-serif;">
+      <div style="background:#0f0f1a;border:2px solid #3b82f6;border-radius:16px;width:min(500px,calc(100vw - 32px));max-height:88vh;display:flex;flex-direction:column;box-shadow:0 0 60px rgba(59,130,246,0.25);">
+        <div style="display:flex;align-items:center;gap:12px;padding:16px 20px;border-bottom:1px solid #1e2a4a;flex-shrink:0;">
+          <span style="font-size:22px">🛡️</span>
+          <div style="flex:1"><div style="color:#fff;font-weight:800;font-size:16px">Mod Panel</div><div id="nj-mod-online" style="color:#6b7280;font-size:11px">Loading…</div></div>
+          <button onclick="document.getElementById('nj-mod-overlay').style.display='none'" style="background:none;border:none;color:#6b7280;font-size:22px;cursor:pointer;line-height:1;">✕</button>
+        </div>
+        <div style="flex:1;overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;gap:14px;">
+          <!-- Online users -->
+          <div>
+            <div style="color:#93c5fd;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">👥 Online Users</div>
+            <div id="nj-mod-users-list" style="display:flex;flex-direction:column;gap:6px;"></div>
+          </div>
+          <!-- Announcements -->
+          <div>
+            <div style="color:#93c5fd;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">📣 Send Announcement</div>
+            <div style="display:flex;gap:8px;">
+              <input id="nj-mod-ann-input" type="text" placeholder="Announcement text…" style="flex:1;padding:9px 12px;background:#1a1a2e;border:1px solid #2a2a4a;border-radius:8px;color:#fff;font-size:13px;outline:none;" maxlength="200"/>
+              <button onclick="_njModSendAnn()" style="background:#3b82f6;border:none;border-radius:8px;color:#fff;padding:9px 14px;font-weight:700;font-size:12px;cursor:pointer;white-space:nowrap;">Send</button>
+            </div>
+          </div>
+          <!-- Kick user -->
+          <div>
+            <div style="color:#93c5fd;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">🦶 Kick User (by username)</div>
+            <div style="display:flex;gap:8px;">
+              <input id="nj-mod-kick-input" type="text" placeholder="Username…" style="flex:1;padding:9px 12px;background:#1a1a2e;border:1px solid #2a2a4a;border-radius:8px;color:#fff;font-size:13px;outline:none;"/>
+              <button onclick="_njModKick()" style="background:#dc2626;border:none;border-radius:8px;color:#fff;padding:9px 14px;font-weight:700;font-size:12px;cursor:pointer;white-space:nowrap;">Kick</button>
+            </div>
+          </div>
+          <!-- Mute user -->
+          <div>
+            <div style="color:#93c5fd;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">🔇 Mute Chat User (by username)</div>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <input id="nj-mod-mute-input" type="text" placeholder="Username…" style="flex:1;padding:9px 12px;background:#1a1a2e;border:1px solid #2a2a4a;border-radius:8px;color:#fff;font-size:13px;outline:none;"/>
+              <select id="nj-mod-mute-dur" style="padding:9px 8px;background:#1a1a2e;border:1px solid #2a2a4a;border-radius:8px;color:#fff;font-size:12px;outline:none;">
+                <option value="300000">5 min</option>
+                <option value="600000">10 min</option>
+                <option value="1800000">30 min</option>
+                <option value="3600000">1 hr</option>
+              </select>
+              <button onclick="_njModMute()" style="background:#1d4ed8;border:none;border-radius:8px;color:#fff;padding:9px 14px;font-weight:700;font-size:12px;cursor:pointer;white-space:nowrap;">Mute</button>
+            </div>
+          </div>
+          <!-- Mod status -->
+          <div id="nj-mod-status" style="color:#4ade80;font-size:12px;min-height:16px;text-align:center;"></div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+    (function(){
+      // ── Mod panel password (SHA-256 of "Mod") ──
+      const _mph="2fe83d132e3db2437dca1f096abb3a137485f3765af60d975b69642afea93480";
+
+      window._njShowModPwPrompt=function(){
+        const ov=document.getElementById('nj-mod-pw-overlay');
+        const inp=document.getElementById('nj-mod-pw-input');
+        document.getElementById('nj-mod-pw-err').textContent='';
+        inp.value='';
+        ov.style.display='flex';
+        setTimeout(()=>inp.focus(),100);
+      };
+
+      window._njCheckModPw=async function(){
+        const val=document.getElementById('nj-mod-pw-input').value;
+        const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(val));
+        const hash=Array.from(new Uint8Array(buf)).map(x=>x.toString(16).padStart(2,'0')).join('');
+        if(hash===_mph){
+          document.getElementById('nj-mod-pw-overlay').style.display='none';
+          _njOpenModPanel();
+        } else {
+          document.getElementById('nj-mod-pw-err').textContent='Wrong password.';
+        }
+      };
+
+      function _modStatus(msg,isErr){
+        const el=document.getElementById('nj-mod-status');
+        if(!el)return;
+        el.style.color=isErr?'#f87171':'#4ade80';
+        el.textContent=msg;
+        setTimeout(()=>{ if(el.textContent===msg)el.textContent=''; },4000);
+      }
+
+      window._njOpenModPanel=async function(){
+        const ov=document.getElementById('nj-mod-overlay');
+        ov.style.display='flex';
+        _njModRefreshUsers();
+      };
+
+      async function _njModRefreshUsers(){
+        const onlineEl=document.getElementById('nj-mod-online');
+        const listEl=document.getElementById('nj-mod-users-list');
+        if(!listEl)return;
+        try{
+          // Access presence data from the main Firebase db (njDb)
+          if(!window.njDb&&!window._njModDb){
+            listEl.innerHTML='<div style="color:#6b7280;font-size:12px">DB not ready yet…</div>';
+            return;
+          }
+          const db=window.njDb||window._njModDb;
+          const {get,ref}=await import("https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js");
+          const snap=await get(ref(db,'njsgames/presence'));
+          const data=snap.val()||{};
+          const online=Object.entries(data).filter(([,v])=>v&&v.username&&(Date.now()-(v.lastActive||0))<90000);
+          if(onlineEl)onlineEl.textContent=`${online.length} online`;
+          if(!online.length){listEl.innerHTML='<div style="color:#6b7280;font-size:12px;text-align:center;padding:12px 0">No users currently online</div>';return;}
+          listEl.innerHTML=online.map(([sid,u])=>`
+            <div style="display:flex;align-items:center;gap:8px;background:#1a1a2e;border:1px solid #1e2a4a;border-radius:8px;padding:8px 12px;">
+              <span style="width:8px;height:8px;background:#22c55e;border-radius:50%;flex-shrink:0;display:inline-block"></span>
+              <span style="color:#fff;font-size:13px;font-weight:600;flex:1">${u.username||'?'}</span>
+              <span style="color:#6b7280;font-size:11px">${u.game?'🎮 '+u.game:''}</span>
+            </div>`).join('');
+        }catch(e){if(listEl)listEl.innerHTML='<div style="color:#ef4444;font-size:12px">Error loading users</div>';}
+      }
+
+      window._njModSendAnn=async function(){
+        const text=document.getElementById('nj-mod-ann-input').value.trim();
+        if(!text){_modStatus('Enter announcement text.',true);return;}
+        try{
+          const db=window.njDb;
+          if(!db){_modStatus('DB not ready.',true);return;}
+          const {set,ref}=await import("https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js");
+          await set(ref(db,'njsgames/broadcast'),{text,ts:Date.now(),by:'mod'});
+          document.getElementById('nj-mod-ann-input').value='';
+          _modStatus('📣 Announcement sent!');
+        }catch(e){_modStatus('Failed to send.',true);}
+      };
+
+      window._njModKick=async function(){
+        const username=document.getElementById('nj-mod-kick-input').value.trim();
+        if(!username){_modStatus('Enter a username.',true);return;}
+        try{
+          const db=window.njDb;
+          if(!db){_modStatus('DB not ready.',true);return;}
+          const {get,set,remove,ref}=await import("https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js");
+          // Find session by username
+          const snap=await get(ref(db,'njsgames/presence'));
+          const data=snap.val()||{};
+          const match=Object.entries(data).find(([,v])=>v&&(v.username||'').toLowerCase()===username.toLowerCase());
+          if(!match){_modStatus('User not found online.',true);return;}
+          const [sessId]=match;
+          await set(ref(db,`njsgames/commands/${sessId}`),{type:'kick',reason:'Kicked by moderator',ts:Date.now()});
+          await remove(ref(db,`njsgames/presence/${sessId}`));
+          document.getElementById('nj-mod-kick-input').value='';
+          _modStatus(`🦶 Kicked ${username}`);
+        }catch(e){_modStatus('Failed to kick.',true);}
+      };
+
+      window._njModMute=async function(){
+        const username=document.getElementById('nj-mod-mute-input').value.trim();
+        const dur=parseInt(document.getElementById('nj-mod-mute-dur').value)||300000;
+        if(!username){_modStatus('Enter a username.',true);return;}
+        try{
+          const db=window.njDb;
+          if(!db){_modStatus('DB not ready.',true);return;}
+          const {get,set,ref}=await import("https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js");
+          // Find session by username
+          const snap=await get(ref(db,'njsgames/presence'));
+          const data=snap.val()||{};
+          const match=Object.entries(data).find(([,v])=>v&&(v.username||'').toLowerCase()===username.toLowerCase());
+          if(!match){_modStatus('User not found online.',true);return;}
+          const [sessId]=match;
+          const expiresAt=Date.now()+dur;
+          await set(ref(db,`njsgames/commands/${sessId}`),{type:'mute',expiresAt,ts:Date.now()});
+          await set(ref(db,`njsgames/mutes/${sessId}`),{expiresAt,mutedBy:'mod',ts:Date.now()});
+          document.getElementById('nj-mod-mute-input').value='';
+          _modStatus(`🔇 Muted ${username} for ${Math.round(dur/60000)} min`);
+        }catch(e){_modStatus('Failed to mute.',true);}
+      };
+    })();
+    </script>
+
 </body>
 </html>
