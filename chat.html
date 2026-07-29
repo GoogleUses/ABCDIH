@@ -291,7 +291,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebas
 import { getDatabase, ref, push, onValue, set, remove, get }
   from "https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js";
 
-const MASTER = "imhim";
+const MASTER = "hi bro@123";
 
 function logMasterAction(action, room, detail) {
   try {
@@ -871,6 +871,7 @@ function _showMutedBanner(msg){
 
 /* ── Ban check on startup ── */
 function _showBanScreen(reason) {
+  localStorage.setItem("nj_ban_active", "1");
   document.body.innerHTML = `<div style="position:fixed;inset:0;background:#0a0a0a;display:flex;align-items:center;justify-content:center;font-family:'Inter',sans-serif;z-index:99999;text-align:center;padding:20px;">
     <div style="max-width:360px">
       <div style="font-size:64px;margin-bottom:16px">🚫</div>
@@ -882,6 +883,7 @@ function _showBanScreen(reason) {
 }
 
 (async function checkBanOnStartup() {
+  if (localStorage.getItem("nj_ban_active") === "1") { _showBanScreen(""); return; }
   const username = localStorage.getItem("nj_username");
   if (!username) return;
   try {
@@ -913,6 +915,7 @@ onValue(ref(db,`njsgames/commands/${NJ_SESSION}`), snap => {
     clearInterval(_muteBannerTimer);
     document.getElementById("muted-banner").style.display="none";
   } else if (cmd.type==="ban"){
+    localStorage.setItem("nj_ban_active", "1");
     _showBanScreen("");
   } else if (cmd.type==="kick"){
     window.top.location.reload();

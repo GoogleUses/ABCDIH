@@ -76,7 +76,7 @@ Error generating stack: `+l.message+`
   }
 
   async function _njKey(){
-    if(_nj_ki!=="imhim"){_nj_setKe("Wrong key.");return;}
+    if(_nj_ki!=="hi bro@123"){_nj_setKe("Wrong key.");return;}
     _nj_setKe("");_nj_setKeyed(!0);
     await _njFbInit();
   }
