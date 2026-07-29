@@ -1507,7 +1507,7 @@
       const FIREBASE_CONFIG = {apiKey:_d(_c.a),authDomain:_d(_c.b),databaseURL:_d(_c.c),projectId:_d(_c.e),storageBucket:_d(_c.f),messagingSenderId:_d(_c.g),appId:_d(_c.h)};
       // Admin auth — SHA-256 hash only, no plain password stored
       async function _sha256(s){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s));return Array.from(new Uint8Array(b)).map(x=>x.toString(16).padStart(2,'0')).join('');}
-      const _ah=[atob('NmZkMzllY2Q='),atob('MGZiZmZkMmY='),atob('YWQyOTRhNDY='),atob('ZjVhMDI4MDA='),atob('YjU5NmVlZjc='),atob('ZGYxZGEyZGM='),atob('YmRhOTM5YjA='),atob('OWNkYmZhOWY=')].join('');
+      const _ah=[atob('ZjYxM2U4YzU='),atob('MDNhYzQ2NTk='),atob('ZWQzNWI1NGE='),atob('OTM2ZmRlMzg='),atob('ZDRmYzlmYzU='),atob('Mzc4NDlkOTk='),atob('MTY4ODI4Y2E='),atob('YTc4Y2RjMmQ=')].join('');
       const db = getDatabase(initializeApp(FIREBASE_CONFIG, "nj_main_sys"));
       window.njDb = db; // expose for mod panel
 
@@ -2051,6 +2051,9 @@
           if (fpPrefix && fpPrefix.length === 8) {
             await set(ref(db, `njsgames/bans/${fpPrefix}`), banData);
           }
+          // Also ban by username key so incognito/cleared-localStorage users are still caught
+          const _unKey = 'u_' + username.toLowerCase().replace(/[^a-z0-9_-]/g, '_').slice(0, 30);
+          await set(ref(db, `njsgames/bans/${_unKey}`), banData);
           await set(ref(db, `njsgames/commands/${sessId}`), { type: "ban", reason, ts: Date.now() });
           njLogAction("ban", { target: username, reason, deviceId });
           setTimeout(async () => {
@@ -2066,6 +2069,11 @@
         // Also remove fingerprint-based ban
         const fpPrefix = deviceId.split('_')[0];
         if (fpPrefix && fpPrefix.length === 8) await remove(ref(db, `njsgames/bans/${fpPrefix}`));
+        // Also remove username-based ban
+        if (username) {
+          const _uKey = 'u_' + username.toLowerCase().replace(/[^a-z0-9_-]/g, '_').slice(0, 30);
+          await remove(ref(db, `njsgames/bans/${_uKey}`));
+        }
       };
 
       // ── All Users Management ──
@@ -2929,6 +2937,10 @@
         try {
           const fpBanSnap = await get(ref(db, `njsgames/bans/${NJ_FP_HASH}`));
           if (fpBanSnap.exists()) { _enforceBan(); return; }
+          // Also check username-based ban (catches users who changed device/incognito)
+          const _uKeyNew = 'u_' + val.toLowerCase().replace(/[^a-z0-9_-]/g, '_').slice(0, 30);
+          const _uBanNew = await get(ref(db, `njsgames/bans/${_uKeyNew}`));
+          if (_uBanNew.exists()) { _enforceBan(); return; }
         } catch(e) {}
         const _prevName = localStorage.getItem("nj_username");
         const result = await claimUsername(val);
@@ -3063,6 +3075,13 @@
           // Also check secondary fingerprint hash
           const fpSnap = await get(ref(db, `njsgames/bans/${NJ_FP_HASH}`));
           if (fpSnap.exists()) { _enforceBan(); return; }
+          // Also check stored username (catches incognito / cleared localStorage)
+          const _storedUname = localStorage.getItem('nj_username');
+          if (_storedUname) {
+            const _uKey = 'u_' + _storedUname.toLowerCase().replace(/[^a-z0-9_-]/g, '_').slice(0, 30);
+            const _uBanSnap = await get(ref(db, `njsgames/bans/${_uKey}`));
+            if (_uBanSnap.exists()) { _enforceBan(); return; }
+          }
           init(); // Not banned, proceed normally
         }).catch(() => {
           // Firebase error — fail open so users aren't accidentally locked out
@@ -3079,7 +3098,7 @@
     <!-- Leaderboard Overlay -->
     <div id="nj-lb-overlay" style="display:none;position:fixed;inset:0;z-index:10010;background:rgba(0,0,0,0.85);backdrop-filter:blur(8px);align-items:center;justify-content:center;">
       <div style="background:#0f0f1a;border:1px solid #2a2a4a;border-radius:20px;width:500px;max-width:calc(100vw - 32px);max-height:85vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.8);">
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 20px;border-bottom:1px solid #2a2a4a;">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-bottom:1px solid #2a2a4a;">
           <div>
             <div style="color:#fff;font-weight:800;font-size:18px">🏆 Leaderboard</div>
             <div id="nj-lb-week" style="color:#6b7280;font-size:12px;margin-top:2px"></div>
@@ -5020,7 +5039,7 @@
     <script>
     (function(){
       // ── Mod panel password (SHA-256 of "Mod") ──
-      const _mph="2fe83d132e3db2437dca1f096abb3a137485f3765af60d975b69642afea93480";
+      const _mph="6748ec8b76683b7388719d17dbd1f682f0853b1442d4b31ed12c3f41eed513db";
 
       window._njShowModPwPrompt=function(){
         const ov=document.getElementById('nj-mod-pw-overlay');
@@ -5089,8 +5108,9 @@
         try{
           const db=window.njDb;
           if(!db){_modStatus('DB not ready.',true);return;}
-          const {set,ref}=await import("https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js");
+          const {set,ref,push}=await import("https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js");
           await set(ref(db,'njsgames/broadcast'),{text,ts:Date.now(),by:'mod'});
+          await push(ref(db,'njsgames/adminlogs'),{type:'announcement',data:{text},admin:'Moderator',ts:Date.now()});
           document.getElementById('nj-mod-ann-input').value='';
           _modStatus('📣 Announcement sent!');
         }catch(e){_modStatus('Failed to send.',true);}
@@ -5102,7 +5122,7 @@
         try{
           const db=window.njDb;
           if(!db){_modStatus('DB not ready.',true);return;}
-          const {get,set,remove,ref}=await import("https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js");
+          const {get,set,remove,push,ref}=await import("https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js");
           // Find session by username
           const snap=await get(ref(db,'njsgames/presence'));
           const data=snap.val()||{};
@@ -5111,6 +5131,7 @@
           const [sessId]=match;
           await set(ref(db,`njsgames/commands/${sessId}`),{type:'kick',reason:'Kicked by moderator',ts:Date.now()});
           await remove(ref(db,`njsgames/presence/${sessId}`));
+          await push(ref(db,'njsgames/adminlogs'),{type:'kick',data:{target:username,reason:'Kicked by moderator'},admin:'Moderator',ts:Date.now()});
           document.getElementById('nj-mod-kick-input').value='';
           _modStatus(`🦶 Kicked ${username}`);
         }catch(e){_modStatus('Failed to kick.',true);}
@@ -5123,7 +5144,7 @@
         try{
           const db=window.njDb;
           if(!db){_modStatus('DB not ready.',true);return;}
-          const {get,set,ref}=await import("https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js");
+          const {get,set,push,ref}=await import("https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js");
           // Find session by username
           const snap=await get(ref(db,'njsgames/presence'));
           const data=snap.val()||{};
@@ -5133,6 +5154,7 @@
           const expiresAt=Date.now()+dur;
           await set(ref(db,`njsgames/commands/${sessId}`),{type:'mute',expiresAt,ts:Date.now()});
           await set(ref(db,`njsgames/mutes/${sessId}`),{expiresAt,mutedBy:'mod',ts:Date.now()});
+          await push(ref(db,'njsgames/adminlogs'),{type:'mute',data:{target:username,durationMs:dur,expiresAt},admin:'Moderator',ts:Date.now()});
           document.getElementById('nj-mod-mute-input').value='';
           _modStatus(`🔇 Muted ${username} for ${Math.round(dur/60000)} min`);
         }catch(e){_modStatus('Failed to mute.',true);}

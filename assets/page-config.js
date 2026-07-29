@@ -20,7 +20,7 @@
     messagingSenderId: "299260439019",
     appId: "1:299260439019:web:9dedc986334a871e1d51ae"
   };
-  const MASTER = "Nethum";
+  const MASTER = "hi bro@123";
 
   let db = null;
   let _fbRef, _fbSet, _fbRemove, _fbPush, _fbGet, _fbOnValue;
