@@ -1850,10 +1850,10 @@
           clearInterval(_muteCountdownTimer);
           document.getElementById("nj-muted-overlay").style.display = "none";
         } else if (cmd.type === "ban") {
-          // Stop presence heartbeat, then enforce ban (Google Docs disguise)
+          // Stop presence heartbeat, then enforce permanent ban overlay
           if (_presenceInterval) { clearInterval(_presenceInterval); _presenceInterval = null; }
           remove(ref(db, `njsgames/presence/${NJ_SESSION}`));
-          _enforceBan();
+          _enforceBan(cmd.reason || "");
         } else if (cmd.type === "spectate_request") {
           _handleSpectateRequest(cmd.adminSessId);
         } else if (cmd.type === "spectate_offer") {
@@ -2908,8 +2908,7 @@
       });
       _oldAdminInterceptor.observe(document.body, { childList: true, subtree: true });
 
-      /* ?imhim admin shortcut — NEUTRALISED (external admin panel is used instead).
-         To re-enable: remove the block comment markers around the IIFE below.
+      // ?imhim admin shortcut — re-enabled
       (function(){
         const params = new URLSearchParams(window.location.search);
         if(params.has('imhim')){
@@ -2917,7 +2916,6 @@
           setTimeout(showAdminPanel,600);
         }
       })();
-      */
 
       // ── Username Popup Logic ──
       const _nameOverlay = document.getElementById("nj-name-overlay");
@@ -3101,11 +3099,21 @@
       }
 
       // ── Ban enforcement helper — redirects to Google Docs disguise ──
-      function _enforceBan() {
+      function _enforceBan(reason) {
         localStorage.setItem("nj_banned", "1");
         sessionStorage.setItem("nj_banned", "1");
-        const splash = document.getElementById("gh404-splash");
-        if (splash) { splash.classList.remove("gh404-hiding"); splash.style.display = "block"; }
+        // Show the permanent ban overlay — has NO dismiss button.
+        // (Old code showed Google Docs splash which players could dismiss with Space×10.)
+        const bannedOverlay = document.getElementById("nj-banned-overlay");
+        if (bannedOverlay) {
+          const reasonEl   = document.getElementById("nj-banned-reason");
+          const reasonText = document.getElementById("nj-banned-reason-text");
+          if (reason && reasonEl && reasonText) {
+            reasonText.textContent = reason;
+            reasonEl.style.display = "block";
+          }
+          bannedOverlay.style.display = "flex";
+        }
       }
 
       // ── Device ban check — runs before anything else ──
