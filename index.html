@@ -389,6 +389,10 @@
         <h2>Welcome to NJ's Unblocked Games!</h2>
         <p>Choose a username to get started. This will be used in chat too!</p>
         <input id="nj-name-input" type="text" placeholder="Enter your username..." maxlength="20" autocomplete="off"/>
+        <div id="nj-pw-row" style="display:none;margin-top:10px;">
+          <div style="color:#a78bfa;font-size:12px;font-weight:600;margin-bottom:5px;text-align:left">🔒 Password-protected account</div>
+          <input id="nj-name-pw-input" type="password" placeholder="Enter your password..." autocomplete="current-password" style="width:100%;padding:12px 16px;background:#1a1a2e;border:2px solid #7c3aed;border-radius:10px;color:#fff;font-size:14px;font-family:inherit;outline:none;box-sizing:border-box;"/>
+        </div>
         <div id="nj-name-error"></div>
         <button id="nj-name-btn">Let's Go! →</button>
       </div>
@@ -1680,9 +1684,23 @@
       });
       _cashRemover.observe(document.body, { childList: true, subtree: true });
 
-      async function claimUsername(username) {
+      async function claimUsername(username, password) {
         const key = fk(username);
         try {
+          // Password check: only required when claiming from a different device
+          const isSameDevice = localStorage.getItem('nj_username') === username;
+          if (!isSameDevice) {
+            const acctSnap = await get(ref(db, `njsgames/accounts/${key}/passwordHash`));
+            if (acctSnap.exists()) {
+              if (!password) return { ok: false, needsPassword: true };
+              const inputHash = await _sha256(password);
+              if (inputHash !== acctSnap.val()) return { ok: false, reason: 'Wrong password — try again!' };
+              // Password correct — grant access and skip active-session check
+              await set(ref(db, `njsgames/usernames/${key}`), { sessionId: NJ_SESSION, display: username, claimedAt: Date.now() });
+              localStorage.setItem("nj_username", username);
+              return { ok: true };
+            }
+          }
           const snap = await get(ref(db, `njsgames/usernames/${key}`));
           if (snap.exists()) {
             const d = snap.val();
@@ -2946,11 +2964,14 @@
           if (_uBanNew.exists()) { _enforceBan(); return; }
         } catch(e) {}
         const _prevName = localStorage.getItem("nj_username");
-        const result = await claimUsername(val);
+        const _pwVal = document.getElementById('nj-name-pw-input').value;
+        const result = await claimUsername(val, _pwVal || undefined);
         if (result.ok) {
           // Save name-change timestamp if this was a change (not initial set)
           if (_prevName && _prevName !== val) { localStorage.setItem("nj_name_changed_at", Date.now().toString()); }
           _nameOverlay.style.display = "none";
+          document.getElementById('nj-pw-row').style.display = 'none';
+          document.getElementById('nj-name-pw-input').value = '';
           if (localStorage.getItem("nj_quiz_passed")) {
             window._njUsername = val;
             await registerPresence(val);
@@ -2959,6 +2980,12 @@
             _njPendingPresence = true;
             document.getElementById("nj-quiz-overlay").style.display = "flex";
           }
+        } else if (result.needsPassword) {
+          document.getElementById('nj-pw-row').style.display = 'block';
+          setTimeout(() => document.getElementById('nj-name-pw-input').focus(), 50);
+          _nameError.textContent = '';
+          _nameBtn.disabled = false;
+          _nameBtn.textContent = "Let's Go! →";
         } else {
           _nameError.textContent = result.reason;
           _nameBtn.disabled = false;
@@ -2968,6 +2995,12 @@
 
       _nameBtn.addEventListener("click", _submitUsername);
       _nameInput.addEventListener("keydown", e => { if (e.key === "Enter") _submitUsername(); });
+      document.getElementById('nj-name-pw-input').addEventListener("keydown", e => { if (e.key === "Enter") _submitUsername(); });
+      _nameInput.addEventListener("input", () => {
+        document.getElementById('nj-pw-row').style.display = 'none';
+        document.getElementById('nj-name-pw-input').value = '';
+        _nameError.textContent = '';
+      });
 
       // Fullscreen-exit panic removed (caused issues when sending announcements in fullscreen)
 
@@ -3046,6 +3079,14 @@
               _njPendingPresence = true;
               document.getElementById("nj-quiz-overlay").style.display = "flex";
             }
+          } else if (result.needsPassword) {
+            // Same-device users skip the password check, so this only triggers
+            // if localStorage was somehow cleared but nj_username was restored from
+            // another source — show the username pre-filled with password row.
+            _nameInput.value = stored;
+            document.getElementById('nj-pw-row').style.display = 'block';
+            _nameOverlay.style.display = "flex";
+            setTimeout(() => document.getElementById('nj-name-pw-input').focus(), 100);
           } else {
             localStorage.removeItem("nj_username");
             _nameError.textContent = `"${stored}" was taken while you were away. Pick a new one!`;
@@ -3256,10 +3297,42 @@
             <div style="color:#9ca3af;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Longest Streak</div>
             <div id="nj-prof-longest" style="color:#f97316;font-weight:700;font-size:16px">0 days 🔥</div>
           </div>
+          <div id="nj-prof-security" style="display:none;background:#0f0a1a;border:1px solid #4c1d95;border-radius:12px;padding:14px;">
+            <div style="color:#9ca3af;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">Account Security</div>
+            <div id="nj-prof-pw-status" style="font-size:12px;margin-bottom:12px;color:#6b7280">Checking...</div>
+            <button onclick="njShowSetPassword()" style="width:100%;background:linear-gradient(135deg,#7c3aed,#4f46e5);border:none;border-radius:8px;color:#fff;padding:9px 14px;font-size:13px;font-weight:700;cursor:pointer;">🔒 Set / Change Password</button>
+          </div>
         </div>
       </div>
     </div>
 
+
+    <!-- Set Password Modal -->
+    <div id="nj-setpw-overlay" style="display:none;position:fixed;inset:0;z-index:10030;background:rgba(0,0,0,0.92);backdrop-filter:blur(8px);align-items:center;justify-content:center;">
+      <div style="background:#0f0f1a;border:1px solid #7c3aed;border-radius:18px;padding:28px 24px;width:90%;max-width:380px;font-family:'Inter','Segoe UI',sans-serif;box-shadow:0 0 60px rgba(124,58,237,0.4);">
+        <div style="font-size:32px;text-align:center;margin-bottom:10px">🔒</div>
+        <h3 style="color:#fff;font-size:17px;font-weight:800;text-align:center;margin:0 0 8px">Set Account Password</h3>
+        <p style="color:#9ca3af;font-size:12px;text-align:center;margin:0 0 20px;line-height:1.6">Protects your username so only you can claim it on any device.</p>
+        <div id="nj-setpw-cur-row" style="display:none;margin-bottom:12px;">
+          <div style="color:#a78bfa;font-size:12px;font-weight:600;margin-bottom:5px">Current Password</div>
+          <input id="nj-setpw-cur" type="password" placeholder="Current password..." style="width:100%;padding:10px 14px;background:#1a1a2e;border:2px solid #2a2a4a;border-radius:10px;color:#fff;font-size:14px;outline:none;box-sizing:border-box;font-family:inherit;"/>
+        </div>
+        <div style="margin-bottom:12px;">
+          <div style="color:#a78bfa;font-size:12px;font-weight:600;margin-bottom:5px">New Password</div>
+          <input id="nj-setpw-new" type="password" placeholder="Min 6 characters..." style="width:100%;padding:10px 14px;background:#1a1a2e;border:2px solid #2a2a4a;border-radius:10px;color:#fff;font-size:14px;outline:none;box-sizing:border-box;font-family:inherit;"/>
+        </div>
+        <div style="margin-bottom:16px;">
+          <div style="color:#a78bfa;font-size:12px;font-weight:600;margin-bottom:5px">Confirm Password</div>
+          <input id="nj-setpw-conf" type="password" placeholder="Confirm password..." style="width:100%;padding:10px 14px;background:#1a1a2e;border:2px solid #2a2a4a;border-radius:10px;color:#fff;font-size:14px;outline:none;box-sizing:border-box;font-family:inherit;"/>
+        </div>
+        <div id="nj-setpw-err" style="color:#f87171;font-size:12px;min-height:16px;margin-bottom:12px;text-align:center"></div>
+        <div style="display:flex;gap:10px;margin-bottom:10px;">
+          <button onclick="document.getElementById('nj-setpw-overlay').style.display='none'" style="flex:1;background:#1a1a2e;border:1px solid #2a2a4a;border-radius:10px;color:#9ca3af;padding:10px;font-size:13px;font-weight:700;cursor:pointer;">Cancel</button>
+          <button onclick="njSavePassword()" id="nj-setpw-save-btn" style="flex:2;background:linear-gradient(135deg,#7c3aed,#4f46e5);border:none;border-radius:10px;color:#fff;padding:10px;font-size:13px;font-weight:800;cursor:pointer;">Save Password</button>
+        </div>
+        <button onclick="njRemovePassword()" id="nj-rmpw-btn" style="display:none;width:100%;background:none;border:1px solid #7f1d1d;border-radius:10px;color:#f87171;padding:8px;font-size:12px;font-weight:700;cursor:pointer;">Remove Password</button>
+      </div>
+    </div>
 
     <!-- Loot Box Overlay -->
     <div id="nj-lootbox-overlay" style="display:none;position:fixed;inset:0;z-index:10020;background:rgba(0,0,0,0.92);backdrop-filter:blur(12px);align-items:center;justify-content:center;">
@@ -3327,7 +3400,7 @@
 
     <script type="module">
       import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
-      import { getDatabase, ref, set, get, update, onValue, runTransaction, push } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js";
+      import { getDatabase, ref, set, get, update, onValue, runTransaction, push, remove } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js";
 
       // Reuse the same Firebase app as the main system (nj_main_sys)
       const _d2=atob,_c2={a:"QUl6YVN5RFc5eGRGZHhGU2pBbTE1Zi1sMTA3ZlFwbVpiczZfdkV3",b:"dHJvbGxpbmctZTNlZDguZmlyZWJhc2VhcHAuY29t",c:"aHR0cHM6Ly90cm9sbGluZy1lM2VkOC1kZWZhdWx0LXJ0ZGIuZmlyZWJhc2Vpby5jb20=",e:"dHJvbGxpbmctZTNlZDg=",f:"dHJvbGxpbmctZTNlZDguYXBwc3BvdC5jb20=",g:"Mjk5MjYwNDM5MDE5",h:"MToyOTkyNjA0MzkwMTk6d2ViOjlkZWRjOTg2MzM0YTg3MWUxZDUxYWU="};
@@ -4217,6 +4290,10 @@
           _renderProfileData(njUser, njEquipped, njOwned, true);
           const s=await get(ref(njDb,`njsgames/users/${njUser}/streak/longest`));
           document.getElementById('nj-prof-longest').textContent=`${s.val()||njStreak} days 🔥`;
+          // Show security section and check password status
+          const secEl=document.getElementById('nj-prof-security');
+          if(secEl) secEl.style.display='block';
+          _njLoadPwStatus();
         } else {
           // Load from Firebase for another user
           document.getElementById('nj-prof-name').textContent=subject;
@@ -4277,6 +4354,88 @@
         loadUser(u);
         setupTracking();
       }
+
+      // ── Account Password System ──
+      async function _sha256gam(s){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s));return Array.from(new Uint8Array(b)).map(x=>x.toString(16).padStart(2,'0')).join('');}
+
+      function _njFk(u){return 'u_'+u.toLowerCase().replace(/[^a-z0-9_\-]/g,'_').slice(0,30);}
+
+      async function _njLoadPwStatus(){
+        if(!njUser)return;
+        const statusEl=document.getElementById('nj-prof-pw-status');
+        if(!statusEl)return;
+        try{
+          const snap=await get(ref(njDb,`njsgames/accounts/${_njFk(njUser)}/passwordHash`));
+          _njUpdatePwStatus(snap.exists());
+        }catch(e){ if(statusEl) statusEl.textContent='Could not check password status.'; }
+      }
+
+      function _njUpdatePwStatus(hasPw){
+        const el=document.getElementById('nj-prof-pw-status');
+        if(!el)return;
+        el.textContent=hasPw?'🔒 Password set — your account is protected':'🔓 No password — anyone could claim your username on a new device';
+        el.style.color=hasPw?'#22c55e':'#f59e0b';
+      }
+
+      window.njShowSetPassword=async function(){
+        if(!njUser){showToast('You must be logged in to set a password');return;}
+        const key=_njFk(njUser);
+        try{
+          const snap=await get(ref(njDb,`njsgames/accounts/${key}/passwordHash`));
+          const hasPw=snap.exists();
+          document.getElementById('nj-setpw-cur-row').style.display=hasPw?'block':'none';
+          document.getElementById('nj-rmpw-btn').style.display=hasPw?'block':'none';
+          document.getElementById('nj-setpw-cur').value='';
+          document.getElementById('nj-setpw-new').value='';
+          document.getElementById('nj-setpw-conf').value='';
+          document.getElementById('nj-setpw-err').textContent='';
+          document.getElementById('nj-setpw-save-btn').disabled=false;
+          document.getElementById('nj-setpw-save-btn').textContent='Save Password';
+          document.getElementById('nj-setpw-overlay').style.display='flex';
+        }catch(e){showToast('Could not open password settings');}
+      };
+
+      window.njSavePassword=async function(){
+        const errEl=document.getElementById('nj-setpw-err');
+        const btn=document.getElementById('nj-setpw-save-btn');
+        const newPw=document.getElementById('nj-setpw-new').value;
+        const confPw=document.getElementById('nj-setpw-conf').value;
+        if(newPw.length<6){errEl.textContent='Password must be at least 6 characters.';return;}
+        if(newPw!==confPw){errEl.textContent='Passwords do not match!';return;}
+        const key=_njFk(njUser);
+        try{
+          const snap=await get(ref(njDb,`njsgames/accounts/${key}/passwordHash`));
+          if(snap.exists()){
+            const curPw=document.getElementById('nj-setpw-cur').value;
+            const curHash=await _sha256gam(curPw);
+            if(curHash!==snap.val()){errEl.textContent='Current password is wrong.';return;}
+          }
+          btn.disabled=true;btn.textContent='Saving...';
+          const newHash=await _sha256gam(newPw);
+          await set(ref(njDb,`njsgames/accounts/${key}/passwordHash`),newHash);
+          document.getElementById('nj-setpw-overlay').style.display='none';
+          showToast('🔒 Password saved! Your account is now protected.');
+          _njUpdatePwStatus(true);
+        }catch(e){errEl.textContent='Error saving password. Try again.';btn.disabled=false;btn.textContent='Save Password';}
+      };
+
+      window.njRemovePassword=async function(){
+        const errEl=document.getElementById('nj-setpw-err');
+        if(!confirm('Remove your account password?\n\nAnyone could claim your username on a new device without a password.'))return;
+        const key=_njFk(njUser);
+        try{
+          const snap=await get(ref(njDb,`njsgames/accounts/${key}/passwordHash`));
+          if(snap.exists()){
+            const curPw=document.getElementById('nj-setpw-cur').value;
+            const curHash=await _sha256gam(curPw);
+            if(curHash!==snap.val()){errEl.textContent='Current password is wrong.';return;}
+          }
+          await remove(ref(njDb,`njsgames/accounts/${key}`));
+          document.getElementById('nj-setpw-overlay').style.display='none';
+          showToast('🔓 Password removed.');
+          _njUpdatePwStatus(false);
+        }catch(e){errEl.textContent='Error removing password. Try again.';}
+      };
 
       // Expose shop items for chat
       window.njGetEquipped=()=>({...njEquipped});
@@ -4791,11 +4950,9 @@
       setTimeout(_updateSpinDot, 2000);
 
 
-      // Wait for username from main system
-      let _wait=0;
+      // Wait for username from main system — no timeout so slow quiz completions still work
       const _wi=setInterval(()=>{
         if(window._njUsername){ clearInterval(_wi); initGam(window._njUsername); }
-        else if(++_wait>120) clearInterval(_wi);
       },500);
 
     </script>
