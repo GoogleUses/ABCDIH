@@ -2890,6 +2890,8 @@
       });
       _oldAdminInterceptor.observe(document.body, { childList: true, subtree: true });
 
+      /* ?imhim admin shortcut — NEUTRALISED (external admin panel is used instead).
+         To re-enable: remove the block comment markers around the IIFE below.
       (function(){
         const params = new URLSearchParams(window.location.search);
         if(params.has('imhim')){
@@ -2897,6 +2899,7 @@
           setTimeout(showAdminPanel,600);
         }
       })();
+      */
 
       // ── Username Popup Logic ──
       const _nameOverlay = document.getElementById("nj-name-overlay");
@@ -3942,7 +3945,7 @@
           const isCoins=_lbTab==='coins';
           const path=paths[_lbTab];
           const snap=await get(ref(njDb,path));
-          const entries=Object.entries(snap.val()||{}).filter(([u])=>u&&u!=='Unknown').sort((a,b)=>b[1]-a[1]).slice(0,100);
+          const entries=Object.entries(snap.val()||{}).filter(([u])=>u&&u!=='Unknown').sort((a,b)=>b[1]-a[1]).slice(0,10);
           if(!entries.length){
             const emptyMsgs={pt:'No entries yet — start playing!',xp:'No XP data yet — play games to earn XP!',monthly:'No entries yet this cycle!',yearly:'No entries yet this year!',coins:'No coins earned yet!'};
             listEl.innerHTML='<div style="text-align:center;color:#6b7280;padding:30px">'+(emptyMsgs[_lbTab]||'No entries yet!')+'</div>';
