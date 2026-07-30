@@ -493,6 +493,7 @@
             <button id="nj-events-btn" onclick="njOpenEvents()">📅 Events</button>
             <button id="nj-announce-btn" onclick="njOpenAnnounce()">📣 Announce</button>
             <button id="nj-kickall-btn" onclick="njKickAll()" style="background:#7f1d1d;color:#fca5a5;border:1px solid #991b1b;border-radius:7px;padding:6px 11px;font-size:12px;font-weight:700;cursor:pointer" title="Kick everyone currently online">🦶 Kick All</button>
+            <button id="nj-unbanall-btn" onclick="njUnbanAll()" style="background:#0a2a0a;color:#4ade80;border:1px solid #22c55e;border-radius:7px;padding:6px 11px;font-size:12px;font-weight:700;cursor:pointer" title="Unban everyone on the ban list">✅ Unban All</button>
             <button id="nj-admin-close" onclick="njCloseAdmin()">✕</button>
           </div>
         </div>
@@ -1938,6 +1939,13 @@
           list.innerHTML = '<div class="nj-no-bans">No banned devices</div>';
           return;
         }
+        // Auto-expand the banned section whenever bans are present
+        if (!_bannedSectionOpen) {
+          _bannedSectionOpen = true;
+          list.style.display = "block";
+          const chevron = document.getElementById("nj-ban-chevron");
+          if (chevron) chevron.textContent = "▲";
+        }
         list.innerHTML = entries.map(([deviceId, ban]) => {
           const when = _fmtDate(ban.bannedAt);
           return `<div class="nj-ban-row">
@@ -2064,11 +2072,6 @@
         _openKickBanModal("🚫", `Ban ${username}`, "Select a reason for banning this device. They will NOT be able to return.", "#991b1b", async (reason) => {
           const banData = { username, deviceId, reason, bannedAt: Date.now(), bannedBy: localStorage.getItem("nj_username") || "Admin" };
           await set(ref(db, `njsgames/bans/${deviceId}`), banData);
-          // Also ban by fingerprint prefix (first 8 chars = fp hash) to resist ID regeneration
-          const fpPrefix = deviceId.split('_')[0];
-          if (fpPrefix && fpPrefix.length === 8) {
-            await set(ref(db, `njsgames/bans/${fpPrefix}`), banData);
-          }
           // Also ban by username key so incognito/cleared-localStorage users are still caught
           const _unKey = 'u_' + username.toLowerCase().replace(/[^a-z0-9_-]/g, '_').slice(0, 30);
           await set(ref(db, `njsgames/bans/${_unKey}`), banData);
@@ -2084,14 +2087,25 @@
       window.njUnbanDevice = async function(deviceId, username) {
         if (!confirm(`Unban device of "${username}"? They will be able to return to the site.`)) return;
         await remove(ref(db, `njsgames/bans/${deviceId}`));
-        // Also remove fingerprint-based ban
-        const fpPrefix = deviceId.split('_')[0];
-        if (fpPrefix && fpPrefix.length === 8) await remove(ref(db, `njsgames/bans/${fpPrefix}`));
         // Also remove username-based ban
         if (username) {
           const _uKey = 'u_' + username.toLowerCase().replace(/[^a-z0-9_-]/g, '_').slice(0, 30);
           await remove(ref(db, `njsgames/bans/${_uKey}`));
         }
+      };
+
+      window.njUnbanAll = async function() {
+        const count = Object.keys(_bansData).length;
+        if (count === 0) { alert("No banned users to unban."); return; }
+        if (!confirm(`Unban ALL ${count} banned device${count === 1 ? '' : 's'}? This cannot be undone.`)) return;
+        const keys = Object.keys(_bansData);
+        await Promise.all(keys.map(k => remove(ref(db, `njsgames/bans/${k}`))));
+        njLogAction("unban_all", { count });
+        const t = document.createElement("div");
+        t.textContent = `✅ Unbanned all ${count} device${count === 1 ? '' : 's'}`;
+        t.style.cssText = "position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#0a2a0a;color:#4ade80;border:1px solid #22c55e;border-radius:8px;padding:10px 18px;font-size:13px;font-weight:700;z-index:9999999;pointer-events:none";
+        document.body.appendChild(t);
+        setTimeout(() => t.remove(), 3000);
       };
 
       // ── All Users Management ──
@@ -2952,11 +2966,8 @@
         _nameBtn.disabled = true;
         _nameBtn.textContent = "Checking...";
         _nameError.textContent = "";
-        // Auto-kick: check fingerprint hash ban before allowing entry
+        // Check username-based ban (catches users who changed device/incognito)
         try {
-          const fpBanSnap = await get(ref(db, `njsgames/bans/${NJ_FP_HASH}`));
-          if (fpBanSnap.exists()) { _enforceBan(); return; }
-          // Also check username-based ban (catches users who changed device/incognito)
           const _uKeyNew = 'u_' + val.toLowerCase().replace(/[^a-z0-9_-]/g, '_').slice(0, 30);
           const _uBanNew = await get(ref(db, `njsgames/bans/${_uKeyNew}`));
           if (_uBanNew.exists()) { _enforceBan(); return; }
@@ -3123,10 +3134,6 @@
       // which meant unbanned players were permanently stuck on the ban screen.
       get(ref(db, `njsgames/bans/${NJ_DEVICE_ID}`)).then(async snap => {
         if (snap.exists()) { _enforceBan(snap.val()?.reason || ""); return; }
-
-        // Check fingerprint hash (shared across device ID regenerations)
-        const fpSnap = await get(ref(db, `njsgames/bans/${NJ_FP_HASH}`));
-        if (fpSnap.exists()) { _enforceBan(fpSnap.val()?.reason || ""); return; }
 
         // Check username key (catches incognito / cleared localStorage)
         const _storedUname = localStorage.getItem('nj_username');
