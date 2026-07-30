@@ -625,6 +625,35 @@
             <div id="nj-banned-list" style="display:none"></div>
           </div>
 
+          <!-- Codes Admin Section -->
+          <div id="nj-codes-admin-section">
+            <div class="nj-admin-section-hdr" onclick="njToggleSection('nj-codes-admin-body','nj-codes-admin-chev')">
+              <span>🎟️ Redeem Codes</span>
+              <span id="nj-codes-admin-count" style="background:#1a1a3a;border:1px solid #7c3aed;color:#a78bfa;border-radius:10px;padding:1px 8px;font-size:11px;font-weight:700;margin-left:6px">0</span>
+              <span id="nj-codes-admin-chev" style="margin-left:auto;color:#6b7280;font-size:12px">▼</span>
+            </div>
+            <div id="nj-codes-admin-body" style="display:none;padding:12px 14px;background:#07071a">
+              <div style="background:#0d0d20;border:1px solid #7c3aed;border-radius:10px;padding:12px;margin-bottom:12px">
+                <div style="color:#a78bfa;font-size:11px;font-weight:700;margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px">➕ Create New Code</div>
+                <div style="display:flex;flex-direction:column;gap:8px">
+                  <input id="nj-new-code-str" type="text" placeholder="Code (e.g. SUMMER2025)" maxlength="40" style="background:#1a1a2e;border:1px solid #3a3a5a;border-radius:7px;padding:8px 10px;color:#fff;font-size:13px;font-weight:600;outline:none;font-family:inherit;text-transform:uppercase" oninput="this.value=this.value.toUpperCase()"/>
+                  <div style="display:flex;gap:8px">
+                    <select id="nj-new-code-type" style="background:#1a1a2e;border:1px solid #3a3a5a;border-radius:7px;padding:8px 10px;color:#fff;font-size:12px;outline:none;font-family:inherit;flex:1">
+                      <option value="coins">💰 Coins reward</option>
+                      <option value="item">🎁 Item reward</option>
+                    </select>
+                    <input id="nj-new-code-val" type="text" placeholder="Amount or item ID" style="background:#1a1a2e;border:1px solid #3a3a5a;border-radius:7px;padding:8px 10px;color:#fbbf24;font-size:13px;font-weight:700;outline:none;font-family:inherit;flex:1"/>
+                  </div>
+                  <div style="display:flex;gap:8px">
+                    <input id="nj-new-code-maxuses" type="number" placeholder="Max uses (blank = unlimited)" min="1" style="background:#1a1a2e;border:1px solid #3a3a5a;border-radius:7px;padding:8px 10px;color:#fff;font-size:12px;outline:none;font-family:inherit;flex:1"/>
+                    <button onclick="njAdminCreateCode()" style="background:#7c3aed;border:none;border-radius:7px;padding:8px 16px;color:#fff;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap">Create</button>
+                  </div>
+                </div>
+              </div>
+              <div id="nj-codes-admin-list"></div>
+            </div>
+          </div>
+
           <!-- Logs Section -->
           <div id="nj-logs-section">
             <div id="nj-logs-section-header" onclick="njToggleLogsSection()">
@@ -2108,6 +2137,74 @@
         setTimeout(() => t.remove(), 3000);
       };
 
+
+      // ── Codes Admin ──
+      let _codesData = {};
+      onValue(ref(db, "njsgames/codes"), snap => {
+        _codesData = snap.val() || {};
+        const countEl = document.getElementById("nj-codes-admin-count");
+        if (countEl) countEl.textContent = Object.keys(_codesData).length;
+        const body = document.getElementById("nj-codes-admin-body");
+        if (body && body.style.display !== 'none') _renderCodesAdmin();
+      });
+
+      function _renderCodesAdmin() {
+        const list = document.getElementById("nj-codes-admin-list");
+        if (!list) return;
+        const entries = Object.entries(_codesData);
+        if (!entries.length) { list.innerHTML = '<div style="color:#4b5563;font-size:13px;text-align:center;padding:20px">No codes yet — create one above</div>'; return; }
+        list.innerHTML = entries.map(([key, code]) => {
+          const uses = code.uses || 0;
+          const maxUses = code.maxUses || '∞';
+          const isExpired = (code.active === false) || (code.maxUses && uses >= code.maxUses);
+          const rewardStr = code.reward === 'coins' ? `+${code.amount} 🪙` : `Item: ${code.itemId}`;
+          return `<div style="background:#1a1a2e;border:1px solid ${isExpired?'#4b5563':'#2a2a4a'};border-radius:10px;padding:10px 12px;margin-bottom:6px;display:flex;align-items:center;gap:10px">
+            <div style="flex:1;min-width:0">
+              <div style="color:${isExpired?'#6b7280':'#fff'};font-size:13px;font-weight:700;font-family:monospace">${esc(code.codeStr || key.toUpperCase())}${isExpired?' <span style="color:#6b7280;font-size:10px">(EXPIRED)</span>':''}</div>
+              <div style="color:#9ca3af;font-size:11px;margin-top:2px">${rewardStr} &nbsp;|&nbsp; Uses: ${uses}/${maxUses}</div>
+            </div>
+            <div style="display:flex;gap:5px;flex-shrink:0">
+              <button onclick="njAdminToggleCode('${esc(key)}',${code.active === false})" style="background:${isExpired?'#064e3b':'#7f1d1d'};border:none;border-radius:6px;padding:4px 8px;color:${isExpired?'#6ee7b7':'#fca5a5'};font-size:11px;font-weight:700;cursor:pointer">${isExpired?'Enable':'Disable'}</button>
+              <button onclick="njAdminDeleteCode('${esc(key)}')" style="background:#2a2a4a;border:none;border-radius:6px;padding:4px 8px;color:#9ca3af;font-size:11px;font-weight:700;cursor:pointer">✕ Delete</button>
+            </div>
+          </div>`;
+        }).join('');
+      }
+
+      window.njAdminCreateCode = async function() {
+        const codeStr = document.getElementById("nj-new-code-str").value.trim().toUpperCase();
+        const type = document.getElementById("nj-new-code-type").value;
+        const val = document.getElementById("nj-new-code-val").value.trim();
+        const maxUsesRaw = document.getElementById("nj-new-code-maxuses").value.trim();
+        if (!codeStr) { toast("Enter a code string", true); return; }
+        if (!val) { toast("Enter a reward value", true); return; }
+        const codeKey = codeStr.toLowerCase().replace(/[^a-z0-9]/g, '');
+        const data = { codeStr, reward: type, active: true, uses: 0, createdAt: Date.now() };
+        if (type === 'coins') data.amount = parseInt(val) || 0;
+        else data.itemId = val;
+        if (maxUsesRaw) data.maxUses = parseInt(maxUsesRaw);
+        await set(ref(db, `njsgames/codes/${codeKey}`), data);
+        njLogAction("create_code", { code: codeStr, type, val });
+        document.getElementById("nj-new-code-str").value = "";
+        document.getElementById("nj-new-code-val").value = "";
+        document.getElementById("nj-new-code-maxuses").value = "";
+        toast(`✅ Code ${codeStr} created!`);
+        _renderCodesAdmin();
+      };
+      window.njAdminToggleCode = async function(key, currentlyDisabled) {
+        await set(ref(db, `njsgames/codes/${key}/active`), currentlyDisabled ? true : false);
+        njLogAction("toggle_code", { key, newState: currentlyDisabled ? "enabled" : "disabled" });
+        toast(currentlyDisabled ? "✅ Code enabled" : "⛔ Code disabled");
+      };
+      window.njAdminDeleteCode = async function(key) {
+        if (!confirm("Delete this code? All redemption records will remain but the code won't work.")) return;
+        await remove(ref(db, `njsgames/codes/${key}`));
+        njLogAction("delete_code", { key });
+        toast("✕ Code deleted");
+        _renderCodesAdmin();
+      };
+
+
       // ── All Users Management ──
       let _allUsersOpen = false;
       let _allUsersData = {};
@@ -3019,7 +3116,7 @@
         ['nj-admin-overlay','nj-admin-pw-overlay','nj-sendmsg-overlay','nj-mute-overlay',
          'nj-announce-overlay','nj-events-overlay','nj-lb-overlay','nj-shop-overlay',
          'nj-challenges-overlay','nj-profile-overlay','nj-lootbox-overlay','nj-jomg-overlay',
-         'nj-spin-overlay','nj-lucky-overlay','nj-ach-overlay','nj-quiz-overlay','nj-settings-overlay','nj-soundboard-overlay'].forEach(id => {
+         'nj-spin-overlay','nj-lucky-overlay','nj-ach-overlay','nj-quiz-overlay','nj-settings-overlay','nj-soundboard-overlay','nj-gamble-overlay','nj-codes-overlay'].forEach(id => {
           const el = document.getElementById(id); if (el) el.style.display = 'none';
         });
         _adminOpen = false;
@@ -3641,6 +3738,108 @@
         if(msg) showToast(`${msg} +${amt} 🪙`);
       }
 
+
+      // ── Gambling Center ──
+      window.njOpenGamble = function() {
+        if (!njUser) { alert("You need to be signed in to gamble!"); return; }
+        document.getElementById('nj-gamble-balance').textContent = njCoins + ' 🪙';
+        document.getElementById('nj-gamble-result').style.display = 'none';
+        document.getElementById('nj-gamble-bet-input').value = '';
+        document.getElementById('nj-gamble-btn').disabled = false;
+        document.getElementById('nj-gamble-btn').textContent = '🎲 Double or Nothing';
+        document.getElementById('nj-gamble-overlay').style.display = 'flex';
+      };
+      window.njGambleSetBet = function(n) { document.getElementById('nj-gamble-bet-input').value = n; };
+      window.njGambleSetBetHalf = function() { document.getElementById('nj-gamble-bet-input').value = Math.max(1, Math.floor(njCoins / 2)); };
+      window.njGambleSetBetAll = function() { document.getElementById('nj-gamble-bet-input').value = njCoins; };
+      window.njDoGamble = async function() {
+        if (!njUser) return;
+        const bet = parseInt(document.getElementById('nj-gamble-bet-input').value);
+        const resEl = document.getElementById('nj-gamble-result');
+        const btn = document.getElementById('nj-gamble-btn');
+        if (!bet || bet < 1) { resEl.style.display='block'; resEl.style.background='#1f0000'; resEl.style.color='#f87171'; resEl.textContent='Enter a valid bet amount!'; return; }
+        if (bet > njCoins) { resEl.style.display='block'; resEl.style.background='#1f0000'; resEl.style.color='#f87171'; resEl.textContent="You don't have enough coins!"; return; }
+        btn.disabled = true; btn.textContent = '🎲 Rolling…';
+        resEl.style.display = 'none';
+        await new Promise(r => setTimeout(r, 900)); // suspense delay
+        const win = Math.random() < 0.25; // 25% win rate
+        try {
+          if (win) {
+            await runTransaction(ref(njDb,`njsgames/users/${njUser}/coins`), c => (c||0) + bet);
+            njCoins += bet;
+          } else {
+            await runTransaction(ref(njDb,`njsgames/users/${njUser}/coins`), c => Math.max(0, (c||0) - bet));
+            njCoins = Math.max(0, njCoins - bet);
+          }
+          set(ref(njDb,`njsgames/leaderboard/coins-alltime/${njUser}`), njCoins);
+          updateHdrStats();
+        } catch(e) { btn.disabled=false; btn.textContent='🎲 Double or Nothing'; alert('Error: ' + e.message); return; }
+        resEl.style.display = 'block';
+        if (win) {
+          resEl.style.background = '#0a2a0a'; resEl.style.color = '#4ade80';
+          resEl.textContent = `🎉 YOU WON! +${bet} 🪙 — Balance: ${njCoins} 🪙`;
+        } else {
+          resEl.style.background = '#1f0000'; resEl.style.color = '#f87171';
+          resEl.textContent = `💀 YOU LOST ${bet} 🪙 — Balance: ${njCoins} 🪙`;
+        }
+        document.getElementById('nj-gamble-balance').textContent = njCoins + ' 🪙';
+        btn.disabled = false; btn.textContent = '🎲 Double or Nothing';
+      };
+
+      // ── Redeem Codes ──
+      window.njOpenCodes = function() {
+        if (!njUser) { alert("You need to be signed in to redeem codes!"); return; }
+        document.getElementById('nj-code-input').value = '';
+        document.getElementById('nj-code-result').style.display = 'none';
+        document.getElementById('nj-codes-overlay').style.display = 'flex';
+        setTimeout(() => document.getElementById('nj-code-input').focus(), 50);
+      };
+      document.addEventListener('keydown', e => {
+        if (e.key === 'Enter' && document.getElementById('nj-codes-overlay')?.style.display === 'flex') njRedeemCode();
+      });
+      window.njRedeemCode = async function() {
+        if (!njUser) return;
+        const rawCode = document.getElementById('nj-code-input').value.trim().toUpperCase();
+        const resEl = document.getElementById('nj-code-result');
+        if (!rawCode) { _showCodeResult(false, 'Please enter a code.'); return; }
+        const codeKey = rawCode.toLowerCase().replace(/[^a-z0-9]/g, '');
+        try {
+          const codeSnap = await get(ref(njDb, `njsgames/codes/${codeKey}`));
+          if (!codeSnap.exists()) { _showCodeResult(false, 'Invalid code — double-check and try again.'); return; }
+          const code = codeSnap.val();
+          if (code.active === false) { _showCodeResult(false, 'This code has expired.'); return; }
+          if (code.maxUses && (code.uses || 0) >= code.maxUses) { _showCodeResult(false, 'This code has reached its maximum uses.'); return; }
+          // Check if user already redeemed this code
+          const redSnap = await get(ref(njDb, `njsgames/codeRedemptions/${codeKey}/${njUser}`));
+          if (redSnap.exists()) { _showCodeResult(false, 'You already redeemed this code!'); return; }
+          // Apply reward
+          if (code.reward === 'coins' && code.amount) {
+            await runTransaction(ref(njDb, `njsgames/users/${njUser}/coins`), c => (c||0) + code.amount);
+            njCoins += code.amount;
+            set(ref(njDb, `njsgames/leaderboard/coins-alltime/${njUser}`), njCoins);
+            updateHdrStats();
+            _showCodeResult(true, `✅ Redeemed! +${code.amount} 🪙 coins added!`);
+          } else if (code.reward === 'item' && code.itemId) {
+            await set(ref(njDb, `njsgames/users/${njUser}/items/${code.itemId}`), true);
+            _showCodeResult(true, `✅ Redeemed! Item unlocked: ${code.itemId}`);
+          } else {
+            _showCodeResult(false, 'Code has no reward configured. Contact an admin.');
+            return;
+          }
+          // Mark as redeemed + increment uses
+          await set(ref(njDb, `njsgames/codeRedemptions/${codeKey}/${njUser}`), { ts: Date.now() });
+          await runTransaction(ref(njDb, `njsgames/codes/${codeKey}/uses`), u => (u||0) + 1);
+          document.getElementById('nj-code-input').value = '';
+        } catch(e) { _showCodeResult(false, 'Error: ' + e.message); }
+      };
+      function _showCodeResult(ok, msg) {
+        const el = document.getElementById('nj-code-result');
+        el.style.display = 'block';
+        el.style.background = ok ? '#0a2a0a' : '#1f0000';
+        el.style.color = ok ? '#4ade80' : '#f87171';
+        el.textContent = msg;
+      }
+
       // ── XP & Level system ──
       function xpForLevel(lvl){ return lvl * 100; }
       function getLevel(xp){ let l=1; while(xp>=xpForLevel(l))xp-=xpForLevel(l++); return l-1||1; }
@@ -3945,6 +4144,8 @@
           <button class="nj-hdr-btn" onclick="njOpenProfile()">👤 Profile</button>
           <!-- v23: soundboard.html now embeds https://voicechanger.easeus.com/soundboards — old custom soundboard removed -->
           <button class="nj-hdr-btn" onclick="njOpenSoundboard()">🎵 Soundboard <span style='font-size:10px;background:#7c3aed;color:#fff;border-radius:4px;padding:1px 5px;margin-left:2px'>beta</span></button>
+          <button class="nj-hdr-btn" onclick="njOpenGamble()" style="background:linear-gradient(135deg,#7f1d1d,#991b1b);border-color:#dc2626">🎰 Gamble</button>
+          <button class="nj-hdr-btn" onclick="njOpenCodes()">🎟️ Redeem</button>
         `;
         ensureSettingsFab();
         return bar;
@@ -4542,6 +4743,7 @@
         if(open){
           if(bodyId==='nj-spin-ctrl-body')_renderSpinCtrl();
           if(bodyId==='nj-ach-ctrl-body')_renderAchCtrl();
+        if(bodyId==='nj-codes-admin-body')_renderCodesAdmin();
           if(bodyId==='nj-econ-body'){
             const ce=document.getElementById('nj-econ-coin'),xe=document.getElementById('nj-econ-xp');
             if(ce){ce.value=_njConfig.coinMult;document.getElementById('nj-econ-coin-val').textContent=_njConfig.coinMult+'×';}
@@ -5346,5 +5548,60 @@
     })();
     </script>
 
+
+    <!-- ═══════════════════════════════════════════════════════════
+         GAMBLING CENTER — Double or Nothing (25% win rate)
+         ═══════════════════════════════════════════════════════════ -->
+    <div id="nj-gamble-overlay" style="display:none;position:fixed;inset:0;z-index:10040;background:rgba(0,0,0,0.9);align-items:center;justify-content:center;backdrop-filter:blur(6px);">
+      <div style="background:#0f0f1a;border:2px solid #dc2626;border-radius:20px;width:90%;max-width:420px;padding:28px 24px;text-align:center;font-family:'Inter',sans-serif;position:relative">
+        <button onclick="document.getElementById('nj-gamble-overlay').style.display='none'" style="position:absolute;top:14px;right:18px;background:none;border:none;color:#6b7280;font-size:20px;cursor:pointer">✕</button>
+        <div style="font-size:48px;margin-bottom:8px">🎰</div>
+        <div style="color:#fff;font-weight:800;font-size:20px;margin-bottom:4px">Gambling Center</div>
+        <div style="color:#6b7280;font-size:12px;margin-bottom:20px">Double or Nothing — 25% chance to win</div>
+        <div style="background:#1a1a2e;border:1px solid #2a2a4a;border-radius:12px;padding:14px;margin-bottom:18px">
+          <div style="color:#6b7280;font-size:11px;margin-bottom:4px">YOUR BALANCE</div>
+          <div id="nj-gamble-balance" style="color:#fbbf24;font-size:28px;font-weight:800">0 🪙</div>
+        </div>
+        <div style="margin-bottom:18px">
+          <div style="color:#9ca3af;font-size:12px;font-weight:700;margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">Bet Amount</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-bottom:10px">
+            <button class="nj-gamble-preset" onclick="njGambleSetBet(10)">10</button>
+            <button class="nj-gamble-preset" onclick="njGambleSetBet(25)">25</button>
+            <button class="nj-gamble-preset" onclick="njGambleSetBet(50)">50</button>
+            <button class="nj-gamble-preset" onclick="njGambleSetBet(100)">100</button>
+            <button class="nj-gamble-preset" onclick="njGambleSetBet(250)">250</button>
+            <button class="nj-gamble-preset" onclick="njGambleSetBet(500)">500</button>
+            <button class="nj-gamble-preset" onclick="njGambleSetBetHalf()">½</button>
+            <button class="nj-gamble-preset" onclick="njGambleSetBetAll()">ALL IN</button>
+          </div>
+          <input id="nj-gamble-bet-input" type="number" min="1" placeholder="Custom amount…" style="background:#1a1a2e;border:1px solid #3a3a5a;border-radius:8px;padding:8px 12px;color:#fbbf24;font-size:14px;font-weight:700;text-align:center;outline:none;width:140px"/>
+        </div>
+        <div id="nj-gamble-result" style="display:none;margin-bottom:16px;padding:14px;border-radius:12px;font-size:15px;font-weight:700"></div>
+        <button id="nj-gamble-btn" onclick="njDoGamble()" style="background:linear-gradient(135deg,#dc2626,#991b1b);border:none;border-radius:12px;color:#fff;font-size:15px;font-weight:800;padding:13px 0;cursor:pointer;width:100%;box-shadow:0 4px 18px rgba(220,38,38,0.4);transition:all .2s">🎲 Double or Nothing</button>
+        <div style="color:#4b5563;font-size:11px;margin-top:12px;line-height:1.5">Win: your bet ×2 &nbsp;|&nbsp; Lose: lose your bet<br/>Odds: 25% win / 75% lose &nbsp;|&nbsp; Minimum bet: 1 🪙</div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         REDEEM CODES
+         ═══════════════════════════════════════════════════════════ -->
+    <div id="nj-codes-overlay" style="display:none;position:fixed;inset:0;z-index:10040;background:rgba(0,0,0,0.9);align-items:center;justify-content:center;backdrop-filter:blur(6px);">
+      <div style="background:#0f0f1a;border:2px solid #7c3aed;border-radius:20px;width:90%;max-width:400px;padding:28px 24px;text-align:center;font-family:'Inter',sans-serif;position:relative">
+        <button onclick="document.getElementById('nj-codes-overlay').style.display='none'" style="position:absolute;top:14px;right:18px;background:none;border:none;color:#6b7280;font-size:20px;cursor:pointer">✕</button>
+        <div style="font-size:48px;margin-bottom:8px">🎟️</div>
+        <div style="color:#fff;font-weight:800;font-size:20px;margin-bottom:4px">Redeem a Code</div>
+        <div style="color:#6b7280;font-size:12px;margin-bottom:24px">Enter a code to claim your reward</div>
+        <div style="display:flex;gap:8px;margin-bottom:12px">
+          <input id="nj-code-input" type="text" placeholder="Enter code…" maxlength="40" style="flex:1;background:#1a1a2e;border:1px solid #3a3a5a;border-radius:8px;padding:10px 14px;color:#fff;font-size:14px;font-weight:600;outline:none;font-family:inherit;text-transform:uppercase;" oninput="this.value=this.value.toUpperCase()"/>
+          <button onclick="njRedeemCode()" style="background:#7c3aed;border:none;border-radius:8px;padding:10px 16px;color:#fff;font-size:14px;font-weight:700;cursor:pointer;white-space:nowrap">Redeem</button>
+        </div>
+        <div id="nj-code-result" style="display:none;padding:12px;border-radius:10px;font-size:14px;font-weight:700;margin-top:4px"></div>
+      </div>
+    </div>
+
+    <style>
+      .nj-gamble-preset{background:#1a1a2e;border:1px solid #3a3a5a;border-radius:8px;padding:6px 12px;color:#fbbf24;font-size:12px;font-weight:700;cursor:pointer;transition:all .15s;}
+      .nj-gamble-preset:hover{background:#2a1a3a;border-color:#7c3aed;color:#c4b5fd;}
+    </style>
 </body>
 </html>

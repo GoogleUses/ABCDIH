@@ -114,6 +114,12 @@
     .btn-danger{background:#dc3545;color:#fff;border:none;border-radius:8px;padding:8px 16px;cursor:pointer;font-weight:600;font-size:13px;}
     .btn-success{background:#22c55e;color:#fff;border:none;border-radius:8px;padding:8px 16px;cursor:pointer;font-weight:600;font-size:13px;}
     .name-error{color:#dc3545;font-size:12px;margin-top:5px;min-height:16px;}
+    .msg-reply-quote{background:rgba(102,126,234,0.12);border-left:3px solid #667eea;border-radius:0 6px 6px 0;padding:4px 8px;margin-bottom:5px;font-size:11px;color:#a78bfa;cursor:pointer}
+    .msg-reply-quote .rq-author{font-weight:700;margin-bottom:1px}
+    .msg-reply-quote .rq-text{color:#9ca3af;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:220px}
+    .reply-btn{position:absolute;top:-8px;left:-8px;background:#667eea;border:none;color:#fff;border-radius:50%;width:20px;height:20px;font-size:10px;cursor:pointer;opacity:0;transition:opacity .15s;line-height:20px;padding:0;display:flex;align-items:center;justify-content:center;}
+    .reply-btn:hover{background:#5a67d8}
+    .msg:hover .reply-btn{opacity:1}
     .clear-event-btn{background:#fee2e2;color:#dc2626;border:none;border-radius:8px;padding:8px 14px;cursor:pointer;font-size:12px;font-weight:600;width:100%;margin-top:6px;}
     .clear-event-btn:hover{background:#fecaca;}
   </style>
@@ -175,6 +181,14 @@
     <button class="gif-preview-cancel" onclick="cancelGifPreview()">✕ Cancel</button>
   </div>
 
+  <!-- Reply preview bar (shown when replying to a message) -->
+  <div id="reply-bar" style="display:none;padding:7px 12px;background:#1a1a2e;border-top:2px solid #667eea;flex-shrink:0;display:none;align-items:center;gap:10px">
+    <div style="flex:1;min-width:0">
+      <div style="font-size:10px;font-weight:700;color:#667eea;text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px">Replying to <span id="reply-author" style="color:#a78bfa"></span></div>
+      <div id="reply-preview" style="font-size:12px;color:#9ca3af;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></div>
+    </div>
+    <button onclick="cancelReply()" style="background:none;border:1px solid #374151;border-radius:6px;padding:3px 9px;color:#6b7280;font-size:12px;cursor:pointer;flex-shrink:0">✕ Cancel</button>
+  </div>
   <div class="input-row">
     <input id="msgInput" type="text" placeholder="Type a message…" onkeydown="if(event.key==='Enter')sendMsg()"/>
     <button class="send-btn" onclick="sendMsg()">Send</button>
@@ -573,6 +587,7 @@ function enterRoom(id,r) {
   });
 }
 window.backToRooms=function() {
+  cancelReply();
   if (msgUnsub){msgUnsub();msgUnsub=null;} curRoomId=null;
   document.getElementById("chat-view").style.display="none";
   document.getElementById("rooms-view").style.display="block";
@@ -659,6 +674,22 @@ function _applyColor(text, equip, isMe) {
 
 /* ── Messages ── */
 let _pendingDelMsgKey = null;
+let _replyTo = null; // { msgKey, author, text }
+
+window.cancelReply = function() {
+  _replyTo = null;
+  const bar = document.getElementById('reply-bar');
+  if (bar) bar.style.display = 'none';
+};
+
+function _startReply(msgKey, author, text) {
+  _replyTo = { msgKey, author, text };
+  const bar = document.getElementById('reply-bar');
+  if (bar) { bar.style.display = 'flex'; }
+  document.getElementById('reply-author').textContent = author;
+  document.getElementById('reply-preview').textContent = text.length > 80 ? text.slice(0,80)+'…' : text;
+  document.getElementById('msgInput').focus();
+}
 
 function loadMsgs(id) {
   const area=document.getElementById("messagesArea");
@@ -681,17 +712,25 @@ function loadMsgs(id) {
       const equip=_equipCache[m.author]||{};
       const d=document.createElement("div");
       d.className=`msg ${isMe?"me":"them"}`;
+      d.dataset.msgkey = msgKey;
       let content="";
       if (m.type==="gif") {
         content=`<img class="msg-gif" src="${esc(m.gifUrl)}" alt="GIF" loading="lazy" onerror="this.style.display='none'"/>`;
       } else {
         content=_applyColor(m.text, equip, isMe);
       }
+      const replyQuoteHtml = m.replyTo ? `<div class="msg-reply-quote" onclick="_scrollToMsg('${esc(m.replyTo.msgKey)}')" title="Jump to original">
+        <div class="rq-author">↩ ${esc(m.replyTo.author)}</div>
+        <div class="rq-text">${esc(m.replyTo.text)}</div>
+      </div>` : '';
+      const replyBtnHtml = (m.type !== 'gif') ? `<button class="reply-btn" onclick="_startReply('${msgKey}','${esc(m.author)}',${JSON.stringify(m.text||'[image]')})" title="Reply">↩</button>` : '';
       d.innerHTML=
         (isMe?"":_buildAuthorHtml(m.author, equip))
+        +replyQuoteHtml
         +content
         +`<div class="msg-time">${fmt(m.ts)}</div>`
-        +`<button class="msg-del" onclick="promptDeleteMsg('${id}','${msgKey}',event)" title="Delete">✕</button>`;
+        +`<button class="msg-del" onclick="promptDeleteMsg('${id}','${msgKey}',event)" title="Delete">✕</button>`
+        +replyBtnHtml;
       area.appendChild(d);
     });
     area.scrollTop=area.scrollHeight;
@@ -741,7 +780,10 @@ window.sendMsg=async function() {
   inp.value="";
   document.getElementById("wf-blocked-banner").style.display="none";
   const author=getName()||"Anonymous";
-  await push(ref(db,`${ROOMS}/${curRoomId}/messages`),{author,text,ts:Date.now()});
+  const msgData = { author, text, ts: Date.now() };
+  if (_replyTo) { msgData.replyTo = { msgKey: _replyTo.msgKey, author: _replyTo.author, text: _replyTo.text.slice(0,100) }; }
+  await push(ref(db,`${ROOMS}/${curRoomId}/messages`), msgData);
+  cancelReply();
   const cSnap=await get(ref(db,`${ROOMS}/${curRoomId}/messageCount`));
   set(ref(db,`${ROOMS}/${curRoomId}/messageCount`),(cSnap.val()||0)+1);
   try{ if(window.parent&&window.parent.njTrackChat) window.parent.njTrackChat(); }catch(e){}
@@ -915,6 +957,12 @@ onValue(ref(db,"njsgames/broadcast"), snap => {
   toast.innerHTML=`<span style="font-size:18px;flex-shrink:0">📣</span><div><div style="font-size:10px;font-weight:700;color:#4ade80;text-transform:uppercase;letter-spacing:1px;margin-bottom:3px">Announcement</div><div>${esc(ann.text)}</div></div><button onclick="this.parentElement.style.display='none'" style="background:none;border:none;color:#6b7280;cursor:pointer;font-size:14px;padding:0 2px;flex-shrink:0">✕</button>`;
   toast.style.display="flex"; clearTimeout(window._chatAnnTimer); window._chatAnnTimer=setTimeout(()=>{toast.style.display="none";},12000);
 });
+
+/* ── Reply scroll helper ── */
+window._scrollToMsg = function(msgKey) {
+  const el = document.querySelector(`[data-msgkey="${msgKey}"]`);
+  if (el) { el.scrollIntoView({ behavior:'smooth', block:'center' }); el.style.outline='2px solid #667eea'; setTimeout(()=>{ el.style.outline=''; }, 1500); }
+};
 
 /* ── Utils ── */
 function esc(t){return String(t).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
