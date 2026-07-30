@@ -3117,29 +3117,38 @@
       }
 
       // ── Device ban check — runs before anything else ──
-      // First check cached ban flags (instant, no Firebase round-trip needed)
-      if (localStorage.getItem("nj_banned") === "1" || sessionStorage.getItem("nj_banned") === "1") {
-        _enforceBan();
-      } else {
-        // Check Firebase for primary device ID ban
-        get(ref(db, `njsgames/bans/${NJ_DEVICE_ID}`)).then(async snap => {
-          if (snap.exists()) { _enforceBan(); return; }
-          // Also check secondary fingerprint hash
-          const fpSnap = await get(ref(db, `njsgames/bans/${NJ_FP_HASH}`));
-          if (fpSnap.exists()) { _enforceBan(); return; }
-          // Also check stored username (catches incognito / cleared localStorage)
-          const _storedUname = localStorage.getItem('nj_username');
-          if (_storedUname) {
-            const _uKey = 'u_' + _storedUname.toLowerCase().replace(/[^a-z0-9_-]/g, '_').slice(0, 30);
-            const _uBanSnap = await get(ref(db, `njsgames/bans/${_uKey}`));
-            if (_uBanSnap.exists()) { _enforceBan(); return; }
-          }
-          init(); // Not banned, proceed normally
-        }).catch(() => {
-          // Firebase error — fail open so users aren't accidentally locked out
+      // ALWAYS re-check Firebase (even when localStorage says banned) so that
+      // unbanning a player takes effect on their next page load.
+      // The old code trusted the localStorage cache and never re-queried Firebase,
+      // which meant unbanned players were permanently stuck on the ban screen.
+      get(ref(db, `njsgames/bans/${NJ_DEVICE_ID}`)).then(async snap => {
+        if (snap.exists()) { _enforceBan(snap.val()?.reason || ""); return; }
+
+        // Check fingerprint hash (shared across device ID regenerations)
+        const fpSnap = await get(ref(db, `njsgames/bans/${NJ_FP_HASH}`));
+        if (fpSnap.exists()) { _enforceBan(fpSnap.val()?.reason || ""); return; }
+
+        // Check username key (catches incognito / cleared localStorage)
+        const _storedUname = localStorage.getItem('nj_username');
+        if (_storedUname) {
+          const _uKey = 'u_' + _storedUname.toLowerCase().replace(/[^a-z0-9_-]/g, '_').slice(0, 30);
+          const _uBanSnap = await get(ref(db, `njsgames/bans/${_uKey}`));
+          if (_uBanSnap.exists()) { _enforceBan(_uBanSnap.val()?.reason || ""); return; }
+        }
+
+        // Firebase confirms NOT banned — clear any stale local ban flags and start the app.
+        // This is what lets an unbanned player back in after their localStorage was set.
+        localStorage.removeItem("nj_banned");
+        sessionStorage.removeItem("nj_banned");
+        init();
+      }).catch(() => {
+        // Firebase unreachable — fall back to local cache so bans still hold offline.
+        if (localStorage.getItem("nj_banned") === "1" || sessionStorage.getItem("nj_banned") === "1") {
+          _enforceBan();
+        } else {
           init();
-        });
-      }
+        }
+      });
     </script>
   
 
