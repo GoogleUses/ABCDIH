@@ -3748,44 +3748,279 @@
         document.getElementById('nj-gamble-result').style.display = 'none';
         document.getElementById('nj-gamble-bet-input').value = '';
         document.getElementById('nj-gamble-btn').disabled = false;
-        document.getElementById('nj-gamble-btn').textContent = '🎲 Double or Nothing';
+        document.getElementById('nj-gamble-btn').textContent = '🎲 Spin the Wheel!';
+        document.getElementById('nj-gamble-wheel-section').style.display = 'none';
+        document.getElementById('nj-gamble-bet-section').style.display = 'block';
         document.getElementById('nj-gamble-overlay').style.display = 'flex';
       };
       window.njGambleSetBet = function(n) { document.getElementById('nj-gamble-bet-input').value = n; };
       window.njGambleSetBetHalf = function() { document.getElementById('nj-gamble-bet-input').value = Math.max(1, Math.floor(njCoins / 2)); };
       window.njGambleSetBetAll = function() { document.getElementById('nj-gamble-bet-input').value = njCoins; };
+
+      // ── Gambling Wheel ──
+      // 8 segments: WIN at index 0 and 4 (2/8 = 25%), LOSE at the rest.
+      // Segment at pointer = floor( ((-rot % 360 + 360) % 360) / 45 )
+      // WIN zone:  rot mod 360 ∈ (315, 360]  → pointer at (0, 45)  → seg 0 (WIN)
+      //            rot mod 360 ∈ (135, 180]  → pointer at (180,225) → seg 4 (WIN)
+      // Near-miss: rot mod 360 ≈ 313  → pointer at 47° → seg 1 (LOSE, 2° past WIN)
+      const _NJG_WIN = new Set([0, 4]);
+      const _NJG_SEGS = 8;
+
+      function _njgDraw(rot) {
+        const cv = document.getElementById('nj-gamble-canvas');
+        if (!cv) return;
+        const ctx = cv.getContext('2d');
+        const W = cv.width, H = cv.height, cx = W/2, cy = H/2;
+        const r = Math.min(W,H)/2 - 16;
+        ctx.clearRect(0,0,W,H);
+
+        // outer glow
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(cx,cy,r+11,0,Math.PI*2);
+        ctx.strokeStyle='rgba(124,58,237,0.25)';
+        ctx.lineWidth=10;
+        ctx.stroke();
+        ctx.restore();
+
+        // segments
+        for(let i=0;i<_NJG_SEGS;i++){
+          const a0=((i*45)-90+rot)*Math.PI/180;
+          const a1=(((i+1)*45)-90+rot)*Math.PI/180;
+          const win=_NJG_WIN.has(i);
+          ctx.beginPath();
+          ctx.moveTo(cx,cy);
+          ctx.arc(cx,cy,r,a0,a1);
+          ctx.closePath();
+          // alternating shades for visual separation
+          if(win){
+            ctx.fillStyle = i===0?'#052e16':'#14532d';
+          } else {
+            ctx.fillStyle = i%2===0?'#450a0a':'#3b0d0d';
+          }
+          ctx.fill();
+          ctx.strokeStyle='#0f0f1a';
+          ctx.lineWidth=1.5;
+          ctx.stroke();
+        }
+
+        // labels
+        for(let i=0;i<_NJG_SEGS;i++){
+          const mid=((i+0.5)*45-90+rot)*Math.PI/180;
+          const win=_NJG_WIN.has(i);
+          const lr=r*0.64;
+          ctx.save();
+          ctx.translate(cx+Math.cos(mid)*lr, cy+Math.sin(mid)*lr);
+          ctx.rotate(mid+Math.PI/2);
+          ctx.textAlign='center';
+          ctx.textBaseline='middle';
+          if(win){
+            ctx.font='bold 13px Inter,sans-serif';
+            ctx.fillStyle='#4ade80';
+            ctx.shadowColor='#22c55e';
+            ctx.shadowBlur=8;
+            ctx.fillText('WIN',0,-1);
+            ctx.font='bold 10px Inter,sans-serif';
+            ctx.fillText('🏆',0,10);
+          } else {
+            ctx.font='bold 10px Inter,sans-serif';
+            ctx.fillStyle='#f87171';
+            ctx.shadowBlur=0;
+            ctx.fillText('LOSE',0,0);
+          }
+          ctx.restore();
+        }
+
+        // rim
+        ctx.beginPath();
+        ctx.arc(cx,cy,r,0,Math.PI*2);
+        ctx.strokeStyle='#374151';
+        ctx.lineWidth=3;
+        ctx.stroke();
+
+        // center hub
+        const hg=ctx.createRadialGradient(cx,cy,0,cx,cy,22);
+        hg.addColorStop(0,'#2a1a5e');
+        hg.addColorStop(1,'#0f0f1a');
+        ctx.beginPath();
+        ctx.arc(cx,cy,22,0,Math.PI*2);
+        ctx.fillStyle=hg;
+        ctx.fill();
+        ctx.strokeStyle='#7c3aed';
+        ctx.lineWidth=2.5;
+        ctx.stroke();
+        ctx.fillStyle='#a78bfa';
+        ctx.font='15px Arial';
+        ctx.textAlign='center';
+        ctx.textBaseline='middle';
+        ctx.fillText('🎰',cx,cy);
+
+        // pointer triangle at top
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(cx, cy-r-4);
+        ctx.lineTo(cx-11, cy-r+12);
+        ctx.lineTo(cx+11, cy-r+12);
+        ctx.closePath();
+        ctx.fillStyle='#fbbf24';
+        ctx.shadowColor='#fbbf24';
+        ctx.shadowBlur=12;
+        ctx.fill();
+        ctx.restore();
+      }
+
+      function _njgConfetti() {
+        let cv=document.getElementById('nj-confetti-canvas');
+        if(!cv){
+          cv=document.createElement('canvas');
+          cv.id='nj-confetti-canvas';
+          cv.style.cssText='position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:99999;';
+          document.body.appendChild(cv);
+        }
+        cv.width=window.innerWidth; cv.height=window.innerHeight;
+        const ctx=cv.getContext('2d');
+        const cols=['#fbbf24','#22c55e','#7c3aed','#ef4444','#60a5fa','#f472b6','#34d399','#fb923c','#e879f9','#38bdf8'];
+        // burst from center-top of screen + random spread
+        const pts=Array.from({length:200},()=>({
+          x:cv.width/2+(Math.random()-0.5)*cv.width*0.6,
+          y:-20-Math.random()*60,
+          vx:(Math.random()-0.5)*10,
+          vy:1+Math.random()*8,
+          w:6+Math.random()*14, h:4+Math.random()*8,
+          rot:Math.random()*360, rv:(Math.random()-0.5)*14,
+          col:cols[Math.floor(Math.random()*cols.length)],
+          life:1
+        }));
+        let raf;
+        function tick(){
+          ctx.clearRect(0,0,cv.width,cv.height);
+          let alive=false;
+          pts.forEach(p=>{
+            p.x+=p.vx; p.y+=p.vy; p.vy+=0.09; p.rot+=p.rv;
+            if(p.y>cv.height*0.85) p.life-=0.018;
+            if(p.life>0){
+              alive=true;
+              ctx.save();
+              ctx.globalAlpha=Math.max(0,p.life);
+              ctx.translate(p.x,p.y);
+              ctx.rotate(p.rot*Math.PI/180);
+              ctx.fillStyle=p.col;
+              ctx.fillRect(-p.w/2,-p.h/2,p.w,p.h);
+              ctx.restore();
+            }
+          });
+          if(alive){ raf=requestAnimationFrame(tick); }
+          else { ctx.clearRect(0,0,cv.width,cv.height); }
+        }
+        raf=requestAnimationFrame(tick);
+        setTimeout(()=>{ cancelAnimationFrame(raf); ctx.clearRect(0,0,cv.width,cv.height); },6000);
+      }
+
       window.njDoGamble = async function() {
         if (!njUser) return;
         const bet = parseInt(document.getElementById('nj-gamble-bet-input').value);
         const resEl = document.getElementById('nj-gamble-result');
         const btn = document.getElementById('nj-gamble-btn');
-        if (!bet || bet < 1) { resEl.style.display='block'; resEl.style.background='#1f0000'; resEl.style.color='#f87171'; resEl.textContent='Enter a valid bet amount!'; return; }
-        if (bet > njCoins) { resEl.style.display='block'; resEl.style.background='#1f0000'; resEl.style.color='#f87171'; resEl.textContent="You don't have enough coins!"; return; }
-        btn.disabled = true; btn.textContent = '🎲 Rolling…';
-        resEl.style.display = 'none';
-        await new Promise(r => setTimeout(r, 900)); // suspense delay
-        const win = Math.random() < 0.25; // 25% win rate
-        try {
-          if (win) {
-            await runTransaction(ref(njDb,`njsgames/users/${njUser}/coins`), c => (c||0) + bet);
-            njCoins += bet;
-          } else {
-            await runTransaction(ref(njDb,`njsgames/users/${njUser}/coins`), c => Math.max(0, (c||0) - bet));
-            njCoins = Math.max(0, njCoins - bet);
-          }
-          set(ref(njDb,`njsgames/leaderboard/coins-alltime/${njUser}`), njCoins);
-          updateHdrStats();
-        } catch(e) { btn.disabled=false; btn.textContent='🎲 Double or Nothing'; alert('Error: ' + e.message); return; }
-        resEl.style.display = 'block';
-        if (win) {
-          resEl.style.background = '#0a2a0a'; resEl.style.color = '#4ade80';
-          resEl.textContent = `🎉 YOU WON! +${bet} 🪙 — Balance: ${njCoins} 🪙`;
-        } else {
-          resEl.style.background = '#1f0000'; resEl.style.color = '#f87171';
-          resEl.textContent = `💀 YOU LOST ${bet} 🪙 — Balance: ${njCoins} 🪙`;
+        if (!bet || bet < 1) {
+          resEl.style.display='block'; resEl.style.background='#1f0000'; resEl.style.border='1px solid #7f1d1d';
+          resEl.style.color='#f87171'; resEl.innerHTML='Enter a valid bet amount!'; return;
         }
-        document.getElementById('nj-gamble-balance').textContent = njCoins + ' 🪙';
-        btn.disabled = false; btn.textContent = '🎲 Double or Nothing';
+        if (bet > njCoins) {
+          resEl.style.display='block'; resEl.style.background='#1f0000'; resEl.style.border='1px solid #7f1d1d';
+          resEl.style.color='#f87171'; resEl.innerHTML="You don't have enough coins!"; return;
+        }
+
+        btn.disabled=true;
+        resEl.style.display='none';
+        document.getElementById('nj-gamble-bet-section').style.display='none';
+        document.getElementById('nj-gamble-wheel-section').style.display='block';
+        document.getElementById('nj-gamble-spin-label').textContent='🎯 Spinning…';
+        _njgDraw(0); // initial render
+
+        const win = Math.random() < 0.25;
+        const fullSpins = 6 + Math.floor(Math.random()*3); // 6–8 full rotations
+
+        // ── Target angle calculation ──
+        // rot mod 360 determines which segment is at pointer:
+        //   seg = floor(((-rot%360+360)%360)/45)
+        // WIN at seg 0:  rot mod 360 ∈ (315,360]  center=337.5°
+        // WIN at seg 4:  rot mod 360 ∈ (135,180]  center=157.5°
+        // LOSE near-miss: stop rot mod 360 ≈ 313° → pointer at 47° → seg 1 LOSE (2° past WIN boundary)
+        let targetRot;
+        if (win) {
+          const seg4 = Math.random()<0.5;
+          const center = seg4 ? 157.5 : 337.5;
+          const jitter = (Math.random()-0.5)*28; // stay comfortably inside WIN zone
+          targetRot = fullSpins*360 + center + jitter;
+        } else {
+          // Near-miss: land 2–7° into LOSE right after WIN boundary (315°)
+          const nearMiss = 2 + Math.random()*5;
+          targetRot = fullSpins*360 + (315 - nearMiss);
+          // rot mod 360 = 315-nearMiss → pointer at 360-(315-nearMiss)=45+nearMiss → seg 1 = LOSE ✓
+        }
+
+        // ── Spin animation ──
+        await new Promise(resolve=>{
+          const dur = win ? 4200 : 4800; // loss gets extra slow-crawl time
+          const t0 = performance.now();
+
+          function ease(t){
+            if(!win && t>0.72){
+              // Extra dramatic near-miss deceleration in final 28%
+              const sub=(t-0.72)/0.28;
+              const base=1-Math.pow(1-0.72,5);
+              return base+(1-base)*(1-Math.pow(1-sub,6));
+            }
+            return 1-Math.pow(1-t,4); // quartic ease-out
+          }
+
+          function frame(now){
+            const t=Math.min((now-t0)/dur,1);
+            _njgDraw(targetRot*ease(t));
+            if(t<1){ requestAnimationFrame(frame); } else { resolve(); }
+          }
+          requestAnimationFrame(frame);
+        });
+
+        // ── Firebase update ──
+        try {
+          if(win){
+            await runTransaction(ref(njDb,`njsgames/users/${njUser}/coins`),c=>(c||0)+bet);
+            njCoins+=bet;
+          } else {
+            await runTransaction(ref(njDb,`njsgames/users/${njUser}/coins`),c=>Math.max(0,(c||0)-bet));
+            njCoins=Math.max(0,njCoins-bet);
+          }
+          set(ref(njDb,`njsgames/leaderboard/coins-alltime/${njUser}`),njCoins);
+          updateHdrStats();
+        } catch(e){
+          btn.disabled=false; btn.textContent='🎲 Spin the Wheel!';
+          document.getElementById('nj-gamble-wheel-section').style.display='none';
+          document.getElementById('nj-gamble-bet-section').style.display='block';
+          alert('Error: '+e.message); return;
+        }
+
+        // ── Show result ──
+        document.getElementById('nj-gamble-wheel-section').style.display='none';
+        document.getElementById('nj-gamble-bet-section').style.display='block';
+        document.getElementById('nj-gamble-balance').textContent=njCoins+' 🪙';
+        resEl.style.display='block';
+
+        if(win){
+          resEl.style.background='#052e16';
+          resEl.style.border='1px solid #166534';
+          resEl.style.color='#4ade80';
+          resEl.innerHTML='<div style="font-size:32px;margin-bottom:4px">🎉🎊🎉</div><div style="font-size:17px;font-weight:800;letter-spacing:.5px">YOU WON!</div><div style="font-size:13px;margin-top:6px;color:#86efac">+'+bet+' 🪙 &nbsp;→&nbsp; Balance: '+njCoins+' 🪙</div>';
+          _njgConfetti();
+        } else {
+          resEl.style.background='#1f0000';
+          resEl.style.border='1px solid #7f1d1d';
+          resEl.style.color='#f87171';
+          resEl.innerHTML='<div style="font-size:28px;margin-bottom:4px">💀</div><div style="font-size:16px;font-weight:800">SO CLOSE!</div><div style="font-size:12px;margin-top:5px;color:#9ca3af">Lost '+bet+' 🪙 &nbsp;·&nbsp; Balance: '+njCoins+' 🪙</div>';
+        }
+
+        btn.disabled=false;
+        btn.textContent='🎲 Spin Again';
       };
 
       // ── Redeem Codes ──
@@ -5558,32 +5793,42 @@
     <!-- ═══════════════════════════════════════════════════════════
          GAMBLING CENTER — Double or Nothing (25% win rate)
          ═══════════════════════════════════════════════════════════ -->
-    <div id="nj-gamble-overlay" style="display:none;position:fixed;inset:0;z-index:10040;background:rgba(0,0,0,0.9);align-items:center;justify-content:center;backdrop-filter:blur(6px);">
-      <div style="background:#0f0f1a;border:2px solid #dc2626;border-radius:20px;width:90%;max-width:420px;padding:28px 24px;text-align:center;font-family:'Inter',sans-serif;position:relative">
-        <button onclick="document.getElementById('nj-gamble-overlay').style.display='none'" style="position:absolute;top:14px;right:18px;background:none;border:none;color:#6b7280;font-size:20px;cursor:pointer">✕</button>
-        <div style="font-size:48px;margin-bottom:8px">🎰</div>
-        <div style="color:#fff;font-weight:800;font-size:20px;margin-bottom:4px">Gambling Center</div>
-        <div style="color:#6b7280;font-size:12px;margin-bottom:20px">Double or Nothing — 25% chance to win</div>
-        <div style="background:#1a1a2e;border:1px solid #2a2a4a;border-radius:12px;padding:14px;margin-bottom:18px">
-          <div style="color:#6b7280;font-size:11px;margin-bottom:4px">YOUR BALANCE</div>
-          <div id="nj-gamble-balance" style="color:#fbbf24;font-size:28px;font-weight:800">0 🪙</div>
+    <div id="nj-gamble-overlay" style="display:none;position:fixed;inset:0;z-index:10040;background:rgba(0,0,0,0.92);align-items:center;justify-content:center;backdrop-filter:blur(8px);">
+      <div style="background:#0f0f1a;border:2px solid #dc2626;border-radius:20px;width:90%;max-width:420px;padding:24px 22px;text-align:center;font-family:'Inter',sans-serif;position:relative;max-height:95vh;overflow-y:auto">
+        <button onclick="document.getElementById('nj-gamble-overlay').style.display='none'" style="position:absolute;top:14px;right:18px;background:none;border:none;color:#6b7280;font-size:20px;cursor:pointer;z-index:1">✕</button>
+        <div style="font-size:42px;margin-bottom:6px">🎰</div>
+        <div style="color:#fff;font-weight:800;font-size:19px;margin-bottom:3px">Gambling Center</div>
+        <div style="color:#6b7280;font-size:12px;margin-bottom:16px">Spin the wheel — 25% chance to win</div>
+        <div style="background:#1a1a2e;border:1px solid #2a2a4a;border-radius:12px;padding:12px;margin-bottom:16px">
+          <div style="color:#6b7280;font-size:11px;margin-bottom:3px">YOUR BALANCE</div>
+          <div id="nj-gamble-balance" style="color:#fbbf24;font-size:26px;font-weight:800">0 🪙</div>
         </div>
-        <div style="margin-bottom:18px">
-          <div style="color:#9ca3af;font-size:12px;font-weight:700;margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">Bet Amount</div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-bottom:10px">
-            <button class="nj-gamble-preset" onclick="njGambleSetBet(10)">10</button>
-            <button class="nj-gamble-preset" onclick="njGambleSetBet(25)">25</button>
-            <button class="nj-gamble-preset" onclick="njGambleSetBet(50)">50</button>
-            <button class="nj-gamble-preset" onclick="njGambleSetBet(100)">100</button>
-            <button class="nj-gamble-preset" onclick="njGambleSetBet(250)">250</button>
-            <button class="nj-gamble-preset" onclick="njGambleSetBet(500)">500</button>
-            <button class="nj-gamble-preset" onclick="njGambleSetBetHalf()">½</button>
-            <button class="nj-gamble-preset" onclick="njGambleSetBetAll()">ALL IN</button>
+        <!-- Wheel shown during spin -->
+        <div id="nj-gamble-wheel-section" style="display:none;margin-bottom:16px;">
+          <div id="nj-gamble-spin-label" style="color:#a78bfa;font-size:12px;font-weight:700;margin-bottom:10px;text-transform:uppercase;letter-spacing:.6px;animation:njPulse 0.8s ease-in-out infinite">🎯 Spinning…</div>
+          <div style="position:relative;display:inline-block;">
+            <canvas id="nj-gamble-canvas" width="260" height="260" style="max-width:100%;display:block;margin:0 auto;"></canvas>
           </div>
-          <input id="nj-gamble-bet-input" type="number" min="1" placeholder="Custom amount…" style="background:#1a1a2e;border:1px solid #3a3a5a;border-radius:8px;padding:8px 12px;color:#fbbf24;font-size:14px;font-weight:700;text-align:center;outline:none;width:140px"/>
         </div>
-        <div id="nj-gamble-result" style="display:none;margin-bottom:16px;padding:14px;border-radius:12px;font-size:15px;font-weight:700"></div>
-        <button id="nj-gamble-btn" onclick="njDoGamble()" style="background:linear-gradient(135deg,#dc2626,#991b1b);border:none;border-radius:12px;color:#fff;font-size:15px;font-weight:800;padding:13px 0;cursor:pointer;width:100%;box-shadow:0 4px 18px rgba(220,38,38,0.4);transition:all .2s">🎲 Double or Nothing</button>
+        <!-- Bet section shown at rest -->
+        <div id="nj-gamble-bet-section">
+          <div style="margin-bottom:16px">
+            <div style="color:#9ca3af;font-size:12px;font-weight:700;margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">Bet Amount</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-bottom:10px">
+              <button class="nj-gamble-preset" onclick="njGambleSetBet(10)">10</button>
+              <button class="nj-gamble-preset" onclick="njGambleSetBet(25)">25</button>
+              <button class="nj-gamble-preset" onclick="njGambleSetBet(50)">50</button>
+              <button class="nj-gamble-preset" onclick="njGambleSetBet(100)">100</button>
+              <button class="nj-gamble-preset" onclick="njGambleSetBet(250)">250</button>
+              <button class="nj-gamble-preset" onclick="njGambleSetBet(500)">500</button>
+              <button class="nj-gamble-preset" onclick="njGambleSetBetHalf()">½</button>
+              <button class="nj-gamble-preset" onclick="njGambleSetBetAll()">ALL IN</button>
+            </div>
+            <input id="nj-gamble-bet-input" type="number" min="1" placeholder="Custom amount…" style="background:#1a1a2e;border:1px solid #3a3a5a;border-radius:8px;padding:8px 12px;color:#fbbf24;font-size:14px;font-weight:700;text-align:center;outline:none;width:140px"/>
+          </div>
+        </div>
+        <div id="nj-gamble-result" style="display:none;margin-bottom:14px;padding:14px;border-radius:12px;font-size:15px;font-weight:700;border:1px solid transparent"></div>
+        <button id="nj-gamble-btn" onclick="njDoGamble()" style="background:linear-gradient(135deg,#dc2626,#991b1b);border:none;border-radius:12px;color:#fff;font-size:15px;font-weight:800;padding:13px 0;cursor:pointer;width:100%;box-shadow:0 4px 18px rgba(220,38,38,0.4);transition:all .2s">🎲 Spin the Wheel!</button>
         <div style="color:#4b5563;font-size:11px;margin-top:12px;line-height:1.5">Win: your bet ×2 &nbsp;|&nbsp; Lose: lose your bet<br/>Odds: 25% win / 75% lose &nbsp;|&nbsp; Minimum bet: 1 🪙</div>
       </div>
     </div>
