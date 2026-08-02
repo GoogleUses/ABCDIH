@@ -3983,14 +3983,17 @@
         });
 
         // ── Firebase update ──
+        // Use TransactionResult.snapshot as the single source of truth so the
+        // onValue listener and the manual njCoins update can't race/double-apply.
         try {
+          let result;
           if(win){
-            await runTransaction(ref(njDb,`njsgames/users/${njUser}/coins`),c=>(c||0)+bet);
-            njCoins+=bet;
+            result = await runTransaction(ref(njDb,`njsgames/users/${njUser}/coins`),c=>(c||0)+bet);
           } else {
-            await runTransaction(ref(njDb,`njsgames/users/${njUser}/coins`),c=>Math.max(0,(c||0)-bet));
-            njCoins=Math.max(0,njCoins-bet);
+            result = await runTransaction(ref(njDb,`njsgames/users/${njUser}/coins`),c=>Math.max(0,(c||0)-bet));
           }
+          // Committed value straight from Firebase — no guessing, no race
+          njCoins = result.snapshot.val() || 0;
           set(ref(njDb,`njsgames/leaderboard/coins-alltime/${njUser}`),njCoins);
           updateHdrStats();
         } catch(e){
@@ -4321,6 +4324,27 @@
             updChallenge('stay_active',Math.floor(_stayActiveTodaySecs/60));
           }
         },15000);
+
+        // ── Active-presence coin reward ──
+        // Award 2 🪙 every 60 seconds while the user is actively on the page.
+        // If _ptActive is false (AFK — no mouse/key/touch for 60s, or tab hidden),
+        // the tick is silently skipped; no coins, no kick.
+        let _activeCoinTimer=0;
+        setInterval(async()=>{
+          if(!njUser||document.hidden||!_ptActive)return;
+          _activeCoinTimer++;
+          const result=await runTransaction(
+            ref(njDb,`njsgames/users/${njUser}/coins`),
+            c=>(c||0)+2
+          );
+          njCoins=result.snapshot.val()||0;
+          set(ref(njDb,`njsgames/leaderboard/coins-alltime/${njUser}`),njCoins);
+          updateHdrStats();
+          // Subtle toast every 5 ticks (5 min) so it doesn't spam
+          if(_activeCoinTimer%5===0){
+            showToast('⏱️ +10 🪙 — active bonus (5 min)');
+          }
+        },60000);
       }
 
       // ── Challenge progress ──
