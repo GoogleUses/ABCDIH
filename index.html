@@ -3343,6 +3343,7 @@
         <button onclick="njCloseUnblocker()" style="background:#1a1a2e;border:1px solid #2a2a4a;border-radius:8px;color:#9ca3af;font-size:13px;font-weight:600;padding:7px 14px;cursor:pointer;">← Back</button>
         <span style="font-size:17px;font-weight:800;background:linear-gradient(135deg,#a78bfa,#7c3aed);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">🌐 Unblocker</span>
       </div>
+      <div id="nj-unblocker-notice" style="display:flex;align-items:flex-start;gap:12px;background:#1a1200;border-bottom:2px solid #f59e0b;padding:12px 20px;flex-shrink:0;"><span style="font-size:20px;flex-shrink:0">⚠️</span><div style="flex:1"><div style="color:#fbbf24;font-weight:700;font-size:13px;margin-bottom:3px">Heads up — type the full site address!</div><div style="color:#d1a84b;font-size:12px;line-height:1.6">Type the full address to avoid being flagged as a bot. For example: want YouTube? Type <code style="background:#2a1e00;padding:1px 5px;border-radius:4px;color:#fde68a">youtube.com</code> — want Discord? Type <code style="background:#2a1e00;padding:1px 5px;border-radius:4px;color:#fde68a">discord.com</code>. Always use the domain, not a search term.</div></div><button onclick="document.getElementById('nj-unblocker-notice').style.display='none'" style="background:none;border:none;color:#6b7280;font-size:18px;cursor:pointer;flex-shrink:0;line-height:1">✕</button></div>
       <iframe id="nj-unblocker-frame" src="about:blank" allow="autoplay" style="flex:1;border:none;width:100%;height:100%;"></iframe>
     </div>
 
@@ -3753,6 +3754,7 @@
       // ── Gambling Center ──
       window.njOpenGamble = function() {
         if (!njUser) { alert("You need to be signed in to gamble!"); return; }
+        updatePresenceGame({name:'🎰 Gambling',thumb:null});
         document.getElementById('nj-gamble-balance').textContent = njCoins + ' 🪙';
         document.getElementById('nj-gamble-result').style.display = 'none';
         document.getElementById('nj-gamble-bet-input').value = '';
@@ -4042,6 +4044,7 @@
         document.getElementById('nj-code-result').style.display = 'none';
         document.getElementById('nj-codes-overlay').style.display = 'flex';
         setTimeout(() => document.getElementById('nj-code-input').focus(), 50);
+        updatePresenceGame({name:'🎟️ Redeeming Code',thumb:null});
       };
       document.addEventListener('keydown', e => {
         if (e.key === 'Enter' && document.getElementById('nj-codes-overlay')?.style.display === 'flex') njRedeemCode();
@@ -4495,8 +4498,9 @@
       window.njOpenLeaderboard=function(){
         njLbTab('pt');
         document.getElementById('nj-lb-overlay').style.display='flex';
+        updatePresenceGame({name:'🏆 Viewing Leaderboard',thumb:null});
       };
-      window.njCloseLeaderboard=function(){ document.getElementById('nj-lb-overlay').style.display='none'; };
+      window.njCloseLeaderboard=function(){ document.getElementById('nj-lb-overlay').style.display='none'; updatePresenceGame(null); };
       async function loadLeaderboard(){
         const wk=weekKey(), mk=monthKey(), yk=yearKey();
         const labels={pt:'Week '+wk, xp:'Week '+wk, monthly:'Cycle '+mk, yearly:'Year '+yk, coins:'All-time'};
@@ -4544,27 +4548,34 @@
         document.getElementById('nj-shop-overlay').style.display='flex';
         document.getElementById('nj-shop-balance').textContent=njCoins.toLocaleString();
         renderShop();
+        updatePresenceGame({name:'🛒 Browsing Shop',thumb:null});
       };
-      window.njCloseShop=function(){ document.getElementById('nj-shop-overlay').style.display='none'; };
-      window.njOpenSettings=function(){ document.getElementById('nj-settings-overlay').style.display='flex'; _njStTab='bg'; var bgBtn=document.getElementById('nj-stab-bg'); var rsBtn=document.getElementById('nj-stab-reset'); var lgBtn=document.getElementById('nj-stab-log'); var footer=document.getElementById('nj-settings-footer'); if(bgBtn){bgBtn.style.background='#7c3aed';bgBtn.style.color='#fff';bgBtn.style.borderBottom='2px solid #a78bfa';} if(rsBtn){rsBtn.style.background='none';rsBtn.style.color='#6b7280';rsBtn.style.borderBottom='2px solid transparent';} if(lgBtn){lgBtn.style.background='none';lgBtn.style.color='#6b7280';lgBtn.style.borderBottom='2px solid transparent';} if(footer)footer.style.display='block'; var cnt=document.getElementById('nj-settings-content'); if(cnt&&!document.getElementById('nj-settings-grid'))cnt.innerHTML='<div id="nj-settings-grid" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;"></div>'; renderSettings(); };
-      window.njCloseSettings=function(){ document.getElementById('nj-settings-overlay').style.display='none'; };
+      window.njCloseShop=function(){ document.getElementById('nj-shop-overlay').style.display='none'; updatePresenceGame(null); };
+      window.njOpenSettings=function(){ document.getElementById('nj-settings-overlay').style.display='flex'; updatePresenceGame({name:'⚙️ In Settings',thumb:null}); _njStTab='bg'; var bgBtn=document.getElementById('nj-stab-bg'); var rsBtn=document.getElementById('nj-stab-reset'); var lgBtn=document.getElementById('nj-stab-log'); var footer=document.getElementById('nj-settings-footer'); if(bgBtn){bgBtn.style.background='#7c3aed';bgBtn.style.color='#fff';bgBtn.style.borderBottom='2px solid #a78bfa';} if(rsBtn){rsBtn.style.background='none';rsBtn.style.color='#6b7280';rsBtn.style.borderBottom='2px solid transparent';} if(lgBtn){lgBtn.style.background='none';lgBtn.style.color='#6b7280';lgBtn.style.borderBottom='2px solid transparent';} if(footer)footer.style.display='block'; var cnt=document.getElementById('nj-settings-content'); if(cnt&&!document.getElementById('nj-settings-grid'))cnt.innerHTML='<div id="nj-settings-grid" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;"></div>'; renderSettings(); };
+      window.njCloseSettings=function(){ document.getElementById('nj-settings-overlay').style.display='none'; updatePresenceGame(null); };
       window.njOpenSoundboard=function(){
         const ov=document.getElementById('nj-soundboard-overlay');
         ov.style.display='flex';
         const fr=document.getElementById('nj-soundboard-frame');
         if(!fr.src||fr.src==='about:blank')fr.src='https://voicechanger.easeus.com/soundboards';
+        updatePresenceGame({name:'🎵 Using Soundboard',thumb:null});
       };
       window.njCloseSoundboard=function(){
         document.getElementById('nj-soundboard-overlay').style.display='none';
+        updatePresenceGame(null);
       };
       window.njOpenUnblocker=function(){
         const ov=document.getElementById('nj-unblocker-overlay');
         ov.style.display='flex';
+        const notice=document.getElementById('nj-unblocker-notice');
+        if(notice)notice.style.display='flex';
         const fr=document.getElementById('nj-unblocker-frame');
         if(!fr.src||fr.src==='about:blank')fr.src='https://abcdih.fluxus.org/';
+        updatePresenceGame({name:'🌐 Using Unblocker',thumb:null});
       };
       window.njCloseUnblocker=function(){
         document.getElementById('nj-unblocker-overlay').style.display='none';
+        updatePresenceGame(null);
       };
       let _njStTab='bg';
       window.njSettingsTab=function(tab){
@@ -4732,8 +4743,8 @@
       };
 
       // ── Challenges ──
-      window.njOpenChallenges=async function(){ document.getElementById('nj-challenges-overlay').style.display='flex'; await loadChallenges(); };
-      window.njCloseChallenges=function(){ document.getElementById('nj-challenges-overlay').style.display='none'; };
+      window.njOpenChallenges=async function(){ document.getElementById('nj-challenges-overlay').style.display='flex'; await loadChallenges(); updatePresenceGame({name:'⚡ Doing Challenges',thumb:null}); };
+      window.njCloseChallenges=function(){ document.getElementById('nj-challenges-overlay').style.display='none'; updatePresenceGame(null); };
       async function loadChallenges(){
         const chs=getDailyChallenges(), td=todayKey();
         const list=document.getElementById('nj-ch-list');
@@ -4770,13 +4781,14 @@
       window.njOpenProfile=async function(){
         document.getElementById('nj-profile-overlay').style.display='flex';
         await loadProfile(null);
+        updatePresenceGame({name:'👤 Viewing Profile',thumb:null});
       };
       window.njViewProfile=async function(username){
         if(!username||username===njUser){ window.njOpenProfile(); return; }
         document.getElementById('nj-profile-overlay').style.display='flex';
         await loadProfile(username);
       };
-      window.njCloseProfile=function(){ document.getElementById('nj-profile-overlay').style.display='none'; };
+      window.njCloseProfile=function(){ document.getElementById('nj-profile-overlay').style.display='none'; updatePresenceGame(null); };
 
 
       async function loadProfile(targetUser){
@@ -5131,6 +5143,7 @@
         _drawWheel(); _updateSpinTimer();
         clearInterval(window._spinTimerInt);
         window._spinTimerInt=setInterval(_updateSpinTimer,1000);
+        updatePresenceGame({name:'🎡 Spinning the Wheel',thumb:null});
       };
 
       window.njDoSpin = function(){
