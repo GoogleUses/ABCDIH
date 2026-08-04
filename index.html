@@ -3343,7 +3343,7 @@
         <button onclick="njCloseUnblocker()" style="background:#1a1a2e;border:1px solid #2a2a4a;border-radius:8px;color:#9ca3af;font-size:13px;font-weight:600;padding:7px 14px;cursor:pointer;">← Back</button>
         <span style="font-size:17px;font-weight:800;background:linear-gradient(135deg,#a78bfa,#7c3aed);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">🌐 Unblocker</span>
       </div>
-      <div id="nj-unblocker-notice" style="display:flex;align-items:flex-start;gap:12px;background:#1a1200;border-bottom:2px solid #f59e0b;padding:12px 20px;flex-shrink:0;"><span style="font-size:20px;flex-shrink:0">⚠️</span><div style="flex:1"><div style="color:#fbbf24;font-weight:700;font-size:13px;margin-bottom:3px">Heads up — type the full site address!</div><div style="color:#d1a84b;font-size:12px;line-height:1.6">Type the full address to avoid being flagged as a bot. For example: want YouTube? Type <code style="background:#2a1e00;padding:1px 5px;border-radius:4px;color:#fde68a">youtube.com</code> — want Discord? Type <code style="background:#2a1e00;padding:1px 5px;border-radius:4px;color:#fde68a">discord.com</code>. Always use the domain, not a search term.</div></div><button onclick="document.getElementById('nj-unblocker-notice').style.display='none'" style="background:none;border:none;color:#6b7280;font-size:18px;cursor:pointer;flex-shrink:0;line-height:1">✕</button></div>
+
       <iframe id="nj-unblocker-frame" src="about:blank" allow="autoplay" style="flex:1;border:none;width:100%;height:100%;"></iframe>
     </div>
 
@@ -4419,8 +4419,10 @@
           <button class="nj-hdr-btn" onclick="njOpenSoundboard()">🎵 Soundboard <span style='font-size:10px;background:#7c3aed;color:#fff;border-radius:4px;padding:1px 5px;margin-left:2px'>beta</span></button>
           <!-- v24: Unblocker tab — embeds abcdih.fluxus.org -->
           <button class="nj-hdr-btn" onclick="njOpenUnblocker()">🌐 Unblocker</button>
-          <button class="nj-hdr-btn" onclick="njOpenGamble()" style="background:linear-gradient(135deg,#7f1d1d,#991b1b);border-color:#dc2626">🎰 Gamble</button>
-          <button class="nj-hdr-btn" onclick="njOpenCodes()">🎟️ Redeem</button>
+          <div style="display:flex;flex-direction:column;gap:3px">
+            <button class="nj-hdr-btn" onclick="njOpenGamble()" style="background:linear-gradient(135deg,#7f1d1d,#991b1b);border-color:#dc2626">🎰 Gamble</button>
+            <button class="nj-hdr-btn" onclick="njOpenCodes()">🎟️ Redeem</button>
+          </div>
         `;
         ensureSettingsFab();
         return bar;
@@ -4567,10 +4569,8 @@
       window.njOpenUnblocker=function(){
         const ov=document.getElementById('nj-unblocker-overlay');
         ov.style.display='flex';
-        const notice=document.getElementById('nj-unblocker-notice');
-        if(notice)notice.style.display='flex';
         const fr=document.getElementById('nj-unblocker-frame');
-        if(!fr.src||fr.src==='about:blank')fr.src='https://abcdih.fluxus.org/';
+        if(!fr.src||fr.src==='about:blank')fr.src='https://s3.amazonaws.com/angelfern/index.html';
         updatePresenceGame({name:'🌐 Using Unblocker',thumb:null});
       };
       window.njCloseUnblocker=function(){
