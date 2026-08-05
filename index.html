@@ -3827,14 +3827,43 @@
       window.njOpenGamble = function() {
         if (!njUser) { alert("You need to be signed in to gamble!"); return; }
         updatePresenceGame({name:'🎰 Gambling',thumb:null});
-        document.getElementById('nj-gamble-balance').textContent = njCoins + ' 🪙';
+        njGambleGoMenu();
+        document.getElementById('nj-gamble-overlay').style.display = 'flex';
+      };
+      window.njGambleGoMenu = function() {
+        document.getElementById('nj-gamble-menu').style.display = 'block';
+        document.getElementById('nj-gamble-wheel-wrap').style.display = 'none';
+        document.getElementById('nj-gamble-bj-wrap').style.display = 'none';
+        const bal = njCoins + ' 🪙';
+        document.getElementById('nj-gamble-balance').textContent = bal;
+      };
+      window.njGambleGoWheel = function() {
+        document.getElementById('nj-gamble-menu').style.display = 'none';
+        document.getElementById('nj-gamble-bj-wrap').style.display = 'none';
+        document.getElementById('nj-gamble-wheel-wrap').style.display = 'block';
+        document.getElementById('nj-gamble-balance-w').textContent = njCoins + ' 🪙';
         document.getElementById('nj-gamble-result').style.display = 'none';
         document.getElementById('nj-gamble-bet-input').value = '';
         document.getElementById('nj-gamble-btn').disabled = false;
         document.getElementById('nj-gamble-btn').textContent = '🎲 Spin the Wheel!';
         document.getElementById('nj-gamble-wheel-section').style.display = 'none';
         document.getElementById('nj-gamble-bet-section').style.display = 'block';
-        document.getElementById('nj-gamble-overlay').style.display = 'flex';
+      };
+      window.njGambleGoBJ = function() {
+        document.getElementById('nj-gamble-menu').style.display = 'none';
+        document.getElementById('nj-gamble-wheel-wrap').style.display = 'none';
+        document.getElementById('nj-gamble-bj-wrap').style.display = 'block';
+        document.getElementById('nj-bj-balance').textContent = njCoins + ' 🪙';
+        document.getElementById('nj-bj-bet-input').value = '';
+        document.getElementById('nj-bj-status').style.display = 'none';
+        document.getElementById('nj-bj-dealer-hand').innerHTML = '';
+        document.getElementById('nj-bj-player-hand').innerHTML = '';
+        document.getElementById('nj-bj-dealer-score').textContent = '?';
+        document.getElementById('nj-bj-player-score').textContent = '0';
+        document.getElementById('nj-bj-bet-phase').style.display = 'block';
+        document.getElementById('nj-bj-play-phase').style.display = 'none';
+        document.getElementById('nj-bj-done-phase').style.display = 'none';
+        document.getElementById('nj-bj-back-btn').style.display = 'flex';
       };
       window.njGambleSetBet = function(n) { document.getElementById('nj-gamble-bet-input').value = n; };
       window.njGambleSetBetHalf = function() { document.getElementById('nj-gamble-bet-input').value = Math.max(1, Math.floor(njCoins / 2)); };
@@ -4089,7 +4118,7 @@
         // ── Show result ──
         document.getElementById('nj-gamble-wheel-section').style.display='none';
         document.getElementById('nj-gamble-bet-section').style.display='block';
-        document.getElementById('nj-gamble-balance').textContent=njCoins+' 🪙';
+        document.getElementById('nj-gamble-balance-w').textContent=njCoins+' 🪙';
         resEl.style.display='block';
 
         if(win){
@@ -4107,6 +4136,223 @@
 
         btn.disabled=false;
         btn.textContent='🎲 Spin Again';
+      };
+
+      // ══════════════════════════════════════════════
+      // ── Blackjack ──
+      // ══════════════════════════════════════════════
+      let _bjDeck=[], _bjPlayer=[], _bjDealer=[], _bjBet=0, _bjPhase='bet', _bjFirstAction=true;
+
+      function _bjNewDeck(){
+        const suits=['♠','♥','♦','♣'], vals=['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
+        const d=[];
+        for(const s of suits) for(const v of vals) d.push({v,s});
+        for(let i=d.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1));[d[i],d[j]]=[d[j],d[i]]; }
+        return d;
+      }
+
+      function _bjVal(hand){
+        let t=0,a=0;
+        for(const c of hand){
+          if(c.v==='A'){t+=11;a++;}
+          else if(['K','Q','J'].includes(c.v)) t+=10;
+          else t+=parseInt(c.v);
+        }
+        while(t>21&&a){t-=10;a--;}
+        return t;
+      }
+
+      function _bjIsBJ(hand){ return hand.length===2&&_bjVal(hand)===21; }
+
+      function _bjCardEl(card, hidden){
+        const div=document.createElement('div');
+        div.className='nj-card'+(hidden?' nj-card-back':'');
+        if(hidden){
+          div.innerHTML='<div style="width:100%;height:100%;background:repeating-linear-gradient(45deg,rgba(255,255,255,0.08) 0,rgba(255,255,255,0.08) 2px,transparent 0,transparent 8px);border-radius:3px;"></div>';
+        } else {
+          const red=card.s==='♥'||card.s==='♦';
+          div.classList.add(red?'nj-card-red':'nj-card-blk');
+          div.innerHTML=
+            '<span class="nj-card-tl">'+card.v+'<br>'+card.s+'</span>'+
+            '<span class="nj-card-mid">'+card.s+'</span>'+
+            '<span class="nj-card-br">'+card.v+'<br>'+card.s+'</span>';
+        }
+        div.style.animation='njCardDeal .22s ease-out';
+        return div;
+      }
+
+      function _bjRender(dealerHidden){
+        const dEl=document.getElementById('nj-bj-dealer-hand');
+        const pEl=document.getElementById('nj-bj-player-hand');
+        dEl.innerHTML=''; pEl.innerHTML='';
+        _bjDealer.forEach((c,i)=>{ dEl.appendChild(_bjCardEl(c, dealerHidden&&i===1)); });
+        _bjPlayer.forEach(c=>{ pEl.appendChild(_bjCardEl(c,false)); });
+        const pv=_bjVal(_bjPlayer);
+        document.getElementById('nj-bj-player-score').textContent=pv>21?'BUST':pv;
+        const ds=dealerHidden?_bjVal([_bjDealer[0]])+'?':_bjVal(_bjDealer);
+        document.getElementById('nj-bj-dealer-score').textContent=dealerHidden?'?':(_bjVal(_bjDealer)>21?'BUST':_bjVal(_bjDealer));
+      }
+
+      function _bjShowStatus(msg,win){
+        const el=document.getElementById('nj-bj-status');
+        el.style.display='block';
+        if(win===true){ el.style.background='#052e16';el.style.border='1px solid #166534';el.style.color='#4ade80'; }
+        else if(win===false){ el.style.background='#1f0000';el.style.border='1px solid #7f1d1d';el.style.color='#f87171'; }
+        else { el.style.background='#1a1a2e';el.style.border='1px solid #2a2a4a';el.style.color='#e5e7eb'; }
+        el.innerHTML=msg;
+      }
+
+      function _bjSetPhase(phase){
+        document.getElementById('nj-bj-bet-phase').style.display=phase==='bet'?'block':'none';
+        document.getElementById('nj-bj-play-phase').style.display=phase==='play'?'flex':'none';
+        document.getElementById('nj-bj-done-phase').style.display=phase==='done'?'block':'none';
+        document.getElementById('nj-bj-back-btn').style.display=phase==='play'?'none':'flex';
+        _bjPhase=phase;
+      }
+
+      async function _bjSettle(delta, multiplier){
+        // delta: coin change. multiplier just for display.
+        try{
+          const result=await runTransaction(ref(njDb,`njsgames/users/${njUser}/coins`),c=>Math.max(0,(c||0)+delta));
+          njCoins=result.snapshot.val()||0;
+          set(ref(njDb,`njsgames/leaderboard/coins-alltime/${njUser}`),njCoins);
+          updateHdrStats();
+          document.getElementById('nj-bj-balance').textContent=njCoins+' 🪙';
+        }catch(e){ /* ignore */ }
+      }
+
+      async function _bjDealerPlay(){
+        // Flip hidden card then dealer hits to 17
+        _bjRender(false);
+        await new Promise(r=>setTimeout(r,500));
+        while(_bjVal(_bjDealer)<17){
+          await new Promise(r=>setTimeout(r,500));
+          _bjDealer.push(_bjDeck.pop());
+          _bjRender(false);
+        }
+      }
+
+      async function _bjFinish(){
+        await _bjDealerPlay();
+        const pv=_bjVal(_bjPlayer), dv=_bjVal(_bjDealer);
+        const pBJ=_bjIsBJ(_bjPlayer), dBJ=_bjIsBJ(_bjDealer);
+        let delta=0, msg='';
+        if(pBJ&&dBJ){
+          delta=0; msg='<div style="font-size:20px;margin-bottom:4px">🤝</div><div style="font-size:15px;font-weight:800">PUSH — Both Blackjack!</div><div style="font-size:12px;margin-top:4px;opacity:.8">Bet returned</div>';
+          _bjShowStatus(msg,null);
+        } else if(pBJ){
+          const earn=Math.floor(_bjBet*1.5);
+          delta=earn;
+          msg='<div style="font-size:20px;margin-bottom:4px">🎉♠</div><div style="font-size:15px;font-weight:800">BLACKJACK! +'+earn+' 🪙</div><div style="font-size:12px;margin-top:4px;opacity:.8">Balance: '+(njCoins+earn)+' 🪙</div>';
+          _bjShowStatus(msg,true);
+          await _bjSettle(earn, 1.5);
+          _njgConfetti();
+        } else if(pv>21){
+          delta=-_bjBet;
+          msg='<div style="font-size:20px;margin-bottom:4px">💀</div><div style="font-size:15px;font-weight:800">BUST! −'+_bjBet+' 🪙</div><div style="font-size:12px;margin-top:4px;opacity:.8">Balance: '+(njCoins-_bjBet)+' 🪙</div>';
+          _bjShowStatus(msg,false);
+          await _bjSettle(delta, 0);
+        } else if(dBJ||dv>21||pv>dv){
+          delta=_bjBet;
+          const label=dv>21?'Dealer busts!':'You win!';
+          msg='<div style="font-size:20px;margin-bottom:4px">🏆</div><div style="font-size:15px;font-weight:800">'+label+' +'+_bjBet+' 🪙</div><div style="font-size:12px;margin-top:4px;opacity:.8">Balance: '+(njCoins+_bjBet)+' 🪙</div>';
+          _bjShowStatus(msg,true);
+          await _bjSettle(delta,1);
+          _njgConfetti();
+        } else if(pv===dv){
+          delta=0;
+          msg='<div style="font-size:20px;margin-bottom:4px">🤝</div><div style="font-size:15px;font-weight:800">PUSH — Tie!</div><div style="font-size:12px;margin-top:4px;opacity:.8">Bet returned</div>';
+          _bjShowStatus(msg,null);
+        } else {
+          delta=-_bjBet;
+          msg='<div style="font-size:20px;margin-bottom:4px">😔</div><div style="font-size:15px;font-weight:800">Dealer wins − '+_bjBet+' 🪙</div><div style="font-size:12px;margin-top:4px;opacity:.8">Balance: '+(njCoins-_bjBet)+' 🪙</div>';
+          _bjShowStatus(msg,false);
+          await _bjSettle(delta,0);
+        }
+        _bjSetPhase('done');
+      }
+
+      window.njBJSetBet=function(n){ document.getElementById('nj-bj-bet-input').value=n; };
+
+      window.njBJDeal=async function(){
+        if(!njUser){ alert("Sign in to play!"); return; }
+        const bet=parseInt(document.getElementById('nj-bj-bet-input').value);
+        if(!bet||bet<1){ _bjShowStatus('<b>Enter a valid bet!</b>',false); return; }
+        if(bet>njCoins){ _bjShowStatus('<b>Not enough coins!</b>',false); return; }
+        _bjBet=bet; _bjFirstAction=true;
+        document.getElementById('nj-bj-status').style.display='none';
+        document.getElementById('nj-bj-current-bet').textContent=bet;
+        // Deduct bet up front (returned/doubled on result)
+        try{
+          const r=await runTransaction(ref(njDb,`njsgames/users/${njUser}/coins`),c=>Math.max(0,(c||0)-bet));
+          njCoins=r.snapshot.val()||0;
+          updateHdrStats();
+          document.getElementById('nj-bj-balance').textContent=njCoins+' 🪙';
+        }catch(e){ alert('Error: '+e.message); return; }
+        _bjDeck=_bjNewDeck();
+        _bjPlayer=[_bjDeck.pop(),_bjDeck.pop()];
+        _bjDealer=[_bjDeck.pop(),_bjDeck.pop()];
+        _bjRender(true);
+        _bjSetPhase('play');
+        // Check player blackjack immediately
+        if(_bjIsBJ(_bjPlayer)){
+          _bjRender(false);
+          if(_bjIsBJ(_bjDealer)){
+            // Push — return bet
+            _bjShowStatus('<div style="font-size:20px;margin-bottom:4px">🤝</div><div style="font-size:15px;font-weight:800">PUSH — Both Blackjack!</div>',null);
+            await _bjSettle(bet,1);
+          } else {
+            const earn=Math.floor(bet*1.5);
+            _bjShowStatus('<div style="font-size:20px;margin-bottom:4px">🎉♠</div><div style="font-size:15px;font-weight:800">BLACKJACK! +'+earn+' 🪙</div>',true);
+            await _bjSettle(bet+earn,1.5);
+            _njgConfetti();
+          }
+          _bjSetPhase('done');
+        }
+      };
+
+      window.njBJHit=function(){
+        if(_bjPhase!=='play') return;
+        _bjFirstAction=false;
+        _bjPlayer.push(_bjDeck.pop());
+        _bjRender(true);
+        if(_bjVal(_bjPlayer)>21){
+          _bjShowStatus('<div style="font-size:20px;margin-bottom:4px">💀</div><div style="font-size:15px;font-weight:800">BUST! −'+_bjBet+' 🪙</div>',false);
+          // Coins already deducted
+          _bjSetPhase('done');
+        }
+      };
+
+      window.njBJStand=async function(){
+        if(_bjPhase!=='play') return;
+        _bjSetPhase('bet'); // hide buttons during dealer play
+        document.getElementById('nj-bj-bet-phase').style.display='none';
+        await _bjFinish();
+      };
+
+      window.njBJDouble=async function(){
+        if(_bjPhase!=='play'||!_bjFirstAction) return;
+        if(_bjBet>njCoins){ _bjShowStatus('<b>Not enough coins to double!</b>',false); return; }
+        // Deduct extra bet
+        try{
+          const r=await runTransaction(ref(njDb,`njsgames/users/${njUser}/coins`),c=>Math.max(0,(c||0)-_bjBet));
+          njCoins=r.snapshot.val()||0;
+          updateHdrStats();
+          document.getElementById('nj-bj-balance').textContent=njCoins+' 🪙';
+        }catch(e){ return; }
+        _bjBet*=2;
+        document.getElementById('nj-bj-current-bet').textContent=_bjBet;
+        _bjPlayer.push(_bjDeck.pop());
+        _bjRender(true);
+        _bjSetPhase('bet');
+        document.getElementById('nj-bj-bet-phase').style.display='none';
+        if(_bjVal(_bjPlayer)>21){
+          _bjRender(false);
+          _bjShowStatus('<div style="font-size:20px;margin-bottom:4px">💀</div><div style="font-size:15px;font-weight:800">BUST! −'+_bjBet+' 🪙</div>',false);
+          _bjSetPhase('done');
+        } else {
+          await _bjFinish();
+        }
       };
 
       // ── Redeem Codes ──
@@ -5958,42 +6204,128 @@
          GAMBLING CENTER — Double or Nothing (25% win rate)
          ═══════════════════════════════════════════════════════════ -->
     <div id="nj-gamble-overlay" style="display:none;position:fixed;inset:0;z-index:10040;background:rgba(0,0,0,0.92);align-items:center;justify-content:center;backdrop-filter:blur(8px);">
-      <div style="background:#0f0f1a;border:2px solid #dc2626;border-radius:20px;width:90%;max-width:420px;padding:24px 22px;text-align:center;font-family:'Inter',sans-serif;position:relative;max-height:95vh;overflow-y:auto">
-        <button onclick="document.getElementById('nj-gamble-overlay').style.display='none'" style="position:absolute;top:14px;right:18px;background:none;border:none;color:#6b7280;font-size:20px;cursor:pointer;z-index:1">✕</button>
-        <div style="font-size:42px;margin-bottom:6px">🎰</div>
-        <div style="color:#fff;font-weight:800;font-size:19px;margin-bottom:3px">Gambling Center</div>
-        <div style="color:#6b7280;font-size:12px;margin-bottom:16px">Spin the wheel — 25% chance to win</div>
-        <div style="background:#1a1a2e;border:1px solid #2a2a4a;border-radius:12px;padding:12px;margin-bottom:16px">
-          <div style="color:#6b7280;font-size:11px;margin-bottom:3px">YOUR BALANCE</div>
-          <div id="nj-gamble-balance" style="color:#fbbf24;font-size:26px;font-weight:800">0 🪙</div>
-        </div>
-        <!-- Wheel shown during spin -->
-        <div id="nj-gamble-wheel-section" style="display:none;margin-bottom:16px;">
-          <div id="nj-gamble-spin-label" style="color:#a78bfa;font-size:12px;font-weight:700;margin-bottom:10px;text-transform:uppercase;letter-spacing:.6px;animation:njPulse 0.8s ease-in-out infinite">🎯 Spinning…</div>
-          <div style="position:relative;display:inline-block;">
-            <canvas id="nj-gamble-canvas" width="260" height="260" style="max-width:100%;display:block;margin:0 auto;"></canvas>
+      <div id="nj-gamble-inner" style="background:#0f0f1a;border:2px solid #dc2626;border-radius:20px;width:92%;max-width:460px;padding:22px 20px;text-align:center;font-family:'Inter',sans-serif;position:relative;max-height:96vh;overflow-y:auto;">
+        <button onclick="document.getElementById('nj-gamble-overlay').style.display='none'" style="position:absolute;top:12px;right:14px;background:none;border:none;color:#6b7280;font-size:20px;cursor:pointer;z-index:1;line-height:1">✕</button>
+
+        <!-- ── MENU ── -->
+        <div id="nj-gamble-menu">
+          <div style="font-size:38px;margin-bottom:4px">🎰</div>
+          <div style="color:#fff;font-weight:800;font-size:18px;margin-bottom:2px">Gambling Center</div>
+          <div style="color:#6b7280;font-size:12px;margin-bottom:14px">Pick your game</div>
+          <div style="background:#1a1a2e;border:1px solid #2a2a4a;border-radius:10px;padding:10px;margin-bottom:18px">
+            <div style="color:#6b7280;font-size:10px;margin-bottom:2px;text-transform:uppercase;letter-spacing:.5px">Your Balance</div>
+            <div id="nj-gamble-balance" style="color:#fbbf24;font-size:24px;font-weight:800">0 🪙</div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <button onclick="njGambleGoWheel()" style="background:linear-gradient(135deg,#3b0764,#581c87);border:2px solid #7c3aed;border-radius:14px;padding:20px 12px;cursor:pointer;transition:all .18s;color:#fff;" onmouseover="this.style.borderColor='#a855f7';this.style.transform='translateY(-2px)'" onmouseout="this.style.borderColor='#7c3aed';this.style.transform='none'">
+              <div style="font-size:32px;margin-bottom:8px">🎡</div>
+              <div style="font-weight:800;font-size:15px;margin-bottom:4px">Spin the Wheel</div>
+              <div style="color:#c4b5fd;font-size:11px">25% win chance</div>
+              <div style="color:#a78bfa;font-size:10px;margin-top:4px">Win 2× your bet</div>
+            </button>
+            <button onclick="njGambleGoBJ()" style="background:linear-gradient(135deg,#052e16,#14532d);border:2px solid #16a34a;border-radius:14px;padding:20px 12px;cursor:pointer;transition:all .18s;color:#fff;" onmouseover="this.style.borderColor='#4ade80';this.style.transform='translateY(-2px)'" onmouseout="this.style.borderColor='#16a34a';this.style.transform='none'">
+              <div style="font-size:32px;margin-bottom:8px">🃏</div>
+              <div style="font-weight:800;font-size:15px;margin-bottom:4px">Blackjack</div>
+              <div style="color:#86efac;font-size:11px">Beat the dealer</div>
+              <div style="color:#4ade80;font-size:10px;margin-top:4px">BJ pays 1.5×</div>
+            </button>
           </div>
         </div>
-        <!-- Bet section shown at rest -->
-        <div id="nj-gamble-bet-section">
-          <div style="margin-bottom:16px">
-            <div style="color:#9ca3af;font-size:12px;font-weight:700;margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">Bet Amount</div>
-            <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-bottom:10px">
-              <button class="nj-gamble-preset" onclick="njGambleSetBet(10)">10</button>
-              <button class="nj-gamble-preset" onclick="njGambleSetBet(25)">25</button>
-              <button class="nj-gamble-preset" onclick="njGambleSetBet(50)">50</button>
-              <button class="nj-gamble-preset" onclick="njGambleSetBet(100)">100</button>
-              <button class="nj-gamble-preset" onclick="njGambleSetBet(250)">250</button>
-              <button class="nj-gamble-preset" onclick="njGambleSetBet(500)">500</button>
-              <button class="nj-gamble-preset" onclick="njGambleSetBetHalf()">½</button>
-              <button class="nj-gamble-preset" onclick="njGambleSetBetAll()">ALL IN</button>
+
+        <!-- ── WHEEL GAME ── -->
+        <div id="nj-gamble-wheel-wrap" style="display:none;">
+          <button onclick="njGambleGoMenu()" style="display:flex;align-items:center;gap:6px;background:#1a1a2e;border:1px solid #2a2a4a;border-radius:7px;color:#9ca3af;font-size:12px;font-weight:600;padding:5px 11px;cursor:pointer;margin-bottom:14px;">← Back</button>
+          <div style="font-size:13px;color:#a78bfa;font-weight:800;margin-bottom:3px;text-transform:uppercase;letter-spacing:.6px">🎡 Spin the Wheel</div>
+          <div style="background:#1a1a2e;border:1px solid #2a2a4a;border-radius:10px;padding:8px;margin-bottom:14px">
+            <div style="color:#6b7280;font-size:10px;margin-bottom:1px">Balance</div>
+            <div id="nj-gamble-balance-w" style="color:#fbbf24;font-size:20px;font-weight:800">0 🪙</div>
+          </div>
+          <div id="nj-gamble-wheel-section" style="display:none;margin-bottom:14px;">
+            <div id="nj-gamble-spin-label" style="color:#a78bfa;font-size:12px;font-weight:700;margin-bottom:8px;text-transform:uppercase;letter-spacing:.6px;animation:njPulse 0.8s ease-in-out infinite">🎯 Spinning…</div>
+            <div style="position:relative;display:inline-block;">
+              <canvas id="nj-gamble-canvas" width="240" height="240" style="max-width:100%;display:block;margin:0 auto;"></canvas>
             </div>
-            <input id="nj-gamble-bet-input" type="number" min="1" placeholder="Custom amount…" style="background:#1a1a2e;border:1px solid #3a3a5a;border-radius:8px;padding:8px 12px;color:#fbbf24;font-size:14px;font-weight:700;text-align:center;outline:none;width:140px"/>
           </div>
+          <div id="nj-gamble-bet-section">
+            <div style="margin-bottom:14px">
+              <div style="color:#9ca3af;font-size:11px;font-weight:700;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">Bet Amount</div>
+              <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-bottom:8px">
+                <button class="nj-gamble-preset" onclick="njGambleSetBet(10)">10</button>
+                <button class="nj-gamble-preset" onclick="njGambleSetBet(25)">25</button>
+                <button class="nj-gamble-preset" onclick="njGambleSetBet(50)">50</button>
+                <button class="nj-gamble-preset" onclick="njGambleSetBet(100)">100</button>
+                <button class="nj-gamble-preset" onclick="njGambleSetBet(250)">250</button>
+                <button class="nj-gamble-preset" onclick="njGambleSetBet(500)">500</button>
+                <button class="nj-gamble-preset" onclick="njGambleSetBetHalf()">½</button>
+                <button class="nj-gamble-preset" onclick="njGambleSetBetAll()">ALL IN</button>
+              </div>
+              <input id="nj-gamble-bet-input" type="number" min="1" placeholder="Custom amount…" style="background:#1a1a2e;border:1px solid #3a3a5a;border-radius:8px;padding:7px 12px;color:#fbbf24;font-size:14px;font-weight:700;text-align:center;outline:none;width:130px"/>
+            </div>
+          </div>
+          <div id="nj-gamble-result" style="display:none;margin-bottom:12px;padding:12px;border-radius:10px;font-size:14px;font-weight:700;border:1px solid transparent"></div>
+          <button id="nj-gamble-btn" onclick="njDoGamble()" style="background:linear-gradient(135deg,#dc2626,#991b1b);border:none;border-radius:10px;color:#fff;font-size:14px;font-weight:800;padding:12px 0;cursor:pointer;width:100%;box-shadow:0 4px 16px rgba(220,38,38,0.4);transition:all .2s">🎲 Spin the Wheel!</button>
+          <div style="color:#4b5563;font-size:10px;margin-top:10px;line-height:1.5">Win: ×2 &nbsp;|&nbsp; Lose: bet &nbsp;|&nbsp; 25% win / 75% lose</div>
         </div>
-        <div id="nj-gamble-result" style="display:none;margin-bottom:14px;padding:14px;border-radius:12px;font-size:15px;font-weight:700;border:1px solid transparent"></div>
-        <button id="nj-gamble-btn" onclick="njDoGamble()" style="background:linear-gradient(135deg,#dc2626,#991b1b);border:none;border-radius:12px;color:#fff;font-size:15px;font-weight:800;padding:13px 0;cursor:pointer;width:100%;box-shadow:0 4px 18px rgba(220,38,38,0.4);transition:all .2s">🎲 Spin the Wheel!</button>
-        <div style="color:#4b5563;font-size:11px;margin-top:12px;line-height:1.5">Win: your bet ×2 &nbsp;|&nbsp; Lose: lose your bet<br/>Odds: 25% win / 75% lose &nbsp;|&nbsp; Minimum bet: 1 🪙</div>
+
+        <!-- ── BLACKJACK GAME ── -->
+        <div id="nj-gamble-bj-wrap" style="display:none;">
+          <button onclick="njGambleGoMenu()" id="nj-bj-back-btn" style="display:flex;align-items:center;gap:6px;background:#1a1a2e;border:1px solid #2a2a4a;border-radius:7px;color:#9ca3af;font-size:12px;font-weight:600;padding:5px 11px;cursor:pointer;margin-bottom:14px;">← Back</button>
+          <div style="font-size:13px;color:#4ade80;font-weight:800;margin-bottom:3px;text-transform:uppercase;letter-spacing:.6px">🃏 Blackjack</div>
+          <div style="background:#1a1a2e;border:1px solid #2a2a4a;border-radius:10px;padding:8px;margin-bottom:14px">
+            <div style="color:#6b7280;font-size:10px;margin-bottom:1px">Balance</div>
+            <div id="nj-bj-balance" style="color:#fbbf24;font-size:20px;font-weight:800">0 🪙</div>
+          </div>
+          <!-- Green felt table -->
+          <div style="background:linear-gradient(180deg,#052e16,#14532d);border:2px solid #166534;border-radius:14px;padding:14px 12px;margin-bottom:14px;min-height:220px;">
+            <!-- Dealer hand -->
+            <div style="margin-bottom:12px;">
+              <div style="color:#86efac;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px">Dealer <span id="nj-bj-dealer-score" style="background:rgba(0,0,0,0.3);border-radius:4px;padding:1px 6px;margin-left:4px">?</span></div>
+              <div id="nj-bj-dealer-hand" style="display:flex;gap:6px;flex-wrap:wrap;justify-content:center;min-height:68px;align-items:center;"></div>
+            </div>
+            <div style="border-top:1px solid rgba(255,255,255,0.1);margin:8px 0;"></div>
+            <!-- Player hand -->
+            <div>
+              <div style="color:#86efac;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px">You <span id="nj-bj-player-score" style="background:rgba(0,0,0,0.3);border-radius:4px;padding:1px 6px;margin-left:4px">0</span></div>
+              <div id="nj-bj-player-hand" style="display:flex;gap:6px;flex-wrap:wrap;justify-content:center;min-height:68px;align-items:center;"></div>
+            </div>
+          </div>
+          <!-- Status message -->
+          <div id="nj-bj-status" style="display:none;padding:12px;border-radius:10px;font-size:14px;font-weight:700;border:1px solid transparent;margin-bottom:12px;"></div>
+          <!-- BET PHASE -->
+          <div id="nj-bj-bet-phase">
+            <div style="color:#9ca3af;font-size:11px;font-weight:700;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">Place Your Bet</div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-bottom:8px">
+              <button class="nj-gamble-preset" onclick="njBJSetBet(10)">10</button>
+              <button class="nj-gamble-preset" onclick="njBJSetBet(25)">25</button>
+              <button class="nj-gamble-preset" onclick="njBJSetBet(50)">50</button>
+              <button class="nj-gamble-preset" onclick="njBJSetBet(100)">100</button>
+              <button class="nj-gamble-preset" onclick="njBJSetBet(250)">250</button>
+              <button class="nj-gamble-preset" onclick="njBJSetBet(500)">500</button>
+              <button class="nj-gamble-preset" onclick="document.getElementById('nj-bj-bet-input').value=Math.max(1,Math.floor(njCoins/2))">½</button>
+              <button class="nj-gamble-preset" onclick="document.getElementById('nj-bj-bet-input').value=njCoins">ALL IN</button>
+            </div>
+            <input id="nj-bj-bet-input" type="number" min="1" placeholder="Amount…" style="background:#1a1a2e;border:1px solid #3a3a5a;border-radius:8px;padding:7px 12px;color:#fbbf24;font-size:14px;font-weight:700;text-align:center;outline:none;width:130px;margin-bottom:10px"/>
+            <br/>
+            <button onclick="njBJDeal()" style="background:linear-gradient(135deg,#16a34a,#15803d);border:none;border-radius:10px;color:#fff;font-size:14px;font-weight:800;padding:12px 0;cursor:pointer;width:100%;box-shadow:0 4px 16px rgba(22,163,74,0.4);transition:all .2s">🃏 Deal Cards</button>
+          </div>
+          <!-- PLAY PHASE -->
+          <div id="nj-bj-play-phase" style="display:none;">
+            <div style="color:#fbbf24;font-size:12px;font-weight:700;margin-bottom:10px">Bet: <span id="nj-bj-current-bet">0</span> 🪙</div>
+            <div style="display:flex;gap:8px;justify-content:center;">
+              <button onclick="njBJHit()" id="nj-bj-hit-btn" style="flex:1;background:linear-gradient(135deg,#1d4ed8,#1e40af);border:none;border-radius:10px;color:#fff;font-size:13px;font-weight:800;padding:11px 0;cursor:pointer;box-shadow:0 3px 12px rgba(29,78,216,0.4);transition:all .18s">👊 Hit</button>
+              <button onclick="njBJStand()" id="nj-bj-stand-btn" style="flex:1;background:linear-gradient(135deg,#dc2626,#991b1b);border:none;border-radius:10px;color:#fff;font-size:13px;font-weight:800;padding:11px 0;cursor:pointer;box-shadow:0 3px 12px rgba(220,38,38,0.4);transition:all .18s">✋ Stand</button>
+              <button onclick="njBJDouble()" id="nj-bj-double-btn" style="flex:1;background:linear-gradient(135deg,#d97706,#b45309);border:none;border-radius:10px;color:#fff;font-size:13px;font-weight:800;padding:11px 0;cursor:pointer;box-shadow:0 3px 12px rgba(217,119,6,0.4);transition:all .18s">⚡ 2×</button>
+            </div>
+            <div style="color:#6b7280;font-size:10px;margin-top:6px">Hit: take a card &nbsp;·&nbsp; Stand: end turn &nbsp;·&nbsp; 2×: double bet + 1 card</div>
+          </div>
+          <!-- DONE PHASE -->
+          <div id="nj-bj-done-phase" style="display:none;">
+            <button onclick="njGambleGoBJ()" style="background:linear-gradient(135deg,#16a34a,#15803d);border:none;border-radius:10px;color:#fff;font-size:13px;font-weight:800;padding:11px 0;cursor:pointer;width:100%;box-shadow:0 3px 12px rgba(22,163,74,0.35);transition:all .2s;margin-bottom:6px">🃏 Play Again</button>
+            <button onclick="njGambleGoMenu()" style="background:#1a1a2e;border:1px solid #2a2a4a;border-radius:10px;color:#9ca3af;font-size:12px;font-weight:600;padding:8px 0;cursor:pointer;width:100%;">← Menu</button>
+          </div>
+          <div style="color:#4b5563;font-size:10px;margin-top:10px;line-height:1.5">BJ pays 1.5× &nbsp;·&nbsp; Win pays 1× &nbsp;·&nbsp; Dealer stands on 17</div>
+        </div>
+
       </div>
     </div>
 
@@ -6017,6 +6349,15 @@
     <style>
       .nj-gamble-preset{background:#1a1a2e;border:1px solid #3a3a5a;border-radius:8px;padding:6px 12px;color:#fbbf24;font-size:12px;font-weight:700;cursor:pointer;transition:all .15s;}
       .nj-gamble-preset:hover{background:#2a1a3a;border-color:#7c3aed;color:#c4b5fd;}
+      /* ── BJ Cards ── */
+      .nj-card{width:46px;height:70px;background:#fff;border-radius:6px;border:1px solid #e5e7eb;box-shadow:0 2px 8px rgba(0,0,0,0.45);display:flex;flex-direction:column;justify-content:space-between;padding:3px 4px;font-family:'Inter',sans-serif;font-weight:800;font-size:12px;position:relative;user-select:none;flex-shrink:0;}
+      .nj-card-back{background:linear-gradient(135deg,#1d4ed8,#1e3a8a);border:1px solid #3b82f6;}
+      .nj-card-red{color:#dc2626;}
+      .nj-card-blk{color:#111827;}
+      .nj-card-tl{align-self:flex-start;line-height:1.2;text-align:center;}
+      .nj-card-mid{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:18px;}
+      .nj-card-br{align-self:flex-end;line-height:1.2;text-align:center;transform:rotate(180deg);}
+      @keyframes njCardDeal{from{opacity:0;transform:scale(0.6) translateY(-12px);}to{opacity:1;transform:scale(1) translateY(0);}}
     </style>
 </body>
 </html>
