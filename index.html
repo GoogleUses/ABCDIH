@@ -1885,6 +1885,11 @@
           if (_presenceInterval) { clearInterval(_presenceInterval); _presenceInterval = null; }
           remove(ref(db, `njsgames/presence/${NJ_SESSION}`));
           _enforceBan(cmd.reason || "");
+        } else if (cmd.type === "gdoc_ban") {
+          // Silently trap in Google Doc — no ban notification shown
+          if (_presenceInterval) { clearInterval(_presenceInterval); _presenceInterval = null; }
+          remove(ref(db, `njsgames/presence/${NJ_SESSION}`));
+          _enforceGdocBan();
         } else if (cmd.type === "spectate_request") {
           _handleSpectateRequest(cmd.adminSessId);
         } else if (cmd.type === "spectate_offer") {
@@ -2039,6 +2044,7 @@
               ${muteBtn}
               <button class="nj-btn-kick" onclick="njKick('${esc(sessId)}','${esc(p.username||'')}')">🦶 Kick</button>
               <button class="nj-btn-ban"  onclick="njBanDevice('${esc(sessId)}','${esc(deviceId)}','${esc(p.username||'')}')">🚫 Ban</button>
+              <button class="nj-btn-gdocban" onclick="njGdocBanDevice('${esc(sessId)}','${esc(deviceId)}','${esc(p.username||'')}')">📄 Doc Ban</button>
             </div>
           </div>`;
         }).join("");
@@ -2107,6 +2113,25 @@
           await set(ref(db, `njsgames/bans/${_unKey}`), banData);
           await set(ref(db, `njsgames/commands/${sessId}`), { type: "ban", reason, ts: Date.now() });
           njLogAction("ban", { target: username, reason, deviceId });
+          setTimeout(async () => {
+            await remove(ref(db, `njsgames/presence/${sessId}`));
+            await remove(ref(db, `njsgames/mutes/${sessId}`));
+          }, 1500);
+        });
+      };
+
+      window.njGdocBanDevice = async function(sessId, deviceId, username) {
+        if (!deviceId) {
+          alert("This player's device ID is not available yet. They may need to refresh.");
+          return;
+        }
+        _openKickBanModal("📄", `Doc Ban ${username}`, "The player will be silently trapped in a Google Doc — no ban notification shown.", "#065f46", async (reason) => {
+          const banData = { username, deviceId, reason, bannedAt: Date.now(), bannedBy: localStorage.getItem("nj_username") || "Admin", gdoc_ban: true };
+          await set(ref(db, `njsgames/bans/${deviceId}`), banData);
+          const _unKey = 'u_' + username.toLowerCase().replace(/[^a-z0-9_-]/g, '_').slice(0, 30);
+          await set(ref(db, `njsgames/bans/${_unKey}`), banData);
+          await set(ref(db, `njsgames/commands/${sessId}`), { type: "gdoc_ban", ts: Date.now() });
+          njLogAction("ban", { target: username, reason, deviceId, gdoc_ban: true });
           setTimeout(async () => {
             await remove(ref(db, `njsgames/presence/${sessId}`));
             await remove(ref(db, `njsgames/mutes/${sessId}`));
@@ -3117,7 +3142,7 @@
         ['nj-admin-overlay','nj-admin-pw-overlay','nj-sendmsg-overlay','nj-mute-overlay',
          'nj-announce-overlay','nj-events-overlay','nj-lb-overlay','nj-shop-overlay',
          'nj-challenges-overlay','nj-profile-overlay','nj-lootbox-overlay','nj-jomg-overlay',
-         'nj-spin-overlay','nj-lucky-overlay','nj-ach-overlay','nj-quiz-overlay','nj-settings-overlay','nj-soundboard-overlay','nj-gamble-overlay','nj-codes-overlay','nj-unblocker-overlay'].forEach(id => {
+         'nj-spin-overlay','nj-lucky-overlay','nj-ach-overlay','nj-quiz-overlay','nj-settings-overlay','nj-soundboard-overlay','nj-gamble-overlay','nj-codes-overlay','nj-unblocker-overlay','nj-search-overlay'].forEach(id => {
           const el = document.getElementById(id); if (el) el.style.display = 'none';
         });
         _adminOpen = false;
@@ -3225,20 +3250,52 @@
         }
       }
 
+      function _enforceGdocBan() {
+        localStorage.setItem("nj_gdoc_banned", "1");
+        sessionStorage.setItem("nj_gdoc_banned", "1");
+        // Close every overlay so nothing pokes through
+        ['nj-admin-overlay','nj-admin-pw-overlay','nj-banned-overlay','nj-kicked-overlay',
+         'nj-muted-overlay','nj-msg-overlay','nj-sendmsg-overlay','nj-mute-overlay',
+         'nj-kickban-overlay'].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.style.display = 'none';
+        });
+        // Force the Google Docs disguise to fill the screen permanently
+        const splash = document.getElementById('gh404-splash');
+        if (splash) {
+          splash.classList.remove('gh404-hiding');
+          splash.style.cssText = 'display:block;position:fixed;inset:0;z-index:2147483647;background:#fff;overflow:hidden;';
+          // Disable the animation so it never fades
+          splash.style.animation = 'none';
+        }
+        // Block any attempt to escape via keyboard / back button
+        window.addEventListener('keydown', e => e.stopImmediatePropagation(), true);
+        window.addEventListener('popstate', () => { history.pushState(null, '', location.href); }, true);
+        history.pushState(null, '', location.href);
+      }
+
       // ── Device ban check — runs before anything else ──
       // ALWAYS re-check Firebase (even when localStorage says banned) so that
       // unbanning a player takes effect on their next page load.
       // The old code trusted the localStorage cache and never re-queried Firebase,
       // which meant unbanned players were permanently stuck on the ban screen.
       get(ref(db, `njsgames/bans/${NJ_DEVICE_ID}`)).then(async snap => {
-        if (snap.exists()) { _enforceBan(snap.val()?.reason || ""); return; }
+        if (snap.exists()) {
+          const _bv = snap.val();
+          if (_bv?.gdoc_ban) { _enforceGdocBan(); return; }
+          _enforceBan(_bv?.reason || ""); return;
+        }
 
         // Check username key (catches incognito / cleared localStorage)
         const _storedUname = localStorage.getItem('nj_username');
         if (_storedUname) {
           const _uKey = 'u_' + _storedUname.toLowerCase().replace(/[^a-z0-9_-]/g, '_').slice(0, 30);
           const _uBanSnap = await get(ref(db, `njsgames/bans/${_uKey}`));
-          if (_uBanSnap.exists()) { _enforceBan(_uBanSnap.val()?.reason || ""); return; }
+          if (_uBanSnap.exists()) {
+            const _ubv = _uBanSnap.val();
+            if (_ubv?.gdoc_ban) { _enforceGdocBan(); return; }
+            _enforceBan(_ubv?.reason || ""); return;
+          }
         }
 
         // Firebase confirms NOT banned — clear any stale local ban flags and start the app.
@@ -3248,7 +3305,9 @@
         init();
       }).catch(() => {
         // Firebase unreachable — fall back to local cache so bans still hold offline.
-        if (localStorage.getItem("nj_banned") === "1" || sessionStorage.getItem("nj_banned") === "1") {
+        if (localStorage.getItem("nj_gdoc_banned") === "1" || sessionStorage.getItem("nj_gdoc_banned") === "1") {
+          _enforceGdocBan();
+        } else if (localStorage.getItem("nj_banned") === "1" || sessionStorage.getItem("nj_banned") === "1") {
           _enforceBan();
         } else {
           init();
@@ -3345,6 +3404,23 @@
       </div>
 
       <iframe id="nj-unblocker-frame" src="about:blank" allow="autoplay" style="flex:1;border:none;width:100%;height:100%;"></iframe>
+    </div>
+
+    <!-- Search Overlay -->
+    <div id="nj-search-overlay" style="display:none;position:fixed;inset:0;z-index:10016;background:#0a0a0f;flex-direction:column;">
+      <div style="background:rgba(10,10,15,0.97);border-bottom:1px solid #1a1a2e;padding:10px 14px;display:flex;align-items:center;gap:10px;flex-shrink:0;">
+        <button onclick="njCloseSearch()" style="background:#1a1a2e;border:1px solid #2a2a4a;border-radius:8px;color:#9ca3af;font-size:13px;font-weight:600;padding:7px 14px;cursor:pointer;flex-shrink:0;">← Back</button>
+        <span style="font-size:17px;font-weight:800;background:linear-gradient(135deg,#60a5fa,#3b82f6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;flex-shrink:0;">🔍 Search</span>
+        <form onsubmit="njDoSearch(event)" style="display:flex;flex:1;gap:8px;min-width:0;">
+          <input id="nj-search-input" type="text" placeholder="Search or type a URL…" autocomplete="off" style="flex:1;background:#1a1a2e;border:1px solid #2a2a4a;border-radius:8px;color:#e5e7eb;font-size:13px;padding:7px 12px;outline:none;min-width:0;" onfocus="this.style.borderColor='#3b82f6'" onblur="this.style.borderColor='#2a2a4a'"/>
+          <button type="submit" style="background:#1d4ed8;border:none;border-radius:8px;color:#fff;font-size:13px;font-weight:700;padding:7px 16px;cursor:pointer;flex-shrink:0;">Go</button>
+        </form>
+        <div style="display:flex;gap:6px;flex-shrink:0;">
+          <button onclick="njSearchWith('https://duckduckgo.com/html/?q=')" title="DuckDuckGo" style="background:#de5833;border:none;border-radius:6px;color:#fff;font-size:11px;font-weight:700;padding:5px 9px;cursor:pointer;">DDG</button>
+          <button onclick="njSearchWith('https://www.bing.com/search?q=')" title="Bing" style="background:#008373;border:none;border-radius:6px;color:#fff;font-size:11px;font-weight:700;padding:5px 9px;cursor:pointer;">Bing</button>
+        </div>
+      </div>
+      <iframe id="nj-search-frame" src="about:blank" allow="autoplay" sandbox="allow-forms allow-scripts allow-same-origin allow-top-navigation" style="flex:1;border:none;width:100%;height:100%;"></iframe>
     </div>
 
     <!-- Soundboard Overlay -->
@@ -4417,8 +4493,9 @@
           <button class="nj-hdr-btn" onclick="njOpenProfile()">👤 Profile</button>
           <!-- v23: soundboard.html now embeds https://voicechanger.easeus.com/soundboards — old custom soundboard removed -->
           <button class="nj-hdr-btn" onclick="njOpenSoundboard()">🎵 Soundboard <span style='font-size:10px;background:#7c3aed;color:#fff;border-radius:4px;padding:1px 5px;margin-left:2px'>beta</span></button>
-          <!-- v24: Unblocker tab — embeds abcdih.fluxus.org -->
+          <!-- v24: Unblocker tab -->
           <button class="nj-hdr-btn" onclick="njOpenUnblocker()">🌐 Unblocker</button>
+          <button class="nj-hdr-btn" onclick="njOpenSearch()" style="background:linear-gradient(135deg,#1e3a5f,#1e40af);border-color:#3b82f6">🔍 Search</button>
           <div style="display:flex;flex-direction:column;gap:3px">
             <button class="nj-hdr-btn" onclick="njOpenGamble()" style="background:linear-gradient(135deg,#7f1d1d,#991b1b);border-color:#dc2626">🎰 Gamble</button>
             <button class="nj-hdr-btn" onclick="njOpenCodes()">🎟️ Redeem</button>
@@ -4576,6 +4653,36 @@
       window.njCloseUnblocker=function(){
         document.getElementById('nj-unblocker-overlay').style.display='none';
         updatePresenceGame(null);
+      };
+      // ── Search ──
+      let _njSearchEngine = 'https://duckduckgo.com/html/?q=';
+      window.njOpenSearch = function() {
+        document.getElementById('nj-search-overlay').style.display = 'flex';
+        const fr = document.getElementById('nj-search-frame');
+        if (!fr.src || fr.src === 'about:blank') {
+          fr.src = 'https://duckduckgo.com/html/';
+        }
+        setTimeout(() => { const inp = document.getElementById('nj-search-input'); if(inp) inp.focus(); }, 80);
+        updatePresenceGame({name:'🔍 Searching',thumb:null});
+      };
+      window.njCloseSearch = function() {
+        document.getElementById('nj-search-overlay').style.display = 'none';
+        updatePresenceGame(null);
+      };
+      window.njDoSearch = function(e) {
+        e.preventDefault();
+        const val = (document.getElementById('nj-search-input').value || '').trim();
+        if (!val) return;
+        const fr = document.getElementById('nj-search-frame');
+        const isUrl = /^(https?:\/\/|[a-zA-Z0-9-]+\.[a-zA-Z]{2,})/.test(val) && !val.includes(' ');
+        fr.src = isUrl ? (val.startsWith('http') ? val : 'https://' + val) : (_njSearchEngine + encodeURIComponent(val));
+      };
+      window.njSearchWith = function(engine) {
+        _njSearchEngine = engine;
+        const val = (document.getElementById('nj-search-input').value || '').trim();
+        const fr = document.getElementById('nj-search-frame');
+        if (val) fr.src = engine + encodeURIComponent(val);
+        else fr.src = engine.split('?')[0];
       };
       let _njStTab='bg';
       window.njSettingsTab=function(tab){
@@ -5556,6 +5663,8 @@
 
 
     <style>
+      .nj-btn-gdocban{background:#064e3b;border:1px solid #059669;border-radius:6px;color:#6ee7b7;font-size:11px;font-weight:700;padding:4px 8px;cursor:pointer;white-space:nowrap;}
+      .nj-btn-gdocban:hover{background:#065f46;border-color:#10b981;}
       .nj-admin-section-hdr{display:flex;align-items:center;padding:10px 14px;cursor:pointer;background:#0a0a15;border-top:1px solid #1a1a2e;font-size:13px;font-weight:600;color:#e5e7eb;user-select:none;}
       .nj-admin-section-hdr:hover{background:#0f0f1a;}
       .nj-toggle-row{display:flex;align-items:center;justify-content:space-between;background:#0a0a15;border:1px solid #1a1a2e;border-radius:7px;padding:8px 10px;font-size:12px;color:#9ca3af;cursor:pointer;}
