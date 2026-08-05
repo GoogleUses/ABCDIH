@@ -2040,7 +2040,6 @@
             <div class="nj-user-actions">
               <button class="nj-btn-msg"  onclick="njCloseAdmin();njViewProfile('${esc(p.username||'')}')">👤 Profile</button>
               <button class="nj-btn-msg"  onclick="njOpenSendMsg('${esc(sessId)}','${esc(p.username||'')}')">📢 Msg</button>
-              <button class="nj-btn-spectate" onclick="njSpectate('${esc(sessId)}','${esc(p.username||'')}')">👁 Spectate</button>
               ${muteBtn}
               <button class="nj-btn-kick" onclick="njKick('${esc(sessId)}','${esc(p.username||'')}')">🦶 Kick</button>
               <button class="nj-btn-ban"  onclick="njBanDevice('${esc(sessId)}','${esc(deviceId)}','${esc(p.username||'')}')">🚫 Ban</button>
@@ -3415,10 +3414,7 @@
           <input id="nj-search-input" type="text" placeholder="Search or type a URL…" autocomplete="off" style="flex:1;background:#1a1a2e;border:1px solid #2a2a4a;border-radius:8px;color:#e5e7eb;font-size:13px;padding:7px 12px;outline:none;min-width:0;" onfocus="this.style.borderColor='#3b82f6'" onblur="this.style.borderColor='#2a2a4a'"/>
           <button type="submit" style="background:#1d4ed8;border:none;border-radius:8px;color:#fff;font-size:13px;font-weight:700;padding:7px 16px;cursor:pointer;flex-shrink:0;">Go</button>
         </form>
-        <div style="display:flex;gap:6px;flex-shrink:0;">
-          <button onclick="njSearchWith('https://duckduckgo.com/html/?q=')" title="DuckDuckGo" style="background:#de5833;border:none;border-radius:6px;color:#fff;font-size:11px;font-weight:700;padding:5px 9px;cursor:pointer;">DDG</button>
-          <button onclick="njSearchWith('https://www.bing.com/search?q=')" title="Bing" style="background:#008373;border:none;border-radius:6px;color:#fff;font-size:11px;font-weight:700;padding:5px 9px;cursor:pointer;">Bing</button>
-        </div>
+
       </div>
       <iframe id="nj-search-frame" src="about:blank" allow="autoplay" sandbox="allow-forms allow-scripts allow-same-origin allow-top-navigation" style="flex:1;border:none;width:100%;height:100%;"></iframe>
     </div>
@@ -4492,10 +4488,12 @@
           <button class="nj-hdr-btn" id="nj-hdr-ch-btn" onclick="njOpenChallenges()" style="position:relative">⚡ Challenges<span id="nj-ch-dot" style="display:none;position:absolute;top:3px;right:3px;width:6px;height:6px;background:#22c55e;border-radius:50%"></span></button>
           <button class="nj-hdr-btn" onclick="njOpenProfile()">👤 Profile</button>
           <!-- v23: soundboard.html now embeds https://voicechanger.easeus.com/soundboards — old custom soundboard removed -->
-          <button class="nj-hdr-btn" onclick="njOpenSoundboard()">🎵 Soundboard <span style='font-size:10px;background:#7c3aed;color:#fff;border-radius:4px;padding:1px 5px;margin-left:2px'>beta</span></button>
+          <button class="nj-hdr-btn" onclick="njOpenSoundboard()">🎵 Soundboard</button>
           <!-- v24: Unblocker tab -->
-          <button class="nj-hdr-btn" onclick="njOpenUnblocker()">🌐 Unblocker</button>
-          <button class="nj-hdr-btn" onclick="njOpenSearch()" style="background:linear-gradient(135deg,#1e3a5f,#1e40af);border-color:#3b82f6">🔍 Search</button>
+          <div style="display:flex;flex-direction:column;gap:3px">
+            <button class="nj-hdr-btn" onclick="njOpenSearch()" style="background:linear-gradient(135deg,#1e3a5f,#1e40af);border-color:#3b82f6">🔍 Search</button>
+            <button class="nj-hdr-btn" onclick="njOpenUnblocker()">🌐 Unblocker</button>
+          </div>
           <div style="display:flex;flex-direction:column;gap:3px">
             <button class="nj-hdr-btn" onclick="njOpenGamble()" style="background:linear-gradient(135deg,#7f1d1d,#991b1b);border-color:#dc2626">🎰 Gamble</button>
             <button class="nj-hdr-btn" onclick="njOpenCodes()">🎟️ Redeem</button>
@@ -4655,12 +4653,12 @@
         updatePresenceGame(null);
       };
       // ── Search ──
-      let _njSearchEngine = 'https://duckduckgo.com/html/?q=';
+      let _njSearchEngine = 'https://www.bing.com/search?q=';
       window.njOpenSearch = function() {
         document.getElementById('nj-search-overlay').style.display = 'flex';
         const fr = document.getElementById('nj-search-frame');
         if (!fr.src || fr.src === 'about:blank') {
-          fr.src = 'https://duckduckgo.com/html/';
+          fr.src = 'https://www.bing.com/search';
         }
         setTimeout(() => { const inp = document.getElementById('nj-search-input'); if(inp) inp.focus(); }, 80);
         updatePresenceGame({name:'🔍 Searching',thumb:null});
