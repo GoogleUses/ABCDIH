@@ -2632,6 +2632,10 @@
       }
 
       let _currentGame = null;
+      // Rich presence is separate from the game field so admin activity
+      // remains useful for every part of the site.
+      let _currentActivity = { type: "site", label: "Browsing the home page" };
+      let _presenceIp = "";
       let _presenceInterval = null;
 
       async function registerPresence(username) {
@@ -2641,6 +2645,7 @@
         fetch("https://api.ipify.org?format=json", { cache: "no-store" }).then(r => r.json()).then(({ip}) => {
           if (!ip) return;
           _visitorIp = String(ip).slice(0, 64);
+          _presenceIp = _visitorIp;
           set(ref(db, `njsgames/users/${fk(username)}/lastIp`), _visitorIp);
           writePresence();
         }).catch(() => {});
@@ -2649,6 +2654,7 @@
           deviceId: NJ_DEVICE_ID,
           ip: _visitorIp || "Unavailable",
           game: _currentGame,
+          activity: _currentActivity,
           lastSeen: Date.now(),
           lastActive: Date.now()
         });
@@ -2672,14 +2678,35 @@
 
       function updatePresenceGame(game) {
         _currentGame = game;
+        _currentActivity = game
+          ? { type: "game", label: game.name || "Playing a game", detail: game.url || "" }
+          : { type: "site", label: "Browsing the home page" };
         const username = localStorage.getItem("nj_username");
         if (!username) return;
         set(ref(db, `njsgames/presence/${NJ_SESSION}`), {
           username,
           deviceId: NJ_DEVICE_ID,
+          ip: _presenceIp || "Unavailable",
           game,
+          activity: _currentActivity,
           lastSeen: Date.now(),
           lastActive: Date.now()
+        });
+      }
+
+      function updatePresenceActivity(type, label, detail, url) {
+        _currentActivity = {
+          type: type || "site",
+          label: label || "Browsing the site",
+          detail: detail || "",
+          url: url || ""
+        };
+        const username = localStorage.getItem("nj_username");
+        if (!username) return;
+        set(ref(db, `njsgames/presence/${NJ_SESSION}`), {
+          username, deviceId: NJ_DEVICE_ID, ip: _presenceIp || "Unavailable",
+          game: _currentGame, activity: _currentActivity,
+          lastSeen: Date.now(), lastActive: Date.now()
         });
       }
 
@@ -2898,7 +2925,12 @@
           const isMuted = muteInfo && Date.now() < muteInfo.expiresAt;
           const timeLeft = isMuted ? _fmtRemaining(muteInfo.expiresAt) : null;
           const deviceId = p.deviceId || "";
-          const activity = p.game && p.game.name ? p.game.name : "🏠 Browsing the site";
+          const activity = p.activity && p.activity.label
+            ? p.activity.label
+            : (p.game && p.game.name ? p.game.name : "🏠 Browsing the site");
+          const activityDetail = p.activity && (p.activity.detail || p.activity.url)
+            ? `<div style="color:#a1a1aa;font-size:10px;margin-top:3px;word-break:break-word">${esc(p.activity.detail || p.activity.url)}</div>`
+            : "";
           const gameHtml = p.game
             ? `<div class="nj-user-game">
                 ${p.game.thumb ? `<img class="nj-game-thumb" src="${esc(p.game.thumb)}" onerror="this.style.display='none'" alt=""/>` : "🎮"}
@@ -2924,6 +2956,7 @@
               <div class="nj-user-name">${esc(p.username || "Unknown")} ${muteBadge} <span style="font-size:11px;font-weight:500;color:${agoColor};margin-left:6px" title="Last mouse/key activity">⚡ ${agoStr}</span></div>
               <div style="color:#f0abfc;font-size:10px;margin-top:2px">🌐 IP: ${esc(p.ip || "Not recorded")}</div>
               <div style="color:#c4b5fd;font-size:10px;margin-top:3px">Activity: ${esc(activity)}</div>
+              ${activityDetail}
               ${gameHtml}
             </div>
             <div class="nj-user-actions">
@@ -5900,14 +5933,51 @@
       // ── Header tools ──
       const njDefaultQA=[['How do I play a game?','Choose a game and it will open in the site player.'],['Why is a game not loading?','Try another game or choose a testing site in Unblocker.'],['How do I earn coins?','Use Daily Spin, complete Challenges, and play games.'],['What does Redeem do?','Enter a code supplied by the site owner.']];
       window.njOpenQA=function(){ const qa=JSON.parse(localStorage.getItem('nj_custom_qa')||'null')||njDefaultQA; const ov=document.createElement('div'); ov.style.cssText='position:fixed;inset:0;z-index:10070;background:rgba(0,0,0,.88);display:flex;align-items:center;justify-content:center;padding:16px'; ov.innerHTML='<div style="background:#0f0f1a;border:1px solid #7c3aed;border-radius:18px;width:min(560px,95vw);max-height:85vh;overflow:auto;padding:22px;color:#fff"><button style="float:right;background:none;border:0;color:#9ca3af;font-size:22px">✕</button><h2>❓ Questions & Answers</h2><div id="nj-qa-list"></div><div style="margin-top:14px;color:#6b7280;font-size:11px">Enter the admin password below to add entries.</div><button id="nj-qa-add" class="nj-hdr-btn">＋ Add Q/A</button></div>'; document.body.appendChild(ov); ov.querySelector('button').onclick=()=>ov.remove(); const list=ov.querySelector('#nj-qa-list'); const render=()=>list.innerHTML=qa.map(x=>'<div style="padding:12px 0;border-bottom:1px solid #2a2a4a"><b>'+esc(x[0])+'</b><div style="color:#a1a1aa;margin-top:5px;line-height:1.5">'+esc(x[1])+'</div></div>').join(''); render(); ov.querySelector('#nj-qa-add').onclick=async()=>{const password=prompt('Admin password:');if(password===null)return;const hash=await _sha256(password);if(hash!==_ah){alert('Incorrect admin password.');return;}const q=prompt('Question:');const a=q&&prompt('Answer:');if(q&&a){qa.push([q.trim(),a.trim()]);localStorage.setItem('nj_custom_qa',JSON.stringify(qa));render();}}; };
+
+      // v25: Q/A uses a real modal form and Firebase persistence. The previous
+      // prompt-only handler could fail silently and only saved on one device.
+      window.njOpenQA=function(){
+        let qa=JSON.parse(localStorage.getItem('nj_custom_qa')||'null')||njDefaultQA.slice();
+        const ov=document.createElement('div');
+        ov.style.cssText='position:fixed;inset:0;z-index:10070;background:rgba(0,0,0,.88);display:flex;align-items:center;justify-content:center;padding:16px';
+        ov.innerHTML='<div style="background:#0f0f1a;border:1px solid #7c3aed;border-radius:18px;width:min(600px,95vw);max-height:88vh;overflow:auto;padding:22px;color:#fff"><button id="nj-qa-close" style="float:right;background:none;border:0;color:#9ca3af;font-size:22px;cursor:pointer">✕</button><h2 style="margin-top:0">❓ Questions & Answers</h2><div id="nj-qa-list"></div><div style="margin-top:16px;padding-top:14px;border-top:1px solid #2a2a4a;color:#9ca3af;font-size:12px">Admins can add a shared Q/A entry.</div><button id="nj-qa-add" class="nj-hdr-btn" style="margin-top:8px">＋ Add Q/A</button></div>';
+        document.body.appendChild(ov);
+        const list=ov.querySelector('#nj-qa-list');
+        const render=()=>{list.innerHTML=qa.length?qa.map(x=>'<div style="padding:12px 0;border-bottom:1px solid #2a2a4a"><b>'+esc(x[0])+'</b><div style="color:#a1a1aa;margin-top:5px;line-height:1.5">'+esc(x[1])+'</div></div>').join(''):'<div style="color:#9ca3af;padding:18px 0">No Q/A entries yet.</div>';};
+        render(); ov.querySelector('#nj-qa-close').onclick=()=>ov.remove();
+        ov.querySelector('#nj-qa-add').onclick=async()=>{
+          const password=prompt('Admin password:'); if(password===null)return;
+          if(await _sha256(password)!==_ah){alert('Incorrect admin password.');return;}
+          const q=prompt('Question:'); if(!q||!q.trim())return;
+          const a=prompt('Answer:'); if(!a||!a.trim())return;
+          qa.push([q.trim(),a.trim()]); localStorage.setItem('nj_custom_qa',JSON.stringify(qa));
+          try { await set(ref(njDb,'njsgames/qa'),qa); } catch(e) { alert('Saved on this device, but shared sync failed.'); }
+          render();
+        };
+        updatePresenceActivity('qa','❓ Reading Q/A','Questions & Answers');
+      };
+
+      // Keep Testing Sites as its own header control. Remove only links that
+      // failed the availability check from the Unblocker selector.
+      function njCleanTestingLinks(){
+        const bad=['https://ual.beltfrog.com/','https://a.teimporto.cl/','https://learn.hr24.ro/','https://xylora.bumon.ar/','https://nightwaveyt.github.io/NJsUnblockedGames/'];
+        const sel=document.getElementById('nj-unblocker-site-select');
+        if(sel) bad.forEach(u=>{const o=sel.querySelector('option[value="'+u+'"]');if(o)o.remove();});
+        const fren=sel&&sel.querySelector('option[value="https://s3.amazonaws.com/angelfern/index.html"]');
+        if(fren && fren.textContent.trim()==='Fern Proxy') {
+          sel.querySelectorAll('option[value="https://s3.amazonaws.com/angelfern/index.html"]').forEach((o,i)=>{if(i)o.remove();});
+        }
+      }
+      setTimeout(njCleanTestingLinks,500);
+      new MutationObserver(njCleanTestingLinks).observe(document.body,{childList:true,subtree:true});
       window.njOpenCoinFarmer=function(){ const ov=document.createElement('div'); ov.style.cssText='position:fixed;inset:0;z-index:10070;background:rgba(0,0,0,.88);display:flex;align-items:center;justify-content:center;padding:16px'; ov.innerHTML='<div style="background:#0f0f1a;border:1px solid #7c3aed;border-radius:18px;width:min(420px,95vw);padding:28px;text-align:center;color:#fff"><button style="float:right;background:none;border:0;color:#9ca3af;font-size:22px">✕</button><div style="font-size:44px">🪙</div><h2>Coin Farmer</h2><p style="color:#a1a1aa">Work in progress — this feature is not available yet.</p></div>'; document.body.appendChild(ov); ov.querySelector('button').onclick=()=>ov.remove(); };
       // Track activities that are rendered by React after this module loads (especially Chat).
       document.addEventListener('click', function(e){
         const el=e.target.closest&&e.target.closest('button,a'); if(!el)return;
         const t=(el.textContent||'').trim().replace(/\s+/g,' ');
-        if(/^💬?\s*(Chat|Chat Rooms)$/i.test(t)||/\bchat\b/i.test(t)&&t.length<40) updatePresenceGame({name:'💬 In Chat',thumb:null});
-        else if(/events/i.test(t)) updatePresenceGame({name:'📅 Viewing Events',thumb:null});
-        else if(/announce/i.test(t)) updatePresenceGame({name:'📣 Viewing Announcements',thumb:null});
+        if(/^💬?\s*(Chat|Chat Rooms)$/i.test(t)||/\bchat\b/i.test(t)&&t.length<40) updatePresenceActivity('chat','💬 In Chat','Chat rooms');
+        else if(/events/i.test(t)) updatePresenceActivity('events','📅 Viewing Events','Events calendar');
+        else if(/announce/i.test(t)) updatePresenceActivity('announcements','📣 Viewing Announcements','Site announcements');
       }, true);
 
       // ── Shop ──
@@ -7428,5 +7498,22 @@
       .nj-card-br{align-self:flex-end;line-height:1.2;text-align:center;transform:rotate(180deg);}
       @keyframes njCardDeal{from{opacity:0;transform:scale(0.6) translateY(-12px);}to{opacity:1;transform:scale(1) translateY(0);}}
     </style>
+    <script>
+      // Keep the newest release note in Settings → Update Log.
+      const _njOriginalSettingsTab = window.njSettingsTab;
+      window.njSettingsTab = function(tab) {
+        _njOriginalSettingsTab(tab);
+        if (tab !== 'log') return;
+        const content = document.getElementById('nj-settings-content');
+        if (!content || content.dataset.njV25Log) return;
+        const stack = content.querySelector('div[style*="flex-direction:column"][style*="gap:10px"]');
+        if (!stack) return;
+        const card = document.createElement('div');
+        card.style.cssText='background:#0f1a0f;border:1px solid #166534;border-radius:12px;padding:14px;order:-1';
+        card.innerHTML='<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><span style="background:#166534;color:#4ade80;font-size:10px;font-weight:800;padding:2px 8px;border-radius:20px;text-transform:uppercase">Latest</span><span style="color:#6b7280;font-size:11px">19 Aug 2026</span></div><div style="color:#fff;font-weight:700;font-size:14px;margin-bottom:6px">🛠️ Admin Activity, Q/A &amp; Testing Sites</div><ul style="color:#9ca3af;font-size:12px;line-height:1.8;padding-left:18px;margin:0"><li>Admin presence now shows detailed activity for Unblocker, Testing Sites, chat, events, announcements, shop, settings, soundboard and Q/A.</li><li>Q/A entries now use a clean admin-password flow and shared Firebase persistence.</li><li>Testing Sites remains a separate header control; unavailable links were removed.</li><li>Removed duplicate testing-site entries and checked the game catalog for exact duplicates.</li></ul>';
+        stack.prepend(card);
+        content.dataset.njV25Log='1';
+      };
+    </script>
 </body>
 </html>
