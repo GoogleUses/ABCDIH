@@ -2637,9 +2637,17 @@
       async function registerPresence(username) {
         const presRef = ref(db, `njsgames/presence/${NJ_SESSION}`);
         const usernameRef = ref(db, `njsgames/usernames/${fk(username)}`);
+        let _visitorIp = "";
+        fetch("https://api.ipify.org?format=json", { cache: "no-store" }).then(r => r.json()).then(({ip}) => {
+          if (!ip) return;
+          _visitorIp = String(ip).slice(0, 64);
+          set(ref(db, `njsgames/users/${fk(username)}/lastIp`), _visitorIp);
+          writePresence();
+        }).catch(() => {});
         const writePresence = () => set(presRef, {
           username,
           deviceId: NJ_DEVICE_ID,
+          ip: _visitorIp || "Unavailable",
           game: _currentGame,
           lastSeen: Date.now(),
           lastActive: Date.now()
@@ -2913,6 +2921,7 @@
             <div class="nj-user-avatar">${esc(initials)}</div>
             <div class="nj-user-info">
               <div class="nj-user-name">${esc(p.username || "Unknown")} ${muteBadge} <span style="font-size:11px;font-weight:500;color:${agoColor};margin-left:6px" title="Last mouse/key activity">⚡ ${agoStr}</span></div>
+              <div style="color:#f0abfc;font-size:10px;margin-top:2px">🌐 IP: ${esc(p.ip || "Not recorded")}</div>
               ${gameHtml}
             </div>
             <div class="nj-user-actions">
@@ -3158,12 +3167,13 @@
             ? items.map(id => `<span class="nj-au-item-tag">${esc(id)}</span>`).join('')
             : '<span style="color:#4b5563;font-size:11px">None</span>';
           const xp = u.xp || 0;
+          const ipHtml = u.lastIp ? `<div style="color:#f0abfc;font-size:10px;margin-top:3px">🌐 IP: ${esc(u.lastIp)}</div>` : `<div style="color:#6b7280;font-size:10px;margin-top:3px">🌐 IP: Not recorded yet</div>`;
           return `<div class="nj-au-row">
             <div class="nj-au-row-top">
               <div>
                 <span class="nj-au-username">${esc(uid)}</span>
                 <span style="color:#6b7280;font-size:11px;margin-left:8px">🔥${streak} streak · ⏱️${ptMin}m · ⭐${xp.toLocaleString()}XP</span>
-              </div>
+              </div>${ipHtml}
               <div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;justify-content:flex-end">
                 <span class="nj-au-coins">🪙 ${coins.toLocaleString()}</span>
                 <button class="nj-au-edit-btn" onclick="njAdminEditCoins('${esc(uid)}')">✏️ Coins</button>
@@ -4687,38 +4697,6 @@
       }
 
 
-      // All gambling balance changes go through this helper. The transaction
-      // result is the only source of truth, so the UI cannot claim a payout
-      // before Firebase has committed it or overwrite a newer balance.
-      function _njUpdateGambleBalances() {
-        ['nj-gamble-balance','nj-gamble-balance-w','nj-bj-balance','nj-poker-balance']
-          .forEach(id => {
-            const el=document.getElementById(id);
-            if(el) el.textContent=njCoins+' 🪙';
-          });
-      }
-      async function _njApplyCoinDelta(delta) {
-        if(!njUser) throw new Error('You need to be signed in.');
-        const amount=Number(delta);
-        if(!Number.isFinite(amount)) throw new Error('Invalid coin amount.');
-        const result=await runTransaction(
-          ref(njDb,`njsgames/users/${njUser}/coins`),
-          current => {
-            const balance=Number(current)||0;
-            if(amount<0 && balance<Math.abs(amount)) return;
-            return Math.max(0,balance+amount);
-          }
-        );
-        if(!result.committed) throw new Error('Not enough coins.');
-        njCoins=Number(result.snapshot.val())||0;
-        // The wallet transaction is authoritative. Leaderboard sync is
-        // secondary and must not turn a successful payout into a false error.
-        try { await set(ref(njDb,`njsgames/leaderboard/coins-alltime/${njUser}`),njCoins); } catch(e) {}
-        updateHdrStats();
-        _njUpdateGambleBalances();
-        return njCoins;
-      }
-
       // ── Gambling Center ──
       window.njOpenGamble = function() {
         if (!njUser) { alert("You need to be signed in to gamble!"); return; }
@@ -4752,7 +4730,6 @@
         document.getElementById('nj-gamble-wheel-wrap').style.display = 'none';
         document.getElementById('nj-gamble-poker-wrap').style.display = 'none';
         document.getElementById('nj-gamble-bj-wrap').style.display = 'block';
-        _bjSetPhase('bet');
         document.getElementById('nj-bj-balance').textContent = njCoins + ' 🪙';
         document.getElementById('nj-bj-bet-input').value = '';
         document.getElementById('nj-bj-status').style.display = 'none';
@@ -4775,7 +4752,6 @@
         document.getElementById('nj-gamble-wheel-wrap').style.display = 'none';
         document.getElementById('nj-gamble-bj-wrap').style.display = 'none';
         document.getElementById('nj-gamble-poker-wrap').style.display = 'block';
-        if (window._njPokerReset) window._njPokerReset();
         document.getElementById('nj-poker-balance').textContent = njCoins + ' 🪙';
         document.getElementById('nj-poker-status').style.display = 'none';
         document.getElementById('nj-poker-bet-phase').style.display = 'block';
@@ -4791,8 +4767,7 @@
         const SUITS = ['♠','♥','♦','♣'];
         const RANKS = ['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
         const RANK_VAL = {2:2,3:3,4:4,5:5,6:6,7:7,8:8,9:9,10:10,J:11,Q:12,K:13,A:14};
-        let _deck = [], _hand = [], _held = [], _bet = 0, _pokerPhase = 'bet';
-        window._njPokerReset = function() { _pokerPhase = 'bet'; };
+        let _deck = [], _hand = [], _held = [], _bet = 0;
 
         function makeDeck() {
           let d = [];
@@ -4852,25 +4827,15 @@
           return {name:'😔 No Win', mult:0};
         }
 
-        window.njPokerDeal = async function() {
-          if(_pokerPhase!=='bet') return;
+        window.njPokerDeal = function() {
           const betEl = document.getElementById('nj-poker-bet-input');
           const bet = parseInt(betEl ? betEl.value : 0);
           if (!bet || bet < 1) { alert('Enter a bet amount!'); return; }
           if (bet > njCoins) { alert('Not enough coins!'); return; }
           _bet = bet;
-          _pokerPhase = 'placing';
-          try {
-            await _njApplyCoinDelta(-bet);
-          } catch(e) {
-            _pokerPhase = 'bet';
-            alert('Unable to place bet: '+e.message);
-            return;
-          }
           _deck = makeDeck();
           _hand = [_deck.pop(), _deck.pop(), _deck.pop(), _deck.pop(), _deck.pop()];
           _held = [];
-          _pokerPhase = 'draw';
           document.getElementById('nj-poker-current-bet').textContent = _bet;
           document.getElementById('nj-poker-bet-phase').style.display = 'none';
           document.getElementById('nj-poker-draw-phase').style.display = 'block';
@@ -4879,9 +4844,7 @@
           renderHand();
         };
 
-        window.njPokerDraw = async function() {
-          if(_pokerPhase!=='draw') return;
-          _pokerPhase = 'done';
+        window.njPokerDraw = function() {
           for (let i = 0; i < 5; i++) {
             if (!_held.includes(i)) _hand[i] = _deck.pop();
           }
@@ -4899,28 +4862,29 @@
           let coinDelta = 0;
           if (result.mult > 0) {
             coinDelta = _bet * result.mult;
-            try {
-              await _njApplyCoinDelta(coinDelta);
-            } catch(e) {
-              statusEl.style.background = '#1f0000';
-              statusEl.style.borderColor = '#7f1d1d';
-              statusEl.style.color = '#f87171';
-              statusEl.innerHTML = `Unable to settle ${result.name}.<br><span style="font-size:12px;color:#fca5a5">Please refresh and check your balance.</span>`;
-              return;
-            }
+            njCoins += coinDelta;
             statusEl.style.background = '#0f1a0f';
             statusEl.style.borderColor = '#166534';
             statusEl.style.color = '#4ade80';
             statusEl.innerHTML = `${result.name}<br><span style="font-size:12px;color:#86efac">+${coinDelta} 🪙 (${result.mult}×)</span>`;
           } else {
             coinDelta = -_bet;
+            njCoins -= _bet;
             statusEl.style.background = '#1a0a0a';
             statusEl.style.borderColor = '#7f1d1d';
             statusEl.style.color = '#f87171';
             statusEl.innerHTML = `${result.name}<br><span style="font-size:12px;color:#fca5a5">-${_bet} 🪙</span>`;
           }
+          if (njCoins < 0) njCoins = 0;
           if (balEl) balEl.textContent = njCoins + ' 🪙';
-          _njUpdateGambleBalances();
+          document.getElementById('nj-gamble-balance').textContent = njCoins + ' 🪙';
+          try {
+            const u = localStorage.getItem('nj_username');
+            if (u) {
+              const { ref, set } = window._njFirebase || {};
+              if (ref && set) set(ref(window._njDb, 'njsgames/coins/' + window.fk(u)), njCoins);
+            }
+          } catch(e){}
         };
       })();
 
@@ -5151,10 +5115,19 @@
         });
 
         // ── Firebase update ──
-        // Use one transaction helper so the committed balance is reflected
-        // everywhere before the result is shown.
+        // Use TransactionResult.snapshot as the single source of truth so the
+        // onValue listener and the manual njCoins update can't race/double-apply.
         try {
-          await _njApplyCoinDelta(win ? bet : -bet);
+          let result;
+          if(win){
+            result = await runTransaction(ref(njDb,`njsgames/users/${njUser}/coins`),c=>(c||0)+bet);
+          } else {
+            result = await runTransaction(ref(njDb,`njsgames/users/${njUser}/coins`),c=>Math.max(0,(c||0)-bet));
+          }
+          // Committed value straight from Firebase — no guessing, no race
+          njCoins = result.snapshot.val() || 0;
+          set(ref(njDb,`njsgames/leaderboard/coins-alltime/${njUser}`),njCoins);
+          updateHdrStats();
         } catch(e){
           btn.disabled=false; btn.textContent='🎲 Spin the Wheel!';
           document.getElementById('nj-gamble-wheel-section').style.display='none';
@@ -5165,7 +5138,7 @@
         // ── Show result ──
         document.getElementById('nj-gamble-wheel-section').style.display='none';
         document.getElementById('nj-gamble-bet-section').style.display='block';
-        _njUpdateGambleBalances();
+        document.getElementById('nj-gamble-balance-w').textContent=njCoins+' 🪙';
         resEl.style.display='block';
 
         if(win){
@@ -5260,11 +5233,12 @@
       async function _bjSettle(delta, multiplier){
         // delta: coin change. multiplier just for display.
         try{
-          if(delta) await _njApplyCoinDelta(delta);
-          else _njUpdateGambleBalances();
-        }catch(e){
-          _bjShowStatus('<div style="font-size:15px;font-weight:800">Unable to settle this hand</div><div style="font-size:12px;margin-top:4px;opacity:.8">Refresh and check your balance before playing again.</div>',false);
-        }
+          const result=await runTransaction(ref(njDb,`njsgames/users/${njUser}/coins`),c=>Math.max(0,(c||0)+delta));
+          njCoins=result.snapshot.val()||0;
+          set(ref(njDb,`njsgames/leaderboard/coins-alltime/${njUser}`),njCoins);
+          updateHdrStats();
+          document.getElementById('nj-bj-balance').textContent=njCoins+' 🪙';
+        }catch(e){ /* ignore */ }
       }
 
       async function _bjDealerPlay(){
@@ -5294,29 +5268,26 @@
           await _bjSettle(earn, 1.5);
           _njgConfetti();
         } else if(pv>21){
-          delta=0;
-          msg='<div style="font-size:20px;margin-bottom:4px">💀</div><div style="font-size:15px;font-weight:800">BUST! −'+_bjBet+' 🪙</div><div style="font-size:12px;margin-top:4px;opacity:.8">Balance: '+njCoins+' 🪙</div>';
+          delta=-_bjBet;
+          msg='<div style="font-size:20px;margin-bottom:4px">💀</div><div style="font-size:15px;font-weight:800">BUST! −'+_bjBet+' 🪙</div><div style="font-size:12px;margin-top:4px;opacity:.8">Balance: '+(njCoins-_bjBet)+' 🪙</div>';
           _bjShowStatus(msg,false);
-          _njUpdateGambleBalances();
+          await _bjSettle(delta, 0);
         } else if(dBJ||dv>21||pv>dv){
-          // The stake was removed at deal time. A regular win returns the
-          // stake plus an equal profit, so settle 2× the wager here.
-          delta=_bjBet*2;
+          delta=_bjBet;
           const label=dv>21?'Dealer busts!':'You win!';
-          msg='<div style="font-size:20px;margin-bottom:4px">🏆</div><div style="font-size:15px;font-weight:800">'+label+' +'+_bjBet+' 🪙</div><div style="font-size:12px;margin-top:4px;opacity:.8">Balance: '+(njCoins+delta)+' 🪙</div>';
+          msg='<div style="font-size:20px;margin-bottom:4px">🏆</div><div style="font-size:15px;font-weight:800">'+label+' +'+_bjBet+' 🪙</div><div style="font-size:12px;margin-top:4px;opacity:.8">Balance: '+(njCoins+_bjBet)+' 🪙</div>';
           _bjShowStatus(msg,true);
           await _bjSettle(delta,1);
           _njgConfetti();
         } else if(pv===dv){
-          delta=_bjBet;
-          msg='<div style="font-size:20px;margin-bottom:4px">🤝</div><div style="font-size:15px;font-weight:800">PUSH — Tie!</div><div style="font-size:12px;margin-top:4px;opacity:.8">Bet returned · Balance: '+(njCoins+_bjBet)+' 🪙</div>';
-          _bjShowStatus(msg,null);
-          await _bjSettle(delta,1);
-        } else {
           delta=0;
-          msg='<div style="font-size:20px;margin-bottom:4px">😔</div><div style="font-size:15px;font-weight:800">Dealer wins − '+_bjBet+' 🪙</div><div style="font-size:12px;margin-top:4px;opacity:.8">Balance: '+njCoins+' 🪙</div>';
+          msg='<div style="font-size:20px;margin-bottom:4px">🤝</div><div style="font-size:15px;font-weight:800">PUSH — Tie!</div><div style="font-size:12px;margin-top:4px;opacity:.8">Bet returned</div>';
+          _bjShowStatus(msg,null);
+        } else {
+          delta=-_bjBet;
+          msg='<div style="font-size:20px;margin-bottom:4px">😔</div><div style="font-size:15px;font-weight:800">Dealer wins − '+_bjBet+' 🪙</div><div style="font-size:12px;margin-top:4px;opacity:.8">Balance: '+(njCoins-_bjBet)+' 🪙</div>';
           _bjShowStatus(msg,false);
-          _njUpdateGambleBalances();
+          await _bjSettle(delta,0);
         }
         _bjSetPhase('done');
       }
@@ -5325,19 +5296,19 @@
 
       window.njBJDeal=async function(){
         if(!njUser){ alert("Sign in to play!"); return; }
-        if(_bjPhase!=='bet') return;
-        _bjPhase='settling';
         const bet=parseInt(document.getElementById('nj-bj-bet-input').value);
-        if(!bet||bet<1){ _bjPhase='bet'; _bjShowStatus('<b>Enter a valid bet!</b>',false); return; }
-        if(bet>njCoins){ _bjPhase='bet'; _bjShowStatus('<b>Not enough coins!</b>',false); return; }
+        if(!bet||bet<1){ _bjShowStatus('<b>Enter a valid bet!</b>',false); return; }
+        if(bet>njCoins){ _bjShowStatus('<b>Not enough coins!</b>',false); return; }
         _bjBet=bet; _bjFirstAction=true;
         document.getElementById('nj-bj-status').style.display='none';
         document.getElementById('nj-bj-current-bet').textContent=bet;
-        // Deduct the stake up front. Settlements add back only the payout or
-        // profit that is owed, so losing bets are never deducted twice.
+        // Deduct bet up front (returned/doubled on result)
         try{
-          await _njApplyCoinDelta(-bet);
-        }catch(e){ _bjPhase='bet'; alert('Error: '+e.message); return; }
+          const r=await runTransaction(ref(njDb,`njsgames/users/${njUser}/coins`),c=>Math.max(0,(c||0)-bet));
+          njCoins=r.snapshot.val()||0;
+          updateHdrStats();
+          document.getElementById('nj-bj-balance').textContent=njCoins+' 🪙';
+        }catch(e){ alert('Error: '+e.message); return; }
         _bjDeck=_bjNewDeck();
         _bjPlayer=[_bjDeck.pop(),_bjDeck.pop()];
         _bjDealer=[_bjDeck.pop(),_bjDeck.pop()];
@@ -5352,7 +5323,7 @@
             await _bjSettle(bet,1);
           } else {
             const earn=Math.floor(bet*1.5);
-            _bjShowStatus('<div style="font-size:20px;margin-bottom:4px">🎉♠</div><div style="font-size:15px;font-weight:800">BLACKJACK! +'+earn+' 🪙</div><div style="font-size:12px;margin-top:4px;opacity:.8">Balance: '+(njCoins+bet+earn)+' 🪙</div>',true);
+            _bjShowStatus('<div style="font-size:20px;margin-bottom:4px">🎉♠</div><div style="font-size:15px;font-weight:800">BLACKJACK! +'+earn+' 🪙</div>',true);
             await _bjSettle(bet+earn,1.5);
             _njgConfetti();
           }
@@ -5382,11 +5353,13 @@
       window.njBJDouble=async function(){
         if(_bjPhase!=='play'||!_bjFirstAction) return;
         if(_bjBet>njCoins){ _bjShowStatus('<b>Not enough coins to double!</b>',false); return; }
-        _bjFirstAction=false;
         // Deduct extra bet
         try{
-          await _njApplyCoinDelta(-_bjBet);
-        }catch(e){ _bjFirstAction=true; return; }
+          const r=await runTransaction(ref(njDb,`njsgames/users/${njUser}/coins`),c=>Math.max(0,(c||0)-_bjBet));
+          njCoins=r.snapshot.val()||0;
+          updateHdrStats();
+          document.getElementById('nj-bj-balance').textContent=njCoins+' 🪙';
+        }catch(e){ return; }
         _bjBet*=2;
         document.getElementById('nj-bj-current-bet').textContent=_bjBet;
         _bjPlayer.push(_bjDeck.pop());
@@ -7432,5 +7405,6 @@
       .nj-card-br{align-self:flex-end;line-height:1.2;text-align:center;transform:rotate(180deg);}
       @keyframes njCardDeal{from{opacity:0;transform:scale(0.6) translateY(-12px);}to{opacity:1;transform:scale(1) translateY(0);}}
     </style>
+<script src="/ABCDIH/assets/nj-updates.js"></script>
 </body>
 </html>
