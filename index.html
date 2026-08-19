@@ -2898,6 +2898,7 @@
           const isMuted = muteInfo && Date.now() < muteInfo.expiresAt;
           const timeLeft = isMuted ? _fmtRemaining(muteInfo.expiresAt) : null;
           const deviceId = p.deviceId || "";
+          const activity = p.game && p.game.name ? p.game.name : "🏠 Browsing the site";
           const gameHtml = p.game
             ? `<div class="nj-user-game">
                 ${p.game.thumb ? `<img class="nj-game-thumb" src="${esc(p.game.thumb)}" onerror="this.style.display='none'" alt=""/>` : "🎮"}
@@ -2922,6 +2923,7 @@
             <div class="nj-user-info">
               <div class="nj-user-name">${esc(p.username || "Unknown")} ${muteBadge} <span style="font-size:11px;font-weight:500;color:${agoColor};margin-left:6px" title="Last mouse/key activity">⚡ ${agoStr}</span></div>
               <div style="color:#f0abfc;font-size:10px;margin-top:2px">🌐 IP: ${esc(p.ip || "Not recorded")}</div>
+              <div style="color:#c4b5fd;font-size:10px;margin-top:3px">Activity: ${esc(activity)}</div>
               ${gameHtml}
             </div>
             <div class="nj-user-actions">
@@ -3057,7 +3059,7 @@
         const countEl = document.getElementById("nj-codes-admin-count");
         if (countEl) countEl.textContent = Object.keys(_codesData).length;
         const body = document.getElementById("nj-codes-admin-body");
-        if (body && body.style.display !== 'none') _renderCodesAdmin();
+        if (document.getElementById('nj-codes-admin-list')) _renderCodesAdmin();
       });
 
       function _renderCodesAdmin() {
@@ -3867,6 +3869,7 @@
         _adminOpen = true;
         document.getElementById("nj-admin-overlay").style.display = "flex";
         _renderAdminUsers();
+        if (document.getElementById('nj-codes-admin-list')) _renderCodesAdmin();
         clearInterval(_muteTickInterval);
         _muteTickInterval = setInterval(_updateMuteTicks, 1000);
       }
@@ -5759,8 +5762,11 @@
           <button class="nj-hdr-btn" onclick="njOpenSoundboard()">🎵 Soundboard</button>
           <!-- Existing header additions: all open in an in-site overlay -->
           <button class="nj-hdr-btn" onclick="njOpenUnblocker()">🌐 Unblocker</button>
-          <button class="nj-hdr-btn" onclick="njOpenQA()">❓ Q/A</button>
-          <button class="nj-hdr-btn" onclick="njOpenCoinFarmer()">🪙 Coin Farmer</button>
+          <div style="display:flex;flex-direction:column;gap:3px">
+            <button class="nj-hdr-btn" onclick="njOpenQA()">❓ Q/A</button>
+            <button class="nj-hdr-btn" onclick="njOpenCoinFarmer()">🪙 Coin Farmer</button>
+            <button class="nj-hdr-btn" onclick="njOpenTestingSites()">🧪 Testing Sites</button>
+          </div>
           <div style="display:flex;flex-direction:column;gap:3px;margin-left:auto">
             <button class="nj-hdr-btn" id="nj-hdr-spin-btn" onclick="njOpenSpin()" style="position:relative">🎡 Daily Spin<span id="nj-spin-dot" style="display:none;position:absolute;top:3px;right:3px;width:6px;height:6px;background:#fbbf24;border-radius:50%"></span></button>
             <button class="nj-hdr-btn" id="nj-hdr-ch-btn" onclick="njOpenChallenges()" style="position:relative">⚡ Challenges<span id="nj-ch-dot" style="display:none;position:absolute;top:3px;right:3px;width:6px;height:6px;background:#22c55e;border-radius:50%"></span></button>
@@ -5893,8 +5899,17 @@
 
       // ── Header tools ──
       const njDefaultQA=[['How do I play a game?','Choose a game and it will open in the site player.'],['Why is a game not loading?','Try another game or choose a testing site in Unblocker.'],['How do I earn coins?','Use Daily Spin, complete Challenges, and play games.'],['What does Redeem do?','Enter a code supplied by the site owner.']];
-      window.njOpenQA=function(){ const qa=JSON.parse(localStorage.getItem('nj_custom_qa')||'null')||njDefaultQA; const ov=document.createElement('div'); ov.style.cssText='position:fixed;inset:0;z-index:10070;background:rgba(0,0,0,.88);display:flex;align-items:center;justify-content:center;padding:16px'; ov.innerHTML='<div style="background:#0f0f1a;border:1px solid #7c3aed;border-radius:18px;width:min(560px,95vw);max-height:85vh;overflow:auto;padding:22px;color:#fff"><button style="float:right;background:none;border:0;color:#9ca3af;font-size:22px">✕</button><h2>❓ Questions & Answers</h2><div id="nj-qa-list"></div><div style="margin-top:14px;color:#6b7280;font-size:11px">Authenticate through the existing Admin panel before adding entries.</div><button id="nj-qa-add" class="nj-hdr-btn">＋ Add Q/A</button></div>'; document.body.appendChild(ov); ov.querySelector('button').onclick=()=>ov.remove(); const list=ov.querySelector('#nj-qa-list'); const render=()=>list.innerHTML=qa.map(x=>'<div style="padding:12px 0;border-bottom:1px solid #2a2a4a"><b>'+esc(x[0])+'</b><div style="color:#a1a1aa;margin-top:5px;line-height:1.5">'+esc(x[1])+'</div></div>').join(''); render(); ov.querySelector('#nj-qa-add').onclick=()=>{const panel=document.getElementById('nj-admin-overlay');if(!panel||getComputedStyle(panel).display==='none'){alert('Open the Admin panel and enter the master key first.');return;}const q=prompt('Question:');const a=q&&prompt('Answer:');if(q&&a){qa.push([q.trim(),a.trim()]);localStorage.setItem('nj_custom_qa',JSON.stringify(qa));render();}}; };
+      window.njOpenQA=function(){ const qa=JSON.parse(localStorage.getItem('nj_custom_qa')||'null')||njDefaultQA; const ov=document.createElement('div'); ov.style.cssText='position:fixed;inset:0;z-index:10070;background:rgba(0,0,0,.88);display:flex;align-items:center;justify-content:center;padding:16px'; ov.innerHTML='<div style="background:#0f0f1a;border:1px solid #7c3aed;border-radius:18px;width:min(560px,95vw);max-height:85vh;overflow:auto;padding:22px;color:#fff"><button style="float:right;background:none;border:0;color:#9ca3af;font-size:22px">✕</button><h2>❓ Questions & Answers</h2><div id="nj-qa-list"></div><div style="margin-top:14px;color:#6b7280;font-size:11px">Enter the admin password below to add entries.</div><button id="nj-qa-add" class="nj-hdr-btn">＋ Add Q/A</button></div>'; document.body.appendChild(ov); ov.querySelector('button').onclick=()=>ov.remove(); const list=ov.querySelector('#nj-qa-list'); const render=()=>list.innerHTML=qa.map(x=>'<div style="padding:12px 0;border-bottom:1px solid #2a2a4a"><b>'+esc(x[0])+'</b><div style="color:#a1a1aa;margin-top:5px;line-height:1.5">'+esc(x[1])+'</div></div>').join(''); render(); ov.querySelector('#nj-qa-add').onclick=async()=>{const password=prompt('Admin password:');if(password===null)return;const hash=await _sha256(password);if(hash!==_ah){alert('Incorrect admin password.');return;}const q=prompt('Question:');const a=q&&prompt('Answer:');if(q&&a){qa.push([q.trim(),a.trim()]);localStorage.setItem('nj_custom_qa',JSON.stringify(qa));render();}}; };
       window.njOpenCoinFarmer=function(){ const ov=document.createElement('div'); ov.style.cssText='position:fixed;inset:0;z-index:10070;background:rgba(0,0,0,.88);display:flex;align-items:center;justify-content:center;padding:16px'; ov.innerHTML='<div style="background:#0f0f1a;border:1px solid #7c3aed;border-radius:18px;width:min(420px,95vw);padding:28px;text-align:center;color:#fff"><button style="float:right;background:none;border:0;color:#9ca3af;font-size:22px">✕</button><div style="font-size:44px">🪙</div><h2>Coin Farmer</h2><p style="color:#a1a1aa">Work in progress — this feature is not available yet.</p></div>'; document.body.appendChild(ov); ov.querySelector('button').onclick=()=>ov.remove(); };
+      // Track activities that are rendered by React after this module loads (especially Chat).
+      document.addEventListener('click', function(e){
+        const el=e.target.closest&&e.target.closest('button,a'); if(!el)return;
+        const t=(el.textContent||'').trim().replace(/\s+/g,' ');
+        if(/^💬?\s*(Chat|Chat Rooms)$/i.test(t)||/\bchat\b/i.test(t)&&t.length<40) updatePresenceGame({name:'💬 In Chat',thumb:null});
+        else if(/events/i.test(t)) updatePresenceGame({name:'📅 Viewing Events',thumb:null});
+        else if(/announce/i.test(t)) updatePresenceGame({name:'📣 Viewing Announcements',thumb:null});
+      }, true);
+
       // ── Shop ──
       window.njOpenShop=function(){
         document.getElementById('nj-shop-overlay').style.display='flex';
@@ -5916,8 +5931,9 @@
         document.getElementById('nj-soundboard-overlay').style.display='none';
         updatePresenceGame(null);
       };
-      window.njSelectUnblocker=function(url){ const fr=document.getElementById('nj-unblocker-frame'); if(fr&&url)fr.src=url; updatePresenceGame({name:'🌐 Using Unblocker',thumb:null}); };
+      window.njSelectUnblocker=function(url){ const fr=document.getElementById('nj-unblocker-frame'); const sel=document.getElementById('nj-unblocker-site-select'); const label=sel&&sel.selectedOptions[0]?sel.selectedOptions[0].textContent.trim():'Unblocker'; if(fr&&url)fr.src=url; updatePresenceGame({name:'🌐 Using '+label,thumb:null}); };
       window.njOpenUnblocker=function(){ const ov=document.getElementById('nj-unblocker-overlay'); ov.style.display='flex'; const sel=document.getElementById('nj-unblocker-site-select'); njSelectUnblocker(sel?sel.value:'https://s3.amazonaws.com/angelfern/index.html'); };
+      window.njOpenTestingSites=function(){ const ov=document.getElementById('nj-unblocker-overlay'); ov.style.display='flex'; const sel=document.getElementById('nj-unblocker-site-select'); if(sel){sel.selectedIndex=1; njSelectUnblocker(sel.value);} };
       window.njCloseUnblocker=function(){
         document.getElementById('nj-unblocker-overlay').style.display='none';
         updatePresenceGame(null);
