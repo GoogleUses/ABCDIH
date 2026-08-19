@@ -7505,15 +7505,16 @@
         _njOriginalSettingsTab(tab);
         if (tab !== 'log') return;
         const content = document.getElementById('nj-settings-content');
-        if (!content || content.dataset.njV25Log) return;
-        const stack = content.querySelector('div[style*="flex-direction:column"][style*="gap:10px"]');
-        if (!stack) return;
-        const card = document.createElement('div');
-        card.style.cssText='background:#0f1a0f;border:1px solid #166534;border-radius:12px;padding:14px;order:-1';
-        card.innerHTML='<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><span style="background:#166534;color:#4ade80;font-size:10px;font-weight:800;padding:2px 8px;border-radius:20px;text-transform:uppercase">Latest</span><span style="color:#6b7280;font-size:11px">19 Aug 2026</span></div><div style="color:#fff;font-weight:700;font-size:14px;margin-bottom:6px">🛠️ Admin Activity, Q/A &amp; Testing Sites</div><ul style="color:#9ca3af;font-size:12px;line-height:1.8;padding-left:18px;margin:0"><li>Admin presence now shows detailed activity for Unblocker, Testing Sites, chat, events, announcements, shop, settings, soundboard and Q/A.</li><li>Q/A entries now use a clean admin-password flow and shared Firebase persistence.</li><li>Testing Sites remains a separate header control; unavailable links were removed.</li><li>Removed duplicate testing-site entries and checked the game catalog for exact duplicates.</li></ul>';
-        stack.prepend(card);
-        content.dataset.njV25Log='1';
+        if (!content) return;
+        content.innerHTML='<div style="padding:4px 0"><div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid #2a2a4a"><div style="font-size:28px">📋</div><div><div style="color:#fff;font-weight:800;font-size:16px">Update Log</div><div style="color:#6b7280;font-size:11px">What is new on the site</div></div></div><div style="background:#0f1a0f;border:1px solid #166534;border-radius:12px;padding:14px"><div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><span style="background:#166534;color:#4ade80;font-size:10px;font-weight:800;padding:2px 8px;border-radius:20px;text-transform:uppercase">Latest</span><span style="color:#6b7280;font-size:11px">19 Aug 2026</span></div><div style="color:#fff;font-weight:700;font-size:14px;margin-bottom:6px">🛠️ Admin Activity, Q/A &amp; Testing Sites</div><ul style="color:#9ca3af;font-size:12px;line-height:1.8;padding-left:18px;margin:0"><li>Admin presence now shows detailed activity for Unblocker, Testing Sites, chat, events, announcements, shop, settings, soundboard and Q/A.</li><li>Q/A now uses a clean admin-password form with shared Firebase persistence.</li><li>Testing Sites is a separate header control and unavailable links were removed.</li><li>Removed duplicate testing-site entries and checked the game catalog for exact duplicates.</li></ul></div></div>';
       };
+      function njMoveTestingHeader(){
+        const t=[...document.querySelectorAll('button')].find(b=>(b.textContent||'').trim()==='🧪 Testing Sites');
+        const u=[...document.querySelectorAll('button')].find(b=>(b.textContent||'').trim()==='🌐 Unblocker');
+        if(t&&u&&t.parentElement!==u.parentElement){u.after(t);t.style.display='';}
+      }
+      setTimeout(njMoveTestingHeader,300);
+      new MutationObserver(njMoveTestingHeader).observe(document.body,{childList:true,subtree:true});
     </script>
 </body>
 </html>
