@@ -4288,6 +4288,10 @@
       <div style="background:rgba(10,10,15,0.97);border-bottom:1px solid #1a1a2e;padding:12px 20px;display:flex;align-items:center;gap:14px;flex-shrink:0;">
         <button onclick="njCloseUnblocker()" style="background:#1a1a2e;border:1px solid #2a2a4a;border-radius:8px;color:#9ca3af;font-size:13px;font-weight:600;padding:7px 14px;cursor:pointer;">← Back</button>
         <span style="font-size:17px;font-weight:800;background:linear-gradient(135deg,#a78bfa,#7c3aed);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">🌐 Unblocker</span>
+        <select id="nj-unblocker-site-select" onchange="njSelectUnblocker(this.value)" style="margin-left:auto;background:#1a1a2e;border:1px solid #3b2b68;border-radius:8px;color:#ddd6fe;padding:7px 10px;font-size:12px;max-width:55vw">
+          <option value="https://s3.amazonaws.com/angelfern/index.html">Fern Proxy</option>
+          <optgroup label="Testing Sites"><option value="https://sites.google.com/view/player-nation/home">Player Nation</option><option value="https://ual.beltfrog.com/">Cherri</option><option value="https://a.teimporto.cl/">Galaxy</option><option value="https://math.asturkiters.es/">PeteZah</option><option value="https://learn.hr24.ro/">Space</option><option value="https://xylora.bumon.ar/">Xylora</option><option value="https://goeeoe.inoriza-racing.com.ar/">IXL</option><option value="https://stories-math.martindiaz.org/">Strawberri</option><option value="https://tt-mathsubject.martindiaz.org/">Tung Tung</option><option value="https://quotes-math.martindiaz.org/">StudyHub</option><option value="https://math-qo.martindiaz.org/">Utopia</option><option value="https://wow-best-math.martindiaz.org/">Lunar</option><option value="https://storage.googleapis.com/canvas-lms/index.html">Dogeub</option><option value="https://s3.amazonaws.com/angelfern/index.html">Fren</option><option value="https://mathscience.glenoriebakery.com.au">Lucide</option><option value="https://mathcordxp.github.io/">Strongdog XP</option><option value="https://nightwaveyt.github.io/NJsUnblockedGames/">NJS Unblocked Games</option><option value="https://unblockedgamesgg.com/">Unblocked Games GG</option><option value="https://coolunblockedgames.github.io/">Cool UGB</option><option value="https://git-hub-games.github.io/">GitHub Games</option><option value="https://classroom6xunblocked-games.github.io/">Classroom 6x</option><option value="https://googleuses.github.io/ABCDIH/">ABCDIH / NJS</option><option value="https://unpkg.com/classroomduck@1.0.76/index.html">Unpkg ClassroomDuck</option><option value="https://crikk.com/text-to-speech">Text to Speech</option><option value="https://voicechanger.easeus.com/soundboards">Voice Changer</option><option value="https://www.onlinepianist.com/virtual-piano">Online Pianist</option></optgroup>
+        </select>
       </div>
 
       <iframe id="nj-unblocker-frame" src="about:blank" allow="autoplay" style="flex:1;border:none;width:100%;height:100%;"></iframe>
@@ -5739,7 +5743,7 @@
       function buildHdrBar() {
         const bar=document.createElement('div');
         bar.id='nj-hdr-gbar';
-        bar.style.cssText='display:flex;align-items:center;gap:5px;flex-shrink:0;margin-left:8px;';
+        bar.style.cssText='display:flex;align-items:center;gap:5px;flex-shrink:0;margin-left:8px;flex-wrap:wrap;justify-content:flex-start;';
         bar.innerHTML=`
           <div class="nj-stat-pill">
             <span id="nj-hb-coins" style="color:#fbbf24;font-weight:700;font-size:12px">🪙 0</span>
@@ -5750,13 +5754,17 @@
           </div>
           <button class="nj-hdr-btn" onclick="njOpenLeaderboard()">🏆 Leaderboard</button>
           <button class="nj-hdr-btn" onclick="njOpenShop()">🛒 Shop</button>
-          <button class="nj-hdr-btn" id="nj-hdr-spin-btn" onclick="njOpenSpin()" style="position:relative">🎡 Daily Spin<span id="nj-spin-dot" style="display:none;position:absolute;top:3px;right:3px;width:6px;height:6px;background:#fbbf24;border-radius:50%"></span></button>
-          <button class="nj-hdr-btn" id="nj-hdr-ch-btn" onclick="njOpenChallenges()" style="position:relative">⚡ Challenges<span id="nj-ch-dot" style="display:none;position:absolute;top:3px;right:3px;width:6px;height:6px;background:#22c55e;border-radius:50%"></span></button>
           <button class="nj-hdr-btn" onclick="njOpenProfile()">👤 Profile</button>
           <!-- v23: soundboard.html now embeds https://voicechanger.easeus.com/soundboards — old custom soundboard removed -->
           <button class="nj-hdr-btn" onclick="njOpenSoundboard()">🎵 Soundboard</button>
-          <!-- Unblocker tab -->
+          <!-- Existing header additions: all open in an in-site overlay -->
           <button class="nj-hdr-btn" onclick="njOpenUnblocker()">🌐 Unblocker</button>
+          <button class="nj-hdr-btn" onclick="njOpenQA()">❓ Q/A</button>
+          <button class="nj-hdr-btn" onclick="njOpenCoinFarmer()">🪙 Coin Farmer</button>
+          <div style="display:flex;flex-direction:column;gap:3px;margin-left:auto">
+            <button class="nj-hdr-btn" id="nj-hdr-spin-btn" onclick="njOpenSpin()" style="position:relative">🎡 Daily Spin<span id="nj-spin-dot" style="display:none;position:absolute;top:3px;right:3px;width:6px;height:6px;background:#fbbf24;border-radius:50%"></span></button>
+            <button class="nj-hdr-btn" id="nj-hdr-ch-btn" onclick="njOpenChallenges()" style="position:relative">⚡ Challenges<span id="nj-ch-dot" style="display:none;position:absolute;top:3px;right:3px;width:6px;height:6px;background:#22c55e;border-radius:50%"></span></button>
+          </div>
           <div style="display:flex;flex-direction:column;gap:3px">
             <button class="nj-hdr-btn" onclick="njOpenGamble()" style="background:linear-gradient(135deg,#7f1d1d,#991b1b);border-color:#dc2626">🎰 Gamble</button>
             <button class="nj-hdr-btn" onclick="njOpenCodes()">🎟️ Redeem</button>
@@ -5883,6 +5891,10 @@
         }catch(e){ listEl.innerHTML='<div style="text-align:center;color:#ef4444;padding:20px">Failed to load leaderboard</div>'; }
       }
 
+      // ── Header tools ──
+      const njDefaultQA=[['How do I play a game?','Choose a game and it will open in the site player.'],['Why is a game not loading?','Try another game or choose a testing site in Unblocker.'],['How do I earn coins?','Use Daily Spin, complete Challenges, and play games.'],['What does Redeem do?','Enter a code supplied by the site owner.']];
+      window.njOpenQA=function(){ const qa=JSON.parse(localStorage.getItem('nj_custom_qa')||'null')||njDefaultQA; const ov=document.createElement('div'); ov.style.cssText='position:fixed;inset:0;z-index:10070;background:rgba(0,0,0,.88);display:flex;align-items:center;justify-content:center;padding:16px'; ov.innerHTML='<div style="background:#0f0f1a;border:1px solid #7c3aed;border-radius:18px;width:min(560px,95vw);max-height:85vh;overflow:auto;padding:22px;color:#fff"><button style="float:right;background:none;border:0;color:#9ca3af;font-size:22px">✕</button><h2>❓ Questions & Answers</h2><div id="nj-qa-list"></div><div style="margin-top:14px;color:#6b7280;font-size:11px">Authenticate through the existing Admin panel before adding entries.</div><button id="nj-qa-add" class="nj-hdr-btn">＋ Add Q/A</button></div>'; document.body.appendChild(ov); ov.querySelector('button').onclick=()=>ov.remove(); const list=ov.querySelector('#nj-qa-list'); const render=()=>list.innerHTML=qa.map(x=>'<div style="padding:12px 0;border-bottom:1px solid #2a2a4a"><b>'+esc(x[0])+'</b><div style="color:#a1a1aa;margin-top:5px;line-height:1.5">'+esc(x[1])+'</div></div>').join(''); render(); ov.querySelector('#nj-qa-add').onclick=()=>{const panel=document.getElementById('nj-admin-overlay');if(!panel||getComputedStyle(panel).display==='none'){alert('Open the Admin panel and enter the master key first.');return;}const q=prompt('Question:');const a=q&&prompt('Answer:');if(q&&a){qa.push([q.trim(),a.trim()]);localStorage.setItem('nj_custom_qa',JSON.stringify(qa));render();}}; };
+      window.njOpenCoinFarmer=function(){ const ov=document.createElement('div'); ov.style.cssText='position:fixed;inset:0;z-index:10070;background:rgba(0,0,0,.88);display:flex;align-items:center;justify-content:center;padding:16px'; ov.innerHTML='<div style="background:#0f0f1a;border:1px solid #7c3aed;border-radius:18px;width:min(420px,95vw);padding:28px;text-align:center;color:#fff"><button style="float:right;background:none;border:0;color:#9ca3af;font-size:22px">✕</button><div style="font-size:44px">🪙</div><h2>Coin Farmer</h2><p style="color:#a1a1aa">Work in progress — this feature is not available yet.</p></div>'; document.body.appendChild(ov); ov.querySelector('button').onclick=()=>ov.remove(); };
       // ── Shop ──
       window.njOpenShop=function(){
         document.getElementById('nj-shop-overlay').style.display='flex';
@@ -5904,13 +5916,8 @@
         document.getElementById('nj-soundboard-overlay').style.display='none';
         updatePresenceGame(null);
       };
-      window.njOpenUnblocker=function(){
-        const ov=document.getElementById('nj-unblocker-overlay');
-        ov.style.display='flex';
-        const fr=document.getElementById('nj-unblocker-frame');
-        if(!fr.src||fr.src==='about:blank')fr.src='https://s3.amazonaws.com/angelfern/index.html';
-        updatePresenceGame({name:'🌐 Using Unblocker',thumb:null});
-      };
+      window.njSelectUnblocker=function(url){ const fr=document.getElementById('nj-unblocker-frame'); if(fr&&url)fr.src=url; updatePresenceGame({name:'🌐 Using Unblocker',thumb:null}); };
+      window.njOpenUnblocker=function(){ const ov=document.getElementById('nj-unblocker-overlay'); ov.style.display='flex'; const sel=document.getElementById('nj-unblocker-site-select'); njSelectUnblocker(sel?sel.value:'https://s3.amazonaws.com/angelfern/index.html'); };
       window.njCloseUnblocker=function(){
         document.getElementById('nj-unblocker-overlay').style.display='none';
         updatePresenceGame(null);
@@ -7405,6 +7412,5 @@
       .nj-card-br{align-self:flex-end;line-height:1.2;text-align:center;transform:rotate(180deg);}
       @keyframes njCardDeal{from{opacity:0;transform:scale(0.6) translateY(-12px);}to{opacity:1;transform:scale(1) translateY(0);}}
     </style>
-<script src="/ABCDIH/assets/nj-updates.js"></script>
 </body>
 </html>
