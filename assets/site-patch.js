@@ -21,6 +21,202 @@
     return [...new Uint8Array(bytes)].map(x => x.toString(16).padStart(2, '0')).join('');
   }
 
+  let _njFbPromise = null;
+  function firebaseTools() {
+    if (_njFbPromise) return _njFbPromise;
+    _njFbPromise = Promise.all([
+      import('https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js'),
+      import('https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js')
+    ]).then(([appMod, dbMod]) => {
+      const cfg = {
+        apiKey: atob('QUl6YVN5RFc5eGRGZHhGU2pBbTE1Zi1sMTA3ZlFwbVpiczZfdkV3'),
+        authDomain: atob('dHJvbGxpbmctZTNlZDguZmlyZWJhc2VhcHAuY29t'),
+        databaseURL: atob('aHR0cHM6Ly90cm9sbGluZy1lM2VkOC1kZWZhdWx0LXJ0ZGIuZmlyZWJhc2Vpby5jb20='),
+        projectId: atob('dHJvbGxpbmctZTNlZDg='),
+        storageBucket: atob('dHJvbGxpbmctZTNlZDguYXBwc3BvdC5jb20='),
+        messagingSenderId: atob('Mjk5MjYwNDM5MDE5'),
+        appId: atob('MToyOTkyNjA0MzkwMTk6d2ViOjlkZWRjOTg2MzM0YTg3MWUxZDUxYWU=')
+      };
+      const app = appMod.getApps().find(a => a.name === 'nj_main_sys') ||
+        appMod.initializeApp(cfg, 'nj_main_sys');
+      return { db: dbMod.getDatabase(app), ...dbMod };
+    }).catch(() => null);
+    return _njFbPromise;
+  }
+
+  function visible(el) {
+    if (!el) return false;
+    const s = getComputedStyle(el);
+    return s.display !== 'none' && s.visibility !== 'hidden' && s.opacity !== '0';
+  }
+
+  // The original presence writer only knows whether an iframe exists. This
+  // second, low-frequency observer records the visible feature/overlay too,
+  // without replacing the site's existing game telemetry.
+  function installPresenceObserver() {
+    if (window.__njDetailedPresence) return;
+    window.__njDetailedPresence = true;
+    let last = '';
+    const featureMap = [
+      ['nj-settings-overlay', '⚙️ In Settings'],
+      ['nj-gamble-overlay', '🎰 Gambling'],
+      ['nj-spin-overlay', '🎡 Spinning the Wheel'],
+      ['nj-shop-overlay', '🛒 Browsing Shop'],
+      ['nj-lb-overlay', '🏆 Viewing Leaderboard'],
+      ['nj-challenges-overlay', '⚡ Doing Challenges'],
+      ['nj-profile-overlay', '👤 Viewing Profile'],
+      ['nj-codes-overlay', '🎟️ Redeeming Code'],
+      ['nj-unblocker-overlay', '🌐 Using Unblocker'],
+      ['nj-soundboard-overlay', '🎵 Using Soundboard']
+    ];
+    const record = async (activity, game) => {
+      const username = localStorage.getItem('nj_username');
+      const sessionId = sessionStorage.getItem('nj_sess');
+      if (!username || !sessionId) return;
+      const f = await firebaseTools();
+      if (!f) return;
+      const key = JSON.stringify([activity, game && game.name]);
+      if (key === last) return;
+      last = key;
+      const now = Date.now();
+      const presenceRef = f.ref(f.db, `njsgames/presence/${sessionId}`);
+      const snap = await f.get(presenceRef).catch(() => null);
+      const current = snap && snap.exists() ? snap.val() : {};
+      const history = Array.isArray(current.activityHistory) ? current.activityHistory : [];
+      history.push({ ...activity, ts: now });
+      await f.update(presenceRef, {
+        username, game: game || null, activity,
+        activityHistory: history.slice(-12), lastSeen: now, lastActive: now
+      }).catch(() => {});
+    };
+    const scan = () => {
+      let game = null;
+      const frame = [...document.querySelectorAll('iframe[title]')].find(x =>
+        visible(x) && !['Chat Rooms', 'AI Chat'].includes(x.title));
+      if (frame) game = { name: frame.title, thumb: null };
+      let feature = null;
+      for (const [id, label] of featureMap) {
+        if (visible(document.getElementById(id))) { feature = label; break; }
+      }
+      if (!feature && visible(document.getElementById('nj-unblocker-frame'))) {
+        const sel = document.getElementById('nj-unblocker-site-select');
+        feature = '🌐 Using ' + (sel && sel.selectedOptions[0] ? sel.selectedOptions[0].textContent.trim() : 'Unblocker');
+      }
+      record(
+        feature ? { type: 'feature', label: feature, detail: location.href } :
+          game ? { type: 'game', label: 'Playing ' + game.name, detail: location.href } :
+            { type: 'site', label: 'Browsing the site', detail: location.pathname },
+        feature ? null : game
+      );
+    };
+    scan();
+    setInterval(scan, 1200);
+  }
+
+  function ensureRequestButton() {
+    if (document.getElementById('nj-game-request-button')) return;
+    const button = document.createElement('button');
+    button.id = 'nj-game-request-button';
+    button.textContent = '🎮 Request a game';
+    button.className = 'nj-hdr-btn';
+    button.style.cssText = 'position:fixed;right:18px;bottom:18px;z-index:9998;background:#7c3aed;border-color:#a78bfa;color:#fff;box-shadow:0 8px 24px #0008;padding:10px 14px;font-size:12px;';
+    button.onclick = openRequestForm;
+    document.body.appendChild(button);
+  }
+
+  function openRequestForm() {
+    if (document.getElementById('nj-request-overlay')) return;
+    const ov = document.createElement('div');
+    ov.id = 'nj-request-overlay';
+    ov.style.cssText = 'position:fixed;inset:0;z-index:10080;background:#000b;display:flex;align-items:center;justify-content:center;padding:16px;';
+    ov.innerHTML = '<form id="nj-request-form" style="background:#0f0f1a;border:1px solid #7c3aed;border-radius:18px;width:min(480px,95vw);padding:22px;color:#fff;box-shadow:0 16px 60px #000">' +
+      '<button type="button" id="nj-request-close" style="float:right;background:none;border:0;color:#9ca3af;font-size:22px;cursor:pointer">✕</button>' +
+      '<h2 style="margin:0 0 6px">🎮 Request a game</h2><p style="color:#9ca3af;font-size:12px;margin:0 0 18px">Tell us what you want added. Requests go straight to the admin panel.</p>' +
+      '<label style="display:block;font-size:12px;color:#c4b5fd;margin:10px 0 5px">Game name *</label><input id="nj-request-name" required maxlength="80" placeholder="e.g. Geometry Dash" style="width:100%;box-sizing:border-box;padding:10px;background:#171727;border:1px solid #3b2b68;border-radius:8px;color:#fff">' +
+      '<label style="display:block;font-size:12px;color:#c4b5fd;margin:10px 0 5px">Link (optional)</label><input id="nj-request-url" type="url" maxlength="300" placeholder="https://..." style="width:100%;box-sizing:border-box;padding:10px;background:#171727;border:1px solid #3b2b68;border-radius:8px;color:#fff">' +
+      '<label style="display:block;font-size:12px;color:#c4b5fd;margin:10px 0 5px">Why this game?</label><textarea id="nj-request-note" maxlength="500" rows="3" placeholder="Anything helpful for the admin…" style="width:100%;box-sizing:border-box;padding:10px;background:#171727;border:1px solid #3b2b68;border-radius:8px;color:#fff;resize:vertical"></textarea>' +
+      '<div id="nj-request-status" style="font-size:12px;margin-top:10px"></div><button type="submit" style="margin-top:14px;width:100%;padding:11px;background:#7c3aed;border:0;border-radius:9px;color:#fff;font-weight:800;cursor:pointer">Submit request</button></form>';
+    document.body.appendChild(ov);
+    ov.querySelector('#nj-request-close').onclick = () => ov.remove();
+    ov.querySelector('#nj-request-form').onsubmit = async e => {
+      e.preventDefault();
+      const status = ov.querySelector('#nj-request-status');
+      const f = await firebaseTools();
+      if (!f) { status.textContent = 'Could not connect right now. Try again shortly.'; status.style.color = '#f87171'; return; }
+      const request = {
+        gameName: ov.querySelector('#nj-request-name').value.trim(),
+        url: ov.querySelector('#nj-request-url').value.trim(),
+        note: ov.querySelector('#nj-request-note').value.trim(),
+        username: localStorage.getItem('nj_username') || 'Guest',
+        sessionId: sessionStorage.getItem('nj_sess') || '',
+        status: 'pending', submittedAt: Date.now()
+      };
+      if (!request.gameName) return;
+      if (request.url && !/^https?:\/\//i.test(request.url)) {
+        status.textContent = 'Please use a full http:// or https:// link.';
+        status.style.color = '#f87171';
+        return;
+      }
+      await f.set(f.push(f.ref(f.db, 'njsgames/gameRequests')), request);
+      status.textContent = '✅ Sent to the admin panel.';
+      status.style.color = '#4ade80';
+      e.target.querySelector('button[type="submit"]').disabled = true;
+    };
+  }
+
+  function installAdminRequests() {
+    const body = document.getElementById('nj-admin-body');
+    if (!body || document.getElementById('nj-admin-requests')) return;
+    const section = document.createElement('section');
+    section.id = 'nj-admin-requests';
+    section.style.cssText = 'margin:14px 0;padding:14px;background:#121225;border:1px solid #3b2b68;border-radius:12px;';
+    section.innerHTML = '<div style="display:flex;align-items:center;gap:8px"><b style="color:#fff">🎮 Game requests</b><span id="nj-request-count" style="color:#a78bfa;font-size:11px"></span><button id="nj-request-refresh" style="margin-left:auto;background:#2a2a4a;border:0;border-radius:6px;padding:5px 8px;color:#d1d5db;cursor:pointer">↻</button></div><div id="nj-request-list" style="margin-top:10px;color:#9ca3af;font-size:12px">Loading…</div>';
+    body.prepend(section);
+    const render = data => {
+      const list = Object.entries(data || {}).sort((a,b) => (b[1].submittedAt||0)-(a[1].submittedAt||0));
+      section.querySelector('#nj-request-count').textContent = `${list.filter(([,x]) => x.status === 'pending').length} pending`;
+      section.querySelector('#nj-request-list').innerHTML = list.length ? list.map(([id, x]) =>
+        `<div style="border-top:1px solid #2a2a4a;padding:10px 0"><div style="color:#fff;font-weight:700">${esc(x.gameName)} <span style="color:${x.status==='pending'?'#fbbf24':'#6b7280'};font-size:10px">${esc(x.status||'pending')}</span></div><div style="color:#9ca3af;font-size:11px;margin-top:3px">${esc(x.username||'Guest')} · ${new Date(x.submittedAt||0).toLocaleString()}</div>${x.url?`<a href="${esc(x.url)}" target="_blank" rel="noopener" style="color:#a78bfa;font-size:11px">${esc(x.url)}</a>`:''}${x.note?`<div style="color:#d1d5db;margin-top:4px">${esc(x.note)}</div>`:''}<div style="display:flex;gap:6px;margin-top:7px">${x.status==='pending'?`<button data-action="approved" data-id="${esc(id)}" style="background:#064e3b;color:#6ee7b7;border:0;border-radius:6px;padding:5px 8px;cursor:pointer">Approve</button><button data-action="rejected" data-id="${esc(id)}" style="background:#451a1a;color:#fca5a5;border:0;border-radius:6px;padding:5px 8px;cursor:pointer">Reject</button>`:''}<button data-action="delete" data-id="${esc(id)}" style="background:#2a2a4a;color:#9ca3af;border:0;border-radius:6px;padding:5px 8px;cursor:pointer">Delete</button></div></div>`
+      ).join('') : 'No game requests yet.';
+      section.querySelectorAll('[data-action]').forEach(btn => btn.onclick = async () => {
+        const f = await firebaseTools(); if (!f) return;
+        const path = `njsgames/gameRequests/${btn.dataset.id}`;
+        if (btn.dataset.action === 'delete') await f.remove(f.ref(f.db, path));
+        else await f.update(f.ref(f.db, path), { status: btn.dataset.action, reviewedAt: Date.now(), reviewedBy: localStorage.getItem('nj_username') || 'Admin' });
+      });
+    };
+    section.querySelector('#nj-request-refresh').onclick = async () => {
+      const f = await firebaseTools(); if (!f) return;
+      const snap = await f.get(f.ref(f.db, 'njsgames/gameRequests')); render(snap.val() || {});
+    };
+    firebaseTools().then(f => f && f.onValue(f.ref(f.db, 'njsgames/gameRequests'), snap => render(snap.val() || {})));
+    installAdminActivityFeed(body);
+  }
+
+  function installAdminActivityFeed(body) {
+    if (document.getElementById('nj-admin-live-activity')) return;
+    const section = document.createElement('section');
+    section.id = 'nj-admin-live-activity';
+    section.style.cssText = 'margin:14px 0;padding:14px;background:#121225;border:1px solid #3b2b68;border-radius:12px;';
+    section.innerHTML = '<div style="color:#fff;font-weight:700">🛰️ Live activity trail <span style="color:#6b7280;font-size:11px;font-weight:400">— recent actions per online user</span></div><div id="nj-live-activity-list" style="margin-top:9px;color:#9ca3af;font-size:12px">Loading…</div>';
+    body.prepend(section);
+    firebaseTools().then(f => f && f.onValue(f.ref(f.db, 'njsgames/presence'), snap => {
+      const rows = Object.values(snap.val() || {}).map(p => {
+        const history = Array.isArray(p.activityHistory) ? p.activityHistory : [];
+        const current = p.activity ? [p.activity] : [];
+        const items = [...history, ...current].filter(Boolean).slice(-8).reverse();
+        return { username: p.username || 'Unknown', items };
+      }).filter(x => x.items.length);
+      const list = section.querySelector('#nj-live-activity-list');
+      if (!rows.length) { list.textContent = 'No activity data yet.'; return; }
+      list.innerHTML = rows.map(row =>
+        `<div style="border-top:1px solid #2a2a4a;padding:8px 0"><div style="color:#c4b5fd;font-weight:700">${esc(row.username)}</div>${row.items.map(item =>
+          `<div style="display:flex;gap:8px;align-items:baseline;margin-top:4px"><span style="color:#fff">${esc(item.label || 'Unknown action')}</span><span style="color:#6b7280;font-size:10px">${item.ts ? new Date(item.ts).toLocaleTimeString() : ''}</span></div>`
+        ).join('')}</div>`
+      ).join('');
+    }));
+  }
+
   function rebuildUnblockerSelect() {
     const sel = document.getElementById('nj-unblocker-site-select');
     if (!sel) return;
@@ -142,6 +338,7 @@
 
   function install() {
     rebuildUnblockerSelect(); removeTestingHeader(); removePokiCatalogItems(); installQA();
+    ensureRequestButton(); installAdminRequests(); installPresenceObserver();
     const oldOpen = window.njOpenUnblocker;
     if (oldOpen && !window.__njChooserInstalled) {
       window.__njChooserInstalled = true;
@@ -154,7 +351,7 @@
         log(tab);
         if (tab !== 'log') return;
         const content = document.getElementById('nj-settings-content');
-        if (content) content.innerHTML = '<h2 style="color:#fff">📋 Update Log</h2><div style="background:#0f1a0f;border:1px solid #166534;border-radius:12px;padding:14px;color:#d1d5db"><b style="color:#4ade80">Latest · 20 Aug 2026</b><h3 style="color:#fff">🛠️ Q/A, Unblocker & Catalog cleanup</h3><ul><li>Add Q/A now opens a real masterkey form before the question and answer fields.</li><li>Removed the Testing Sites and School Games tabs.</li><li>Removed the unreliable LunarV2 proxy.</li><li>Removed the non-working Poki game range from the visible catalog.</li><li>Kept the remaining game sources unique by normalized URL.</li></ul></div>';
+        if (content) content.innerHTML = '<h2 style="color:#fff">📋 Update Log</h2><div style="background:#0f1a0f;border:1px solid #166534;border-radius:12px;padding:14px;color:#d1d5db"><b style="color:#4ade80">Latest · 20 Aug 2026</b><h3 style="color:#fff">🛠️ Requests, activity trail & catalog cleanup</h3><ul><li>Added a public Request a game button that sends submissions to the admin panel.</li><li>Admin now has a live activity trail with recent actions per online user.</li><li>Activity telemetry now records feature overlays as well as game iframes.</li><li>Removed the unreliable LunarV2 proxy.</li><li>Removed the non-working Poki game range from the visible catalog.</li></ul></div>';
       };
     }
   }
