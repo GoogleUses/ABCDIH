@@ -160,20 +160,31 @@
   }
 
   function ensureRequestButton() {
-    if (document.getElementById('nj-game-request-button')) return;
-    const button = document.createElement('button');
-    button.id = 'nj-game-request-button';
-    button.textContent = '🎮 Request a game';
-    button.className = 'nj-hdr-btn';
-    button.style.cssText = 'position:fixed;left:18px;bottom:18px;z-index:9998;background:#7c3aed;border-color:#a78bfa;color:#fff;box-shadow:0 8px 24px #0008;padding:10px 14px;font-size:12px;';
-    const close = document.createElement('span');
-    close.textContent = '×';
-    close.title = 'Hide until refresh';
-    close.style.cssText = 'margin-left:8px;font-size:18px;line-height:12px;color:#ddd6fe;cursor:pointer;';
-    close.onclick = event => { event.stopPropagation(); button.remove(); };
-    button.appendChild(close);
-    button.onclick = openRequestForm;
-    document.body.appendChild(button);
+    // The request action lives in the header, stacked below Unblocker.
+    // Keep this binding idempotent because the site patch is re-run after
+    // React catalog updates.
+    let button = document.getElementById('nj-game-request-button');
+    if (!button) {
+      const unblocker = [...document.querySelectorAll('button')].find(el =>
+        (el.textContent || '').replace(/\s+/g, ' ').trim() === '🌐 Unblocker'
+      );
+      if (unblocker && unblocker.parentElement) {
+        const stack = document.createElement('div');
+        stack.style.cssText = 'display:flex;flex-direction:column;gap:3px';
+        unblocker.parentElement.insertBefore(stack, unblocker);
+        stack.appendChild(unblocker);
+        button = document.createElement('button');
+        button.id = 'nj-game-request-button';
+        button.className = 'nj-hdr-btn';
+        button.textContent = '🎮 Request a game';
+        stack.appendChild(button);
+      }
+    }
+    if (button) {
+      button.onclick = openRequestForm;
+      button.type = 'button';
+    }
+    window.njOpenRequestForm = openRequestForm;
   }
 
   function openRequestForm() {
