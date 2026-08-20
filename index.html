@@ -4326,7 +4326,6 @@
         <span style="font-size:17px;font-weight:800;background:linear-gradient(135deg,#a78bfa,#7c3aed);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">🌐 Unblocker</span>
         <select id="nj-unblocker-site-select" onchange="njSelectUnblocker(this.value)" style="margin-left:auto;background:#1a1a2e;border:1px solid #3b2b68;border-radius:8px;color:#ddd6fe;padding:7px 10px;font-size:12px;max-width:55vw">
           <option value="https://s3.amazonaws.com/angelfern/index.html">Fern Proxy</option>
-          <optgroup label="Testing Sites"><option value="https://sites.google.com/view/player-nation/home">Player Nation</option><option value="https://ual.beltfrog.com/">Cherri</option><option value="https://a.teimporto.cl/">Galaxy</option><option value="https://math.asturkiters.es/">PeteZah</option><option value="https://learn.hr24.ro/">Space</option><option value="https://xylora.bumon.ar/">Xylora</option><option value="https://goeeoe.inoriza-racing.com.ar/">IXL</option><option value="https://stories-math.martindiaz.org/">Strawberri</option><option value="https://tt-mathsubject.martindiaz.org/">Tung Tung</option><option value="https://quotes-math.martindiaz.org/">StudyHub</option><option value="https://math-qo.martindiaz.org/">Utopia</option><option value="https://wow-best-math.martindiaz.org/">Lunar</option><option value="https://storage.googleapis.com/canvas-lms/index.html">Dogeub</option><option value="https://s3.amazonaws.com/angelfern/index.html">Fren</option><option value="https://mathscience.glenoriebakery.com.au">Lucide</option><option value="https://mathcordxp.github.io/">Strongdog XP</option><option value="https://nightwaveyt.github.io/NJsUnblockedGames/">NJS Unblocked Games</option><option value="https://unblockedgamesgg.com/">Unblocked Games GG</option><option value="https://coolunblockedgames.github.io/">Cool UGB</option><option value="https://git-hub-games.github.io/">GitHub Games</option><option value="https://classroom6xunblocked-games.github.io/">Classroom 6x</option><option value="https://googleuses.github.io/ABCDIH/">ABCDIH / NJS</option><option value="https://unpkg.com/classroomduck@1.0.76/index.html">Unpkg ClassroomDuck</option><option value="https://crikk.com/text-to-speech">Text to Speech</option><option value="https://voicechanger.easeus.com/soundboards">Voice Changer</option><option value="https://www.onlinepianist.com/virtual-piano">Online Pianist</option></optgroup>
         </select>
       </div>
 
@@ -5798,7 +5797,6 @@
           <div style="display:flex;flex-direction:column;gap:3px">
             <button class="nj-hdr-btn" onclick="njOpenQA()">❓ Q/A</button>
             <button class="nj-hdr-btn" onclick="njOpenCoinFarmer()">🪙 Coin Farmer</button>
-            <button class="nj-hdr-btn" onclick="njOpenTestingSites()">🧪 Testing Sites</button>
           </div>
           <div style="display:flex;flex-direction:column;gap:3px;margin-left:auto">
             <button class="nj-hdr-btn" id="nj-hdr-spin-btn" onclick="njOpenSpin()" style="position:relative">🎡 Daily Spin<span id="nj-spin-dot" style="display:none;position:absolute;top:3px;right:3px;width:6px;height:6px;background:#fbbf24;border-radius:50%"></span></button>
@@ -5957,20 +5955,8 @@
         updatePresenceActivity('qa','❓ Reading Q/A','Questions & Answers');
       };
 
-      // Keep Testing Sites as its own header control. Remove only links that
-      // failed the availability check from the Unblocker selector.
-      function njCleanTestingLinks(){
-        const bad=['https://ual.beltfrog.com/','https://a.teimporto.cl/','https://learn.hr24.ro/','https://xylora.bumon.ar/','https://nightwaveyt.github.io/NJsUnblockedGames/'];
-        const sel=document.getElementById('nj-unblocker-site-select');
-        if(sel) bad.forEach(u=>{const o=sel.querySelector('option[value="'+u+'"]');if(o)o.remove();});
-        const fren=sel&&sel.querySelector('option[value="https://s3.amazonaws.com/angelfern/index.html"]');
-        if(fren && fren.textContent.trim()==='Fern Proxy') {
-          sel.querySelectorAll('option[value="https://s3.amazonaws.com/angelfern/index.html"]').forEach((o,i)=>{if(i)o.remove();});
-        }
-      }
-      setTimeout(njCleanTestingLinks,500);
-      new MutationObserver(njCleanTestingLinks).observe(document.body,{childList:true,subtree:true});
-      window.njOpenCoinFarmer=function(){ const ov=document.createElement('div'); ov.style.cssText='position:fixed;inset:0;z-index:10070;background:rgba(0,0,0,.88);display:flex;align-items:center;justify-content:center;padding:16px'; ov.innerHTML='<div style="background:#0f0f1a;border:1px solid #7c3aed;border-radius:18px;width:min(420px,95vw);padding:28px;text-align:center;color:#fff"><button style="float:right;background:none;border:0;color:#9ca3af;font-size:22px">✕</button><div style="font-size:44px">🪙</div><h2>Coin Farmer</h2><p style="color:#a1a1aa">Work in progress — this feature is not available yet.</p></div>'; document.body.appendChild(ov); ov.querySelector('button').onclick=()=>ov.remove(); };
+      // Unblocker is now opened through a simple chooser.
+window.njOpenCoinFarmer=function(){ const ov=document.createElement('div'); ov.style.cssText='position:fixed;inset:0;z-index:10070;background:rgba(0,0,0,.88);display:flex;align-items:center;justify-content:center;padding:16px'; ov.innerHTML='<div style="background:#0f0f1a;border:1px solid #7c3aed;border-radius:18px;width:min(420px,95vw);padding:28px;text-align:center;color:#fff"><button style="float:right;background:none;border:0;color:#9ca3af;font-size:22px">✕</button><div style="font-size:44px">🪙</div><h2>Coin Farmer</h2><p style="color:#a1a1aa">Work in progress — this feature is not available yet.</p></div>'; document.body.appendChild(ov); ov.querySelector('button').onclick=()=>ov.remove(); };
       // Track activities that are rendered by React after this module loads (especially Chat).
       document.addEventListener('click', function(e){
         const el=e.target.closest&&e.target.closest('button,a'); if(!el)return;
@@ -6002,9 +5988,28 @@
         updatePresenceGame(null);
       };
       window.njSelectUnblocker=function(url){ const fr=document.getElementById('nj-unblocker-frame'); const sel=document.getElementById('nj-unblocker-site-select'); const label=sel&&sel.selectedOptions[0]?sel.selectedOptions[0].textContent.trim():'Unblocker'; if(fr&&url)fr.src=url; updatePresenceGame({name:'🌐 Using '+label,thumb:null}); };
-      window.njOpenUnblocker=function(){ const ov=document.getElementById('nj-unblocker-overlay'); ov.style.display='flex'; const sel=document.getElementById('nj-unblocker-site-select'); njSelectUnblocker(sel?sel.value:'https://s3.amazonaws.com/angelfern/index.html'); };
-      window.njOpenTestingSites=function(){ const ov=document.getElementById('nj-unblocker-overlay'); ov.style.display='flex'; const sel=document.getElementById('nj-unblocker-site-select'); if(sel){sel.selectedIndex=1; njSelectUnblocker(sel.value);} };
-      window.njCloseUnblocker=function(){
+      window.njOpenUnblocker=function(){
+          const chooser=document.createElement('div');
+          chooser.id='nj-unblocker-chooser';
+          chooser.style.cssText='position:fixed;inset:0;z-index:10060;background:rgba(0,0,0,.9);display:flex;align-items:center;justify-content:center;padding:16px';
+          chooser.innerHTML='<div style="background:#0f0f1a;border:1px solid #7c3aed;border-radius:18px;width:min(520px,94vw);padding:22px;color:#fff;box-shadow:0 20px 70px rgba(0,0,0,.55)"><button id="nj-uc-x" style="float:right;background:none;border:0;color:#9ca3af;font-size:22px;cursor:pointer">✕</button><div style="font-size:30px">🌐</div><h2 style="margin:4px 0 6px">Unblocker</h2><p style="color:#9ca3af;font-size:13px;margin-top:0">Choose an available way to open the configured site.</p><div id="nj-uc-options" style="display:grid;gap:10px"></div></div>';
+          document.body.appendChild(chooser);
+          const close=()=>chooser.remove();
+          chooser.querySelector('#nj-uc-x').onclick=close;
+          chooser.addEventListener('click',e=>{if(e.target===chooser)close();});
+          const options=chooser.querySelector('#nj-uc-options');
+          const addOption=(title,desc,icon,external)=>{
+            const b=document.createElement('button');
+            b.style.cssText='text-align:left;background:#1a1a2e;border:1px solid #3b2b68;border-radius:12px;padding:14px;color:#fff;cursor:pointer';
+            b.innerHTML='<div style="font-weight:800;font-size:14px">'+icon+' '+title+'</div><div style="color:#9ca3af;font-size:11px;margin-top:4px">'+desc+'</div>';
+            b.onclick=()=>{close();if(external){window.open('https://s3.amazonaws.com/angelfern/index.html','_blank','noopener');}else{document.getElementById('nj-unblocker-overlay').style.display='flex';njSelectUnblocker('https://s3.amazonaws.com/angelfern/index.html');}};
+            options.appendChild(b);
+          };
+          addOption('Fern Proxy — In Site','Open Fern Proxy inside the site player.','🦊',false);
+          addOption('Fern Proxy — New Tab','Open Fern Proxy in a separate browser tab.','↗️',true);
+          updatePresenceActivity('unblocker','🌐 Choosing Unblocker','Unblocker');
+        };
+        window.njCloseUnblocker=function(){
         document.getElementById('nj-unblocker-overlay').style.display='none';
         updatePresenceGame(null);
       };
@@ -7506,38 +7511,55 @@
         if (tab !== 'log') return;
         const content = document.getElementById('nj-settings-content');
         if (!content) return;
-        content.innerHTML='<div style="padding:4px 0"><div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid #2a2a4a"><div style="font-size:28px">📋</div><div><div style="color:#fff;font-weight:800;font-size:16px">Update Log</div><div style="color:#6b7280;font-size:11px">What is new on the site</div></div></div><div style="background:#0f1a0f;border:1px solid #166534;border-radius:12px;padding:14px"><div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><span style="background:#166534;color:#4ade80;font-size:10px;font-weight:800;padding:2px 8px;border-radius:20px;text-transform:uppercase">Latest</span><span style="color:#6b7280;font-size:11px">19 Aug 2026</span></div><div style="color:#fff;font-weight:700;font-size:14px;margin-bottom:6px">🛠️ Admin Activity, Q/A &amp; Testing Sites</div><ul style="color:#9ca3af;font-size:12px;line-height:1.8;padding-left:18px;margin:0"><li>Admin presence now shows detailed activity for Unblocker, Testing Sites, chat, events, announcements, shop, settings, soundboard and Q/A.</li><li>Q/A now uses a clean admin-password form with shared Firebase persistence.</li><li>Testing Sites is a separate header control and unavailable links were removed.</li><li>Removed duplicate testing-site entries and checked the game catalog for exact duplicates.</li></ul></div></div>';
+        content.innerHTML='<div style="padding:4px 0"><div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid #2a2a4a"><div style="font-size:28px">📋</div><div><div style="color:#fff;font-weight:800;font-size:16px">Update Log</div><div style="color:#6b7280;font-size:11px">What is new on the site</div></div></div><div style="background:#0f1a0f;border:1px solid #166534;border-radius:12px;padding:14px"><div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><span style="background:#166534;color:#4ade80;font-size:10px;font-weight:800;padding:2px 8px;border-radius:20px;text-transform:uppercase">Latest</span><span style="color:#6b7280;font-size:11px">20 Aug 2026</span></div><div style="color:#fff;font-weight:700;font-size:14px;margin-bottom:6px">🛠️ Q/A Fix, Unblocker Chooser &amp; Game Catalog Cleanup</div><ul style="color:#9ca3af;font-size:12px;line-height:1.8;padding-left:18px;margin:0"><li>Fixed Add Q/A so it opens a real master-key popup before showing the question and answer form.</li><li>Removed the  header and its separate menu.</li><li>Removed the old Poki catalog entries that were causing unreliable game loads.</li><li>Removed exact duplicate game entries from the catalog.</li><li>Added a chooser when opening Unblocker so the available option is selected before launch.</li></ul></div></div>';
       };
-      function njMoveTestingHeader(){
-        const t=[...document.querySelectorAll('button')].find(b=>(b.textContent||'').trim()==='🧪 Testing Sites');
-        const u=[...document.querySelectorAll('button')].find(b=>(b.textContent||'').trim()==='🌐 Unblocker');
-        if(t&&u&&t.parentElement!==u.parentElement){u.after(t);t.style.display='';}
-      }
-      setTimeout(njMoveTestingHeader,300);
-      new MutationObserver(njMoveTestingHeader).observe(document.body,{childList:true,subtree:true});
-
-      const NJ_TESTING_SITES=[
-        ['Proxies / school','🌐',[['Player Nation','https://sites.google.com/view/player-nation/home'],['PeteZah','https://math.asturkiters.es/'],['IXL','https://goeeoe.inoriza-racing.com.ar/'],['Strawberri','https://stories-math.martindiaz.org/'],['Tung Tung','https://tt-mathsubject.martindiaz.org/'],['StudyHub','https://quotes-math.martindiaz.org/'],['Utopia','https://math-qo.martindiaz.org/'],['Lunar','https://wow-best-math.martindiaz.org/'],['Dogeub','https://storage.googleapis.com/canvas-lms/index.html'],['Fren','https://s3.amazonaws.com/angelfern/index.html'],['Lucide','https://mathscience.glenoriebakery.com.au']]],
-        ['Games','🎮',[['Strongdog XP','https://mathcordxp.github.io/'],['Tyrone Games Shack','https://sites.google.com/view/tyronesgameshack'],['Unblocked Games 24hr','https://sites.google.com/site/unblockedgames24h/'],['Unblocked Games GG','https://unblockedgamesgg.com/#google_vignette'],['Classroom Center','https://sites.google.com/classroom.center/view-1/home'],['Cool UGB','https://coolunblockedgames.github.io/'],['GitHub Games','https://git-hub-games.github.io/'],['Spatial','https://www.spatial.io/categories/unblocked-games'],['GPuls','https://sites.google.com/view/unblocked-game-gplus/unblocked-games'],['Classroom 6x','https://classroom6xunblocked-games.github.io/'],['Unblocked Games 76','https://sites.google.com/view/unblocked-game76'],['Unblocked Games 333','https://sites.google.com/site/unblockedgames333/'],['ABCDIH / NJS','https://googleuses.github.io/ABCDIH/'],['Unpkg ClassroomDuck','https://unpkg.com/classroomduck@1.0.76/index.html']]],
-        ['Movies / tools','🎬',[['Yflix','https://yflix.ws/'],['YouTube','https://www.youtube.com/'],['ClickView','https://www.clickview.net/discover'],['Online Pianist','https://www.onlinepianist.com/virtual-piano'],['Corecs','https://corecs.babypos.hk/'],['Text to Speech','https://crikk.com/text-to-speech'],['Voice Changer','https://voicechanger.easeus.com/soundboards']]]
-      ];
-      window.njOpenTestingSites=function(){
-        const ov=document.createElement('div'); ov.id='nj-testing-modal'; ov.style.cssText='position:fixed;inset:0;z-index:10070;background:rgba(0,0,0,.9);display:flex;align-items:center;justify-content:center;padding:16px';
-        ov.innerHTML='<div style="background:#0f0f1a;border:1px solid #7c3aed;border-radius:18px;width:min(680px,96vw);max-height:88vh;overflow:auto;padding:22px;color:#fff"><button id="nj-ts-close" style="float:right;background:none;border:0;color:#9ca3af;font-size:22px;cursor:pointer">✕</button><h2 style="margin:0 0 6px">🧪 Testing Sites</h2><p id="nj-ts-sub" style="color:#9ca3af;font-size:12px;margin:0 0 18px">Choose a category</p><div id="nj-ts-body"></div></div>';
-        document.body.appendChild(ov); ov.querySelector('#nj-ts-close').onclick=()=>ov.remove();
-        const body=ov.querySelector('#nj-ts-body'), sub=ov.querySelector('#nj-ts-sub');
-        const showCategories=()=>{sub.textContent='Choose a category';body.innerHTML='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">'+NJ_TESTING_SITES.map((c,i)=>'<button data-cat="'+i+'" style="background:#1a1a2e;border:1px solid #3b2b68;border-radius:12px;padding:22px 10px;color:#fff;cursor:pointer;font-weight:700;font-size:13px"><div style="font-size:30px;margin-bottom:8px">'+c[1]+'</div>'+c[0]+'<div style="color:#9ca3af;font-size:10px;margin-top:5px">'+c[2].length+' sites</div></button>').join('')+'</div>';body.querySelectorAll('[data-cat]').forEach(b=>b.onclick=()=>showSites(+b.dataset.cat));};
-        const showSites=i=>{const c=NJ_TESTING_SITES[i];sub.textContent=c[0]+' — choose a site';body.innerHTML='<button id="nj-ts-back" style="background:#1a1a2e;border:1px solid #2a2a4a;border-radius:8px;color:#c4b5fd;padding:8px 12px;cursor:pointer;margin-bottom:12px">← Categories</button><div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px">'+c[2].map(x=>'<button data-url="'+esc(x[1])+'" data-name="'+esc(x[0])+'" style="text-align:left;background:#1a1a2e;border:1px solid #2a2a4a;border-radius:9px;padding:11px;color:#fff;cursor:pointer">🌐 '+esc(x[0])+'</button>').join('')+'</div>';body.querySelector('#nj-ts-back').onclick=showCategories;body.querySelectorAll('[data-url]').forEach(b=>b.onclick=()=>{ov.remove();document.getElementById('nj-unblocker-overlay').style.display='flex';njSelectUnblocker(b.dataset.url);});};
-        showCategories(); updatePresenceActivity('testing','🧪 Choosing a Testing Site','Testing Sites');
-      };
-
-      window.njOpenQA=function(){
-        const ov=document.createElement('div');ov.style.cssText='position:fixed;inset:0;z-index:10070;background:rgba(0,0,0,.9);display:flex;align-items:center;justify-content:center;padding:16px';
-        ov.innerHTML='<div style="background:#0f0f1a;border:1px solid #7c3aed;border-radius:18px;width:min(560px,96vw);max-height:88vh;overflow:auto;padding:22px;color:#fff"><button id="nj-qa-x" style="float:right;background:none;border:0;color:#9ca3af;font-size:22px;cursor:pointer">✕</button><h2>❓ Questions & Answers</h2><div id="nj-qa-list"></div><button id="nj-qa-add" class="nj-hdr-btn" style="margin-top:14px">＋ Add Q/A</button></div>';
-        document.body.appendChild(ov);ov.querySelector('#nj-qa-x').onclick=()=>ov.remove();
-        let qa=JSON.parse(localStorage.getItem('nj_custom_qa')||'null')||njDefaultQA.slice();const list=ov.querySelector('#nj-qa-list');const render=()=>list.innerHTML=qa.map(x=>'<div style="padding:12px 0;border-bottom:1px solid #2a2a4a"><b>'+esc(x[0])+'</b><div style="color:#a1a1aa;margin-top:5px">'+esc(x[1])+'</div></div>').join('');render();
-        ov.querySelector('#nj-qa-add').onclick=()=>{const f=document.createElement('div');f.style.cssText='position:fixed;inset:0;z-index:10071;background:rgba(0,0,0,.72);display:flex;align-items:center;justify-content:center;padding:16px';f.innerHTML='<div style="background:#171727;border:1px solid #7c3aed;border-radius:14px;padding:20px;width:min(390px,92vw)"><h3 style="color:#fff;margin-top:0">🔐 Admin verification</h3><p style="color:#9ca3af;font-size:12px">Enter the masterkey to add a Q/A.</p><input id="nj-qa-key" type="password" placeholder="Masterkey" style="width:100%;box-sizing:border-box;padding:10px;background:#0f0f1a;border:1px solid #3b2b68;border-radius:8px;color:#fff"><div id="nj-qa-form" style="display:none;margin-top:10px"><input id="nj-qa-q" placeholder="Question" style="width:100%;box-sizing:border-box;padding:10px;margin-bottom:8px;background:#0f0f1a;border:1px solid #3b2b68;border-radius:8px;color:#fff"><textarea id="nj-qa-a" placeholder="Answer" rows="4" style="width:100%;box-sizing:border-box;padding:10px;background:#0f0f1a;border:1px solid #3b2b68;border-radius:8px;color:#fff"></textarea></div><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px"><button id="nj-qa-cancel" class="nj-btn-cancel">Cancel</button><button id="nj-qa-next" class="nj-btn-confirm">Verify</button></div></div>';document.body.appendChild(f);f.querySelector('#nj-qa-cancel').onclick=()=>f.remove();f.querySelector('#nj-qa-next').onclick=async()=>{const key=f.querySelector('#nj-qa-key'),form=f.querySelector('#nj-qa-form');if(form.style.display==='none'){if(await _sha256(key.value)!==_ah){alert('Incorrect masterkey.');return;}form.style.display='block';key.style.display='none';f.querySelector('#nj-qa-next').textContent='Save';return;}const q=f.querySelector('#nj-qa-q').value.trim(),a=f.querySelector('#nj-qa-a').value.trim();if(!q||!a)return;qa.push([q,a]);localStorage.setItem('nj_custom_qa',JSON.stringify(qa));try{await set(ref(njDb,'njsgames/qa'),qa);}catch(e){}f.remove();render();};};
-      };
+        window.njOpenQA=function(){
+        let qa=[];
+        try{qa=JSON.parse(localStorage.getItem('nj_custom_qa')||'null')||njDefaultQA.slice();}catch(e){qa=njDefaultQA.slice();}
+        const ov=document.createElement('div');
+        ov.style.cssText='position:fixed;inset:0;z-index:10070;background:rgba(0,0,0,.9);display:flex;align-items:center;justify-content:center;padding:16px';
+        ov.innerHTML='<div style="background:#0f0f1a;border:1px solid #7c3aed;border-radius:18px;width:min(560px,96vw);max-height:88vh;overflow:auto;padding:22px;color:#fff;box-shadow:0 20px 70px rgba(0,0,0,.5)"><button id="nj-qa-x" style="float:right;background:none;border:0;color:#9ca3af;font-size:22px;cursor:pointer">✕</button><h2 style="margin-top:0">❓ Questions & Answers</h2><div id="nj-qa-list"></div><button id="nj-qa-add" class="nj-hdr-btn" style="margin-top:14px">＋ Add Q/A</button></div>';
+        document.body.appendChild(ov);
+        const list=ov.querySelector('#nj-qa-list');
+        const escQA=t=>String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+        const render=()=>{list.innerHTML=qa.length?qa.map(x=>'<div style="padding:12px 0;border-bottom:1px solid #2a2a4a"><b>'+escQA(x[0])+'</b><div style="color:#a1a1aa;margin-top:5px;line-height:1.5">'+escQA(x[1])+'</div></div>').join(''):'<div style="color:#9ca3af;padding:18px 0">No Q/A entries yet.</div>';};
+        const close=()=>ov.remove();
+        ov.querySelector('#nj-qa-x').onclick=close;
+        ov.addEventListener('click',e=>{if(e.target===ov)close();});
+        ov.querySelector('#nj-qa-add').onclick=()=>{
+          const f=document.createElement('div');
+          f.style.cssText='position:fixed;inset:0;z-index:10071;background:rgba(0,0,0,.78);display:flex;align-items:center;justify-content:center;padding:16px';
+          f.innerHTML='<div style="background:#171727;border:1px solid #7c3aed;border-radius:14px;padding:20px;width:min(430px,92vw);box-shadow:0 20px 70px rgba(0,0,0,.55)"><h3 style="color:#fff;margin-top:0">🔐 Master Key Required</h3><p style="color:#9ca3af;font-size:12px;margin-top:0">Enter the master key to add a Q/A entry.</p><input id="nj-qa-key" type="password" autocomplete="off" placeholder="Master key" style="width:100%;box-sizing:border-box;padding:10px;background:#0f0f1a;border:1px solid #3b2b68;border-radius:8px;color:#fff"><div id="nj-qa-error" style="color:#f87171;font-size:12px;min-height:18px;margin-top:7px"></div><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px"><button id="nj-qa-cancel" class="nj-btn-cancel">Cancel</button><button id="nj-qa-verify" class="nj-btn-confirm">Verify</button></div></div>';
+          document.body.appendChild(f);
+          const key=f.querySelector('#nj-qa-key'), err=f.querySelector('#nj-qa-error'), verify=f.querySelector('#nj-qa-verify');
+          const finish=()=>f.remove();
+          f.querySelector('#nj-qa-cancel').onclick=finish;
+          f.addEventListener('click',e=>{if(e.target===f)finish();});
+          const verifyKey=async()=>{
+            try{
+              if(await _sha256(key.value)!==_ah){err.textContent='Incorrect master key.';key.select();return;}
+              f.innerHTML='<div style="background:#171727;border:1px solid #7c3aed;border-radius:14px;padding:20px;width:min(430px,92vw);box-shadow:0 20px 70px rgba(0,0,0,.55)"><h3 style="color:#fff;margin-top:0">＋ Add Q/A</h3><input id="nj-qa-q" placeholder="Question" style="width:100%;box-sizing:border-box;padding:10px;margin-bottom:8px;background:#0f0f1a;border:1px solid #3b2b68;border-radius:8px;color:#fff"><textarea id="nj-qa-a" placeholder="Answer" rows="5" style="width:100%;box-sizing:border-box;padding:10px;background:#0f0f1a;border:1px solid #3b2b68;border-radius:8px;color:#fff"></textarea><div id="nj-qa-save-error" style="color:#f87171;font-size:12px;min-height:18px;margin-top:7px"></div><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px"><button id="nj-qa-save-cancel" class="nj-btn-cancel">Cancel</button><button id="nj-qa-save" class="nj-btn-confirm">Save Q/A</button></div></div>';
+              f.querySelector('#nj-qa-save-cancel').onclick=finish;
+              f.querySelector('#nj-qa-save').onclick=async()=>{
+                const q=f.querySelector('#nj-qa-q').value.trim(),a=f.querySelector('#nj-qa-a').value.trim(),se=f.querySelector('#nj-qa-save-error');
+                if(!q||!a){se.textContent='Enter both a question and an answer.';return;}
+                qa.push([q,a]);
+                localStorage.setItem('nj_custom_qa',JSON.stringify(qa));
+                try{
+                  if(typeof set==='function' && typeof ref==='function' && window.njDb) await set(ref(window.njDb,'njsgames/qa'),qa);
+                }catch(e){}
+                render(); finish();
+              };
+              f.querySelector('#nj-qa-q').focus();
+            }catch(e){err.textContent='Could not verify the master key. Try again.';}
+          };
+          verify.onclick=verifyKey;
+          key.addEventListener('keydown',e=>{if(e.key==='Enter')verifyKey();});
+          key.focus();
+        };
+        render();
+        updatePresenceActivity('qa','❓ Reading Q/A','Questions & Answers');
+      };;
     </script>
 </body>
 </html>
