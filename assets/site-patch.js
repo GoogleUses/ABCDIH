@@ -50,6 +50,39 @@
     return s.display !== 'none' && s.visibility !== 'hidden' && s.opacity !== '0';
   }
 
+  const removedPokiGames = [
+    'Dreadhead Parkour', 'Level Devil', 'Temple of Boom', 'Monster Tracks',
+    'Furious Racing 3D', 'Soccer Skills Champions League', 'Slopey', 'Poor Bunny',
+    'Make It Meme', 'Super Star Car', 'Merge Cyber Racers', 'Rooftop Snipers 2',
+    'Raft Wars', 'Idle Lumber Inc', 'Battle Wheels', 'Village Craft', 'Eugenes Life',
+    'Super Mario Bros', 'Basketball Legends', 'Red Ball 4', 'Tank Ball: Monster Battle',
+    'Offroader V5', 'Traffic Escape', 'Murder', 'Stickman Archero Fight',
+    'Fireboy and Watergirl: Forest Temple', 'Stickman Bike',
+    'Archer Master 3D: Castle Defense', 'Stair Race 3D', 'FNF Minus',
+    "FNF Salty's Sunday Night", "FNF Michael Jackson's Rose Criminal",
+    'FNF Smoke Em Out Struggle', 'FNF UpSide', 'Flip Side', 'FNF Vs Hex Mod',
+    'FNF Vs Shaggy', 'FNF StarCatcher', "Friday Night Funkin' vs Hatsune Miku",
+    'FNF Vs Henry Stickmin', 'FNF Vs Void', 'FNF Week 6',
+    "Friday Night Funkin' B-Sides", 'Everywhere At The End Of Funk',
+    "Friday Night Funkin' vs Shaggy x Matt", "Friday Night Funkin' vs XE",
+    'FNF Vs Matt', 'Little Master Cricket'
+  ];
+
+  function removePokiGameCards() {
+    const names = removedPokiGames.map(x => x.toLowerCase());
+    document.querySelectorAll('article, li, [class*="card"], [class*="Card"]').forEach(card => {
+      const text = (card.textContent || '').replace(/\s+/g, ' ').trim().toLowerCase();
+      if (names.some(name => text.includes(name))) card.remove();
+    });
+    [...document.querySelectorAll('a, button')].forEach(link => {
+      const text = (link.textContent || '').replace(/\s+/g, ' ').trim().toLowerCase();
+      if (names.includes(text)) {
+        const card = cardFor(link);
+        if (card) card.remove();
+      }
+    });
+  }
+
   // The original presence writer only knows whether an iframe exists. This
   // second, low-frequency observer records the visible feature/overlay too,
   // without replacing the site's existing game telemetry.
@@ -57,6 +90,7 @@
     if (window.__njDetailedPresence) return;
     window.__njDetailedPresence = true;
     let last = '';
+    let lastWritten = 0;
     const featureMap = [
       ['nj-settings-overlay', '⚙️ In Settings'],
       ['nj-gamble-overlay', '🎰 Gambling'],
@@ -67,7 +101,14 @@
       ['nj-profile-overlay', '👤 Viewing Profile'],
       ['nj-codes-overlay', '🎟️ Redeeming Code'],
       ['nj-unblocker-overlay', '🌐 Using Unblocker'],
-      ['nj-soundboard-overlay', '🎵 Using Soundboard']
+      ['nj-soundboard-overlay', '🎵 Using Soundboard'],
+      ['nj-ach-overlay', '🏅 Viewing Achievements'],
+      ['nj-lucky-overlay', '🍀 Using Lucky Draw'],
+      ['nj-quiz-overlay', '🧠 Taking the Quiz'],
+      ['nj-lootbox-overlay', '🎁 Opening a Loot Box'],
+      ['nj-levelup-overlay', '⬆️ Viewing Level Up'],
+      ['nj-events-overlay', '📅 Viewing Events'],
+      ['nj-announce-overlay', '📣 Viewing Announcement']
     ];
     const record = async (activity, game) => {
       const username = localStorage.getItem('nj_username');
@@ -75,10 +116,11 @@
       if (!username || !sessionId) return;
       const f = await firebaseTools();
       if (!f) return;
-      const key = JSON.stringify([activity, game && game.name]);
-      if (key === last) return;
-      last = key;
       const now = Date.now();
+      const key = JSON.stringify([activity, game && game.name]);
+      if (key === last && now - lastWritten < 5000) return;
+      last = key;
+      lastWritten = now;
       const presenceRef = f.ref(f.db, `njsgames/presence/${sessionId}`);
       const snap = await f.get(presenceRef).catch(() => null);
       const current = snap && snap.exists() ? snap.val() : {};
@@ -95,12 +137,16 @@
         visible(x) && !['Chat Rooms', 'AI Chat'].includes(x.title));
       if (frame) game = { name: frame.title, thumb: null };
       let feature = null;
-      for (const [id, label] of featureMap) {
-        if (visible(document.getElementById(id))) { feature = label; break; }
-      }
-      if (!feature && visible(document.getElementById('nj-unblocker-frame'))) {
+      const chatFrame = [...document.querySelectorAll('iframe')].find(x =>
+        visible(x) && (x.title === 'Chat Rooms' || /chat/i.test(x.src || '')));
+      if (chatFrame) feature = '💬 Chatting';
+      const unblocker = document.getElementById('nj-unblocker-overlay');
+      if (!feature && visible(unblocker)) {
         const sel = document.getElementById('nj-unblocker-site-select');
         feature = '🌐 Using ' + (sel && sel.selectedOptions[0] ? sel.selectedOptions[0].textContent.trim() : 'Unblocker');
+      }
+      for (const [id, label] of featureMap) {
+        if (!feature && visible(document.getElementById(id))) { feature = label; break; }
       }
       record(
         feature ? { type: 'feature', label: feature, detail: location.href } :
@@ -119,7 +165,13 @@
     button.id = 'nj-game-request-button';
     button.textContent = '🎮 Request a game';
     button.className = 'nj-hdr-btn';
-    button.style.cssText = 'position:fixed;right:18px;bottom:18px;z-index:9998;background:#7c3aed;border-color:#a78bfa;color:#fff;box-shadow:0 8px 24px #0008;padding:10px 14px;font-size:12px;';
+    button.style.cssText = 'position:fixed;left:18px;bottom:18px;z-index:9998;background:#7c3aed;border-color:#a78bfa;color:#fff;box-shadow:0 8px 24px #0008;padding:10px 14px;font-size:12px;';
+    const close = document.createElement('span');
+    close.textContent = '×';
+    close.title = 'Hide until refresh';
+    close.style.cssText = 'margin-left:8px;font-size:18px;line-height:12px;color:#ddd6fe;cursor:pointer;';
+    close.onclick = event => { event.stopPropagation(); button.remove(); };
+    button.appendChild(close);
     button.onclick = openRequestForm;
     document.body.appendChild(button);
   }
@@ -190,31 +242,6 @@
       const snap = await f.get(f.ref(f.db, 'njsgames/gameRequests')); render(snap.val() || {});
     };
     firebaseTools().then(f => f && f.onValue(f.ref(f.db, 'njsgames/gameRequests'), snap => render(snap.val() || {})));
-    installAdminActivityFeed(body);
-  }
-
-  function installAdminActivityFeed(body) {
-    if (document.getElementById('nj-admin-live-activity')) return;
-    const section = document.createElement('section');
-    section.id = 'nj-admin-live-activity';
-    section.style.cssText = 'margin:14px 0;padding:14px;background:#121225;border:1px solid #3b2b68;border-radius:12px;';
-    section.innerHTML = '<div style="color:#fff;font-weight:700">🛰️ Live activity trail <span style="color:#6b7280;font-size:11px;font-weight:400">— recent actions per online user</span></div><div id="nj-live-activity-list" style="margin-top:9px;color:#9ca3af;font-size:12px">Loading…</div>';
-    body.prepend(section);
-    firebaseTools().then(f => f && f.onValue(f.ref(f.db, 'njsgames/presence'), snap => {
-      const rows = Object.values(snap.val() || {}).map(p => {
-        const history = Array.isArray(p.activityHistory) ? p.activityHistory : [];
-        const current = p.activity ? [p.activity] : [];
-        const items = [...history, ...current].filter(Boolean).slice(-8).reverse();
-        return { username: p.username || 'Unknown', items };
-      }).filter(x => x.items.length);
-      const list = section.querySelector('#nj-live-activity-list');
-      if (!rows.length) { list.textContent = 'No activity data yet.'; return; }
-      list.innerHTML = rows.map(row =>
-        `<div style="border-top:1px solid #2a2a4a;padding:8px 0"><div style="color:#c4b5fd;font-weight:700">${esc(row.username)}</div>${row.items.map(item =>
-          `<div style="display:flex;gap:8px;align-items:baseline;margin-top:4px"><span style="color:#fff">${esc(item.label || 'Unknown action')}</span><span style="color:#6b7280;font-size:10px">${item.ts ? new Date(item.ts).toLocaleTimeString() : ''}</span></div>`
-        ).join('')}</div>`
-      ).join('');
-    }));
   }
 
   function rebuildUnblockerSelect() {
@@ -337,7 +364,7 @@
   }
 
   function install() {
-    rebuildUnblockerSelect(); removeTestingHeader(); removePokiCatalogItems(); installQA();
+    rebuildUnblockerSelect(); removeTestingHeader(); removePokiCatalogItems(); removePokiGameCards(); installQA();
     ensureRequestButton(); installAdminRequests(); installPresenceObserver();
     const oldOpen = window.njOpenUnblocker;
     if (oldOpen && !window.__njChooserInstalled) {
@@ -351,7 +378,7 @@
         log(tab);
         if (tab !== 'log') return;
         const content = document.getElementById('nj-settings-content');
-        if (content) content.innerHTML = '<h2 style="color:#fff">📋 Update Log</h2><div style="background:#0f1a0f;border:1px solid #166534;border-radius:12px;padding:14px;color:#d1d5db"><b style="color:#4ade80">Latest · 20 Aug 2026</b><h3 style="color:#fff">🛠️ Requests, activity trail & catalog cleanup</h3><ul><li>Added a public Request a game button that sends submissions to the admin panel.</li><li>Admin now has a live activity trail with recent actions per online user.</li><li>Activity telemetry now records feature overlays as well as game iframes.</li><li>Removed the unreliable LunarV2 proxy.</li><li>Removed the non-working Poki game range from the visible catalog.</li></ul></div>';
+        if (content) content.innerHTML = '<h2 style="color:#fff">📋 Update Log</h2><div style="background:#0f1a0f;border:1px solid #166534;border-radius:12px;padding:14px;color:#d1d5db"><b style="color:#4ade80">Latest · 20 Aug 2026</b><h3 style="color:#fff">🛠️ Requests, activity & catalog cleanup</h3><ul><li>Added a public Request a game button that sends submissions to the admin panel.</li><li>Admin user rows now show the most accurate current feature or game activity.</li><li>Activity telemetry records unblocker selections and feature overlays as well as game iframes.</li><li>Removed the unreliable LunarV2 proxy.</li><li>Removed the non-working Poki game range from the visible catalog.</li></ul></div>';
       };
     }
   }
