@@ -6,21 +6,11 @@
   'use strict';
 
   const proxies = [
-    ['Fern Proxy', 'https://s3.amazonaws.com/angelfern/index.html'],
     ['IXL', 'https://goeeoe.inoriza-racing.com.ar/'],
     ['Strawberri', 'https://stories-math.martindiaz.org/'],
     ['Tung Tung', 'https://tt-mathsubject.martindiaz.org/'],
     ['Utopia', 'https://math-qo.martindiaz.org/'],
-    ['Lunar', 'https://wow-best-math.martindiaz.org/']
-  ];
-  const gameHubs = [
-    ['Strongdog XP', 'https://mathcordxp.github.io/'],
-    ['Unblocked Games 500', 'https://sites.google.com/site/unblockedgames500weeblycom/home'],
-    ['Cool UGB', 'https://coolunblockedgames.github.io/'],
-    ['GitHub Games', 'https://git-hub-games.github.io/'],
-    ['Classroom 6x', 'https://classroom6xunblocked-games.github.io/'],
-    ['Unblocked Games 76', 'https://sites.google.com/view/unblocked-game76'],
-    ['ClassroomDuck', 'https://unpkg.com/classroomduck@1.0.76/index.html']
+    ['Fern Proxy', 'https://s3.amazonaws.com/angelfern/index.html']
   ];
   const esc = (v) => String(v).replace(/[&<>"']/g, c => ({
     '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'
@@ -38,8 +28,6 @@
     sel.innerHTML =
       '<optgroup label="Proxies">' +
       proxies.map(x => `<option value="${esc(x[1])}">${esc(x[0])}</option>`).join('') +
-      '</optgroup><optgroup label="Game sites">' +
-      gameHubs.map(x => `<option value="${esc(x[1])}">${esc(x[0])}</option>`).join('') +
       '</optgroup>';
     sel.dataset.njPatched = '1';
   }
@@ -87,7 +75,7 @@
       items.map(x => `<button data-unblock-url="${esc(x[1])}" style="text-align:left;background:#171727;border:1px solid #3b2b68;border-radius:12px;color:#fff;padding:14px;cursor:pointer;font-weight:700">${esc(x[0])}<div style="color:#9ca3af;font-size:11px;margin-top:5px">Open in site player</div></button>`).join('') +
       '</div></section>';
     chooser.innerHTML = '<div style="max-width:760px;margin:0 auto 22px"><h1 style="color:#fff;font-size:24px;margin:0 0 6px">🌐 Choose an unblocker</h1><p style="color:#9ca3af;margin:0">Pick a proxy or a tested game hub.</p></div>' +
-      group('Proxies', '🛡️', proxies) + group('Game sites', '🎮', gameHubs);
+      group('Proxies', '🛡️', proxies);
     chooser.querySelectorAll('[data-unblock-url]').forEach(button => {
       button.onclick = () => {
         const url = button.dataset.unblockUrl;
@@ -152,8 +140,47 @@
     };
   }
 
+  async function openSchoolGames() {
+    let games = [];
+    try { games = await (await fetch('assets/school-games.json', { cache: 'no-store' })).json(); } catch (_) {}
+    const ov = document.createElement('div');
+    ov.style.cssText = 'position:fixed;inset:0;z-index:10070;background:rgba(0,0,0,.92);display:flex;align-items:center;justify-content:center;padding:16px';
+    ov.innerHTML = '<div style="background:#0f0f1a;border:1px solid #7c3aed;border-radius:18px;width:min(780px,96vw);max-height:90vh;overflow:auto;padding:22px;color:#fff"><button id="nj-school-close" style="float:right;background:none;border:0;color:#9ca3af;font-size:22px;cursor:pointer">✕</button><h2 style="margin-top:0">🎮 School-tested games</h2><p style="color:#9ca3af;font-size:12px">Individual game links collected from the tested sites. Game hubs are no longer listed in Unblocker.</p><input id="nj-school-search" placeholder="Search games..." style="width:100%;box-sizing:border-box;padding:10px;margin:8px 0 14px;background:#171727;border:1px solid #3b2b68;border-radius:8px;color:#fff"><div id="nj-school-list"></div></div>';
+    document.body.appendChild(ov);
+    const list = ov.querySelector('#nj-school-list');
+    const draw = (query = '') => {
+      const q = query.toLowerCase();
+      const filtered = games.filter(x => (x.name + ' ' + x.source).toLowerCase().includes(q));
+      list.innerHTML = filtered.length ? filtered.map(x => `<button data-game-url="${esc(x.url)}" style="display:block;width:100%;text-align:left;background:#171727;border:1px solid #2a2a4a;border-radius:9px;color:#fff;padding:11px;margin:0 0 7px;cursor:pointer"><b>${esc(x.name)}</b><span style="float:right;color:#9ca3af;font-size:11px">${esc(x.source)}</span></button>`).join('') : '<div style="color:#9ca3af;padding:20px">No matching games.</div>';
+      list.querySelectorAll('[data-game-url]').forEach(button => button.onclick = () => {
+        ov.remove();
+        const frame = document.getElementById('nj-unblocker-frame');
+        const overlay = document.getElementById('nj-unblocker-overlay');
+        if (overlay) overlay.style.display = 'flex';
+        const chooser = document.getElementById('nj-unblocker-chooser');
+        if (chooser) chooser.style.display = 'none';
+        if (frame) { frame.style.display = 'block'; frame.src = button.dataset.gameUrl; }
+      });
+    };
+    ov.querySelector('#nj-school-close').onclick = () => ov.remove();
+    ov.querySelector('#nj-school-search').oninput = e => draw(e.target.value);
+    draw();
+  }
+
+  function addSchoolGamesButton() {
+    if (document.getElementById('nj-school-games-button')) return;
+    const qa = [...document.querySelectorAll('button')].find(b => /Q\/A/.test(b.textContent || ''));
+    if (!qa || !qa.parentElement) return;
+    const button = document.createElement('button');
+    button.id = 'nj-school-games-button';
+    button.className = qa.className || 'nj-hdr-btn';
+    button.textContent = '🎮 School Games';
+    button.onclick = openSchoolGames;
+    qa.parentElement.appendChild(button);
+  }
+
   function install() {
-    rebuildUnblockerSelect(); removeTestingHeader(); removePokiCatalogItems(); installQA();
+    rebuildUnblockerSelect(); removeTestingHeader(); removePokiCatalogItems(); installQA(); addSchoolGamesButton();
     const oldOpen = window.njOpenUnblocker;
     if (oldOpen && !window.__njChooserInstalled) {
       window.__njChooserInstalled = true;
@@ -166,7 +193,7 @@
         log(tab);
         if (tab !== 'log') return;
         const content = document.getElementById('nj-settings-content');
-        if (content) content.innerHTML = '<h2 style="color:#fff">📋 Update Log</h2><div style="background:#0f1a0f;border:1px solid #166534;border-radius:12px;padding:14px;color:#d1d5db"><b style="color:#4ade80">Latest · 20 Aug 2026</b><h3 style="color:#fff">🛠️ Q/A, Unblocker & School-tested games</h3><ul><li>Add Q/A now opens a real masterkey form before the question and answer fields.</li><li>Removed the Testing Sites header and replaced the single Fern option with Proxies and Game sites chooser categories.</li><li>Removed the unreliable Poki catalog entries.</li><li>Added the tested proxy and game hubs, including ClassroomDuck.</li><li>Kept game links unique by source URL.</li></ul></div>';
+        if (content) content.innerHTML = '<h2 style="color:#fff">📋 Update Log</h2><div style="background:#0f1a0f;border:1px solid #166534;border-radius:12px;padding:14px;color:#d1d5db"><b style="color:#4ade80">Latest · 20 Aug 2026</b><h3 style="color:#fff">🛠️ Q/A, Unblocker & School-tested games</h3><ul><li>Add Q/A now opens a real masterkey form before the question and answer fields.</li><li>Removed the Testing Sites header and the game-site entries from Unblocker.</li><li>Removed the unreliable LunarV2 proxy and the Poki catalog entries.</li><li>Added individual game links in a searchable School Games catalog, including ClassroomDuck sources where discoverable.</li><li>Kept game links unique by normalized URL.</li></ul></div>';
       };
     }
   }
