@@ -74,20 +74,12 @@
       const text = (card.textContent || '').replace(/\s+/g, ' ').trim().toLowerCase();
       if (names.some(name => text.includes(name))) card.remove();
     });
-    // The catalog is React-rendered and some card variants do not have a
-    // recognizable card class. Find the exact visible title, then walk up to
-    // the nearest clickable/card-like container before removing it.
-    [...document.querySelectorAll('body *')].forEach(el => {
-      if (el.children.length > 2) return;
-      const text = (el.textContent || '').replace(/\s+/g, ' ').trim().toLowerCase();
-      if (!names.includes(text)) return;
-      let target = el;
-      for (let i = 0; i < 7 && target.parentElement && target.parentElement !== document.body; i++) {
-        const parent = target.parentElement;
-        target = parent;
-        if (parent.matches('a,button,article,li,[class*="card"],[class*="Card"]')) break;
+    [...document.querySelectorAll('a, button')].forEach(link => {
+      const text = (link.textContent || '').replace(/\s+/g, ' ').trim().toLowerCase();
+      if (names.includes(text)) {
+        const card = cardFor(link);
+        if (card) card.remove();
       }
-      if (target !== document.body) target.remove();
     });
   }
 
