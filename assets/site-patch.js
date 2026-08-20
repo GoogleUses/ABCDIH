@@ -70,15 +70,31 @@
 
   function removePokiGameCards() {
     const names = removedPokiGames.map(x => x.toLowerCase());
+    const hide = el => {
+      if (!el || el.id === 'root' || el === document.body) return;
+      el.classList.add('nj-poki-hidden');
+      el.setAttribute('aria-hidden', 'true');
+    };
+    if (!document.getElementById('nj-poki-hide-style')) {
+      const style = document.createElement('style');
+      style.id = 'nj-poki-hide-style';
+      style.textContent = '.nj-poki-hidden{display:none!important}';
+      document.head.appendChild(style);
+    }
+    // The catalog cards are React divs rather than articles or links. Their
+    // thumbnails are the stable marker, so remove the rendered card itself.
+    document.querySelectorAll('img[src*="pokiunblocked.gitlab.io"], img[data-src*="pokiunblocked.gitlab.io"]').forEach(img => {
+      hide(img.closest('div[style*="cursor"]') || img.parentElement?.parentElement?.parentElement);
+    });
     document.querySelectorAll('article, li, [class*="card"], [class*="Card"]').forEach(card => {
       const text = (card.textContent || '').replace(/\s+/g, ' ').trim().toLowerCase();
-      if (names.some(name => text.includes(name))) card.remove();
+      if (names.some(name => text.includes(name))) hide(card);
     });
-    [...document.querySelectorAll('a, button')].forEach(link => {
-      const text = (link.textContent || '').replace(/\s+/g, ' ').trim().toLowerCase();
+    [...document.querySelectorAll('p, span, div, a, button')].forEach(label => {
+      const text = (label.textContent || '').replace(/\s+/g, ' ').trim().toLowerCase();
       if (names.includes(text)) {
-        const card = cardFor(link);
-        if (card) card.remove();
+        const card = label.closest('div[style*="cursor"]') || cardFor(label);
+        if (card) hide(card);
       }
     });
   }
