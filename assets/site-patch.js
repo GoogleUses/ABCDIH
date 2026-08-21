@@ -457,14 +457,14 @@
     const spin = find('🎡 Daily Spin'), challenges = find('⚡ Challenges');
     const unblocker = find('🌐 Unblocker'), otherSites = find('🌐 Other Sites'), gameRequest = document.getElementById('nj-game-request-button') || find('🎮 Request a game');
     const gamble = find('🎰 Gamble'), coinFarmer = find('🪙 Coin Farmer'), redeem = find('🎟️ Redeem');
-    const random = installRandomGameButton(find('🎲 Random Game'));
+    // Random Game has been retired. Leaderboard takes its former position.
+    const random = null;
     const mod = document.createElement('button');
     mod.className = 'nj-hdr-btn'; mod.type = 'button'; mod.textContent = '📨 Other requests';
     mod.onclick = openModRequestForm;
     [...bar.children].forEach(child => child.remove());
     if (stat) bar.appendChild(stat);
-    makeHeaderGroup(bar, [leaderboard], 'nj-hdr-group-1');
-    makeHeaderGroup(bar, [random, soundboard], 'nj-hdr-group-2');
+    makeHeaderGroup(bar, [leaderboard, soundboard], 'nj-hdr-group-2');
     makeHeaderGroup(bar, [spin, challenges], 'nj-hdr-group-2');
     makeHeaderGroup(bar, [unblocker, otherSites], 'nj-hdr-group-2');
     makeHeaderGroup(bar, [gameRequest, mod], 'nj-hdr-group-2');
