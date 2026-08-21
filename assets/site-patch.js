@@ -313,8 +313,8 @@
 
   /* ── Leaderboard update ───────────────────────────────────────────────
    * XP is a lifetime stat, so keep a separate all-time index in Firebase.
-   * The bundled app still writes its old weekly XP path for compatibility;
-   * this listener mirrors the user's actual XP total into the new index.
+   * The admin panel writes this index directly. This listener also mirrors
+   * normal player XP changes for compatibility with the bundled app.
    */
   function installAllTimeXpLeaderboard() {
     if (window.__njAllTimeXpLeaderboardInstalled) return;
@@ -885,10 +885,63 @@
     };
   }
 
+  function installAdminXpLeaderboardSync() {
+    const coinButton = [...document.querySelectorAll('button')].find(button =>
+      /njSyncCoinsLeaderboard/.test(button.getAttribute('onclick') || '')
+    );
+    if (coinButton && !document.getElementById('nj-sync-xp-leaderboard')) {
+      const button = document.createElement('button');
+      button.id = 'nj-sync-xp-leaderboard';
+      button.textContent = '🔄 Sync XP → Leaderboard';
+      button.title = "Push every user's current XP total to the all-time XP leaderboard";
+      button.style.cssText = 'background:#1e1b4b;color:#c4b5fd;border:1px solid #4f46e5;border-radius:7px;padding:7px 10px;font-size:12px;cursor:pointer;font-weight:700';
+      button.onclick = () => window.njSyncXpLeaderboard();
+      coinButton.parentElement?.appendChild(button);
+    }
+
+    // The bundled admin editor updates users/{uid}/xp but not the public
+    // all-time index. Keep the existing editor and add the missing write.
+    if (!window.__njXpAdminEditorWrapped && typeof window.njAdminEditXp === 'function') {
+      const original = window.njAdminEditXp;
+      window.njAdminEditXp = async function (uid) {
+        await original(uid);
+        const f = await firebaseTools();
+        if (!f) return;
+        const snap = await f.get(f.ref(f.db, `njsgames/users/${uid}/xp`)).catch(() => null);
+        if (snap) await f.set(f.ref(f.db, `njsgames/leaderboard/xp-alltime/${uid}`), Number(snap.val()) || 0).catch(() => {});
+      };
+      window.__njXpAdminEditorWrapped = true;
+    }
+
+    if (window.njSyncXpLeaderboard) return;
+    window.njSyncXpLeaderboard = async function () {
+      if (typeof window.njIsAdmin === 'function' && !window.njIsAdmin()) {
+        alert('Admin authentication required.');
+        return;
+      }
+      if (!confirm("Sync all users' XP totals to the all-time XP leaderboard?\n\nThis overwrites the leaderboard values from the current admin user data.")) return;
+      const f = await firebaseTools();
+      if (!f) { alert('Could not connect to Firebase.'); return; }
+      const snap = await f.get(f.ref(f.db, 'njsgames/users'));
+      const users = snap.val() || {};
+      const entries = Object.entries(users);
+      let ok = 0, failed = 0;
+      for (let i = 0; i < entries.length; i += 20) {
+        await Promise.all(entries.slice(i, i + 20).map(async ([uid, user]) => {
+          try {
+            await f.set(f.ref(f.db, `njsgames/leaderboard/xp-alltime/${uid}`), Number(user?.xp) || 0);
+            ok++;
+          } catch (_) { failed++; }
+        }));
+      }
+      alert(`XP leaderboard synced for ${ok} user${ok === 1 ? '' : 's'}${failed ? `; ${failed} failed` : ''}.`);
+    };
+  }
+
   function install() {
     rebuildUnblockerSelect(); removeTestingHeader(); removePokiCatalogItems(); removePokiGameCards(); installQA();
     installAllTimeXpLeaderboard(); installLeaderboardUpdate();
-    ensureRequestButton(); installOtherSitesButton(); installAdminRequests(); installAdminModRequests(); installPresenceObserver();
+    ensureRequestButton(); installOtherSitesButton(); installAdminRequests(); installAdminModRequests(); installAdminXpLeaderboardSync(); installPresenceObserver();
     removeSiteHealth(); removeBitlifeQuiz(); rebuildHeaderGroups(); hardenInSiteNavigation();
     const oldOpen = window.njOpenUnblocker;
     if (oldOpen && !window.__njChooserInstalled) {
