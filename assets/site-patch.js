@@ -479,6 +479,54 @@
     });
   }
 
+  const otherSiteSources = [
+    ['StrongDog XP', 'https://mathcordxp.github.io/'],
+    ['Unblocked Games 500', 'https://sites.google.com/site/unblockedgames500weeblycom/home'],
+    ['Cool UGB', 'https://coolunblockedgames.github.io/'],
+    ['GitHub Games', 'https://git-hub-games.github.io/'],
+    ['Classroom 6x', 'https://classroom6xunblocked-games.github.io/'],
+    ['Unblocked Games 76', 'https://sites.google.com/view/unblocked-game76']
+  ];
+
+  function showOtherSitesChooser() {
+    if (document.getElementById('nj-other-sites-overlay')) return;
+    const overlay = document.createElement('div');
+    overlay.id = 'nj-other-sites-overlay';
+    overlay.style.cssText = 'position:fixed;inset:0;z-index:10016;background:#0a0a0f;display:flex;flex-direction:column;';
+    overlay.innerHTML = '<div style="background:rgba(10,10,15,.97);border-bottom:1px solid #1a1a2e;padding:12px 20px;display:flex;align-items:center;gap:14px;flex-shrink:0"><button id="nj-other-sites-close" style="background:#1a1a2e;border:1px solid #2a2a4a;border-radius:8px;color:#9ca3af;font-size:13px;font-weight:600;padding:7px 14px;cursor:pointer">← Back</button><span style="font-size:17px;font-weight:800;background:linear-gradient(135deg,#a78bfa,#7c3aed);-webkit-background-clip:text;-webkit-text-fill-color:transparent">🌐 Other Sites</span></div><div id="nj-other-sites-body" style="flex:1;overflow:auto;padding:24px"></div>';
+    document.body.appendChild(overlay);
+    const body = overlay.querySelector('#nj-other-sites-body');
+    const renderChooser = () => {
+      body.innerHTML = '<div style="max-width:900px;margin:0 auto"><h1 style="color:#fff;font-size:24px;margin:0 0 6px">🌐 Choose a game site</h1><p style="color:#9ca3af;margin:0 0 20px">Open a complete game site inside the player. Choose a site, then browse its own games.</p><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px">' +
+        otherSiteSources.map((site, index) => `<button data-site-index="${index}" style="text-align:left;background:#171727;border:1px solid #3b2b68;border-radius:12px;color:#fff;padding:16px;cursor:pointer;font-weight:700;font-size:14px"><span style="font-size:20px">🎮</span> ${esc(site[0])}<div style="color:#9ca3af;font-size:11px;margin-top:7px;font-weight:400">Browse this site's full game catalog</div></button>`).join('') +
+        '</div></div>';
+      body.querySelectorAll('[data-site-index]').forEach(button => {
+        button.onclick = () => {
+          const site = otherSiteSources[Number(button.dataset.siteIndex)];
+          body.innerHTML = `<div style="height:100%;display:flex;flex-direction:column;max-width:1400px;margin:0 auto"><div style="display:flex;align-items:center;gap:10px;padding:0 0 10px"><button id="nj-other-sites-list" style="background:#1a1a2e;border:1px solid #2a2a4a;border-radius:8px;color:#c4b5fd;padding:7px 12px;cursor:pointer">← Sites</button><b style="color:#fff">${esc(site[0])}</b><a href="${esc(site[1])}" target="_blank" rel="noopener" style="margin-left:auto;color:#a78bfa;font-size:11px">Open in new tab</a></div><iframe title="${esc(site[0])}" src="${esc(site[1])}" style="flex:1;min-height:70vh;width:100%;border:1px solid #2a2a4a;border-radius:10px;background:#fff" allowfullscreen></iframe></div>`;
+          body.querySelector('#nj-other-sites-list').onclick = renderChooser;
+        };
+      });
+    };
+    overlay.querySelector('#nj-other-sites-close').onclick = () => overlay.remove();
+    renderChooser();
+  }
+
+  function installOtherSitesButton() {
+    if (document.getElementById('nj-other-sites-button')) return;
+    const unblocker = [...document.querySelectorAll('button')].find(button =>
+      (button.textContent || '').replace(/\s+/g, ' ').trim() === '🌐 Unblocker'
+    );
+    if (!unblocker || !unblocker.parentElement) return;
+    const button = document.createElement('button');
+    button.id = 'nj-other-sites-button';
+    button.className = 'nj-hdr-btn';
+    button.type = 'button';
+    button.textContent = '🌐 Other Sites';
+    button.onclick = showOtherSitesChooser;
+    unblocker.parentElement.insertBefore(button, unblocker.nextSibling);
+  }
+
   function installQA() {
     if (typeof window.njOpenQA !== 'function') return;
     window.njOpenQA = function () {
@@ -487,9 +535,7 @@
         ['Why is a game not loading?', 'Try another game or choose a tested site in Unblocker.'],
         ['How do I earn coins?', 'Use Daily Spin, complete Challenges, and play games.']
       ];
-      let qa;
-      try { qa = JSON.parse(localStorage.getItem('nj_custom_qa') || 'null') || defaults.slice(); }
-      catch (_) { qa = defaults.slice(); }
+      let qa = defaults.slice();
       const ov = document.createElement('div');
       ov.style.cssText = 'position:fixed;inset:0;z-index:10070;background:rgba(0,0,0,.9);display:flex;align-items:center;justify-content:center;padding:16px';
       ov.innerHTML = '<div style="background:#0f0f1a;border:1px solid #7c3aed;border-radius:18px;width:min(600px,95vw);max-height:88vh;overflow:auto;padding:22px;color:#fff">' +
@@ -499,6 +545,12 @@
       const list = ov.querySelector('#nj-qa-list');
       const render = () => { list.innerHTML = qa.length ? qa.map(x => `<div style="padding:12px 0;border-bottom:1px solid #2a2a4a"><b>${esc(x[0])}</b><div style="color:#a1a1aa;margin-top:5px;line-height:1.5">${esc(x[1])}</div></div>`).join('') : '<div style="color:#9ca3af;padding:18px 0">No Q/A entries yet.</div>'; };
       render();
+      firebaseTools().then(f => f && f.onValue(f.ref(f.db, 'njsgames/qa'), snap => {
+        const shared = snap.val();
+        if (Array.isArray(shared)) qa = shared;
+        else if (shared && typeof shared === 'object') qa = Object.values(shared);
+        render();
+      }));
       ov.querySelector('#nj-qa-close').onclick = () => ov.remove();
       ov.querySelector('#nj-qa-add').onclick = async () => {
         const form = document.createElement('div');
@@ -519,8 +571,11 @@
           }
           const q = form.querySelector('#nj-patch-q').value.trim(), a = form.querySelector('#nj-patch-a').value.trim();
           if (!q || !a) return;
-          qa.push([q, a]); localStorage.setItem('nj_custom_qa', JSON.stringify(qa)); form.remove(); render();
-          try { if (window.njDb && window.set && window.ref) await window.set(window.ref(window.njDb, 'njsgames/qa'), qa); } catch (_) {}
+          qa.push([q, a]); form.remove(); render();
+          try {
+            const f = await firebaseTools();
+            if (f) await f.set(f.ref(f.db, 'njsgames/qa'), qa);
+          } catch (_) {}
         };
       };
     };
@@ -528,7 +583,7 @@
 
   function install() {
     rebuildUnblockerSelect(); removeTestingHeader(); removePokiCatalogItems(); removePokiGameCards(); installQA();
-    ensureRequestButton(); installImportedHomeGames(); installAdminRequests(); installPresenceObserver();
+    ensureRequestButton(); installOtherSitesButton(); installAdminRequests(); installPresenceObserver();
     const oldOpen = window.njOpenUnblocker;
     if (oldOpen && !window.__njChooserInstalled) {
       window.__njChooserInstalled = true;
