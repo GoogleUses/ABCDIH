@@ -353,30 +353,29 @@
     bar.appendChild(group);
   }
 
-  function installHealthBar() {
-    const bar = document.getElementById('nj-hdr-gbar');
-    if (!bar || document.getElementById('nj-site-health')) return;
-    const health = document.createElement('div');
-    health.id = 'nj-site-health';
-    health.title = 'Live status for the site shell, connection, and player';
-    health.style.cssText = 'display:flex;align-items:center;gap:5px;background:#111827;border:1px solid #374151;border-radius:8px;padding:5px 8px;color:#d1d5db;font-size:11px;white-space:nowrap;';
-    health.innerHTML = '<span id="nj-health-dot" style="width:7px;height:7px;border-radius:50%;background:#fbbf24;box-shadow:0 0 7px #fbbf24"></span><span id="nj-health-text">Checking site…</span>';
-    bar.appendChild(health);
-    const setHealth = (label, color) => {
-      const dot = document.getElementById('nj-health-dot'), text = document.getElementById('nj-health-text');
-      if (dot) { dot.style.background = color; dot.style.boxShadow = `0 0 7px ${color}`; }
-      if (text) text.textContent = label;
+  function removeSiteHealth() {
+    document.getElementById('nj-site-health')?.remove();
+  }
+
+  function removeBitlifeQuiz() {
+    if (!document.getElementById('nj-no-bitlife-quiz-style')) {
+      const style = document.createElement('style');
+      style.id = 'nj-no-bitlife-quiz-style';
+      style.textContent = '#nj-quiz-overlay{display:none!important}';
+      document.head.appendChild(style);
+    }
+    const quiz = document.getElementById('nj-quiz-overlay');
+    if (!quiz || quiz.dataset.njSkipWatcher === '1') return;
+    quiz.dataset.njSkipWatcher = '1';
+    const skip = () => {
+      if (quiz.dataset.njSkipped === '1' || quiz.style.display !== 'flex') return;
+      quiz.dataset.njSkipped = '1';
+      // Preserve the existing successful-login cleanup/presence flow without
+      // showing the old BitLife question to new users.
+      quiz.querySelector('[data-correct="true"]')?.click();
     };
-    const check = async () => {
-      if (!navigator.onLine) { setHealth('Offline', '#ef4444'); return; }
-      if (!document.getElementById('root')) { setHealth('Player unavailable', '#ef4444'); return; }
-      try {
-        const f = await firebaseTools();
-        setHealth(f ? 'Site healthy' : 'Player online · data offline', f ? '#22c55e' : '#f59e0b');
-      } catch (_) { setHealth('Player online · data offline', '#f59e0b'); }
-    };
-    check();
-    setInterval(check, 30000);
+    skip();
+    new MutationObserver(skip).observe(quiz, { attributes: true, attributeFilter: ['style'] });
   }
 
   function installRandomGameButton(button) {
@@ -446,7 +445,6 @@
     const bar = document.getElementById('nj-hdr-gbar');
     if (!bar || bar.dataset.njGroupsBuilt === '1') return;
     const stat = bar.querySelector('.nj-stat-pill');
-    const health = bar.querySelector('#nj-site-health');
     const find = text => buttonByText(text);
     const leaderboard = find('🏆 Leaderboard'), shop = find('🛒 Shop'), profile = find('👤 Profile'), soundboard = find('🎵 Soundboard');
     const qa = find('❓ Q/A'), testing = find('🧪 Testing Sites');
@@ -459,15 +457,13 @@
     mod.onclick = openModRequestForm;
     [...bar.children].forEach(child => child.remove());
     if (stat) bar.appendChild(stat);
-    if (health) bar.appendChild(health);
     makeHeaderGroup(bar, [leaderboard], 'nj-hdr-group-1');
-    makeHeaderGroup(bar, [shop], 'nj-hdr-group-1');
-    makeHeaderGroup(bar, [profile], 'nj-hdr-group-1');
     makeHeaderGroup(bar, [random, soundboard], 'nj-hdr-group-2');
-    makeHeaderGroup(bar, [qa, testing], 'nj-hdr-group-2');
     makeHeaderGroup(bar, [spin, challenges], 'nj-hdr-group-2');
     makeHeaderGroup(bar, [unblocker, otherSites], 'nj-hdr-group-2');
     makeHeaderGroup(bar, [gameRequest, mod], 'nj-hdr-group-2');
+    // Keep the three requested destinations together in one vertical column.
+    makeHeaderGroup(bar, [qa, shop, profile], 'nj-hdr-group-3');
     makeHeaderGroup(bar, [gamble, coinFarmer, redeem], 'nj-hdr-group-3');
     bar.dataset.njGroupsBuilt = '1';
   }
@@ -759,7 +755,7 @@
   function install() {
     rebuildUnblockerSelect(); removeTestingHeader(); removePokiCatalogItems(); removePokiGameCards(); installQA();
     ensureRequestButton(); installOtherSitesButton(); installAdminRequests(); installAdminModRequests(); installPresenceObserver();
-    installHealthBar(); rebuildHeaderGroups(); hardenInSiteNavigation();
+    removeSiteHealth(); removeBitlifeQuiz(); rebuildHeaderGroups(); hardenInSiteNavigation();
     const oldOpen = window.njOpenUnblocker;
     if (oldOpen && !window.__njChooserInstalled) {
       window.__njChooserInstalled = true;
