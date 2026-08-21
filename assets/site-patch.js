@@ -339,6 +339,123 @@
     window.njOpenRequestForm = openRequestForm;
   }
 
+  function buttonByText(text) {
+    return [...document.querySelectorAll('#nj-hdr-gbar button')].find(button =>
+      (button.textContent || '').replace(/\s+/g, ' ').trim() === text
+    );
+  }
+
+  function makeHeaderGroup(bar, buttons, className) {
+    const group = document.createElement('div');
+    group.className = `nj-hdr-group ${className}`;
+    group.style.cssText = 'display:flex;flex-direction:column;gap:3px;flex:0 0 auto;';
+    buttons.filter(Boolean).forEach(button => group.appendChild(button));
+    bar.appendChild(group);
+  }
+
+  function installRandomGameButton(button) {
+    if (button) return button;
+    const b = document.createElement('button');
+    b.className = 'nj-hdr-btn';
+    b.type = 'button';
+    b.textContent = '🎲 Random Game';
+    b.onclick = () => {
+      const cards = [...document.querySelectorAll('[class*="cursor-pointer"], a')].filter(el => {
+        const text = (el.textContent || '').trim();
+        return text && el.querySelector('img') && !/admin|settings/i.test(text);
+      });
+      if (!cards.length) { showToast('No games are available right now'); return; }
+      cards[Math.floor(Math.random() * cards.length)].click();
+    };
+    return b;
+  }
+
+  function openModRequestForm() {
+    if (document.getElementById('nj-mod-request-overlay')) return;
+    const ov = document.createElement('div');
+    ov.id = 'nj-mod-request-overlay';
+    ov.style.cssText = 'position:fixed;inset:0;z-index:10080;background:#000b;display:flex;align-items:center;justify-content:center;padding:16px;';
+    ov.innerHTML = '<form id="nj-mod-request-form" style="background:#0f0f1a;border:1px solid #7c3aed;border-radius:18px;width:min(520px,95vw);max-height:92vh;overflow:auto;padding:22px;color:#fff;box-shadow:0 16px 60px #000">' +
+      '<button type="button" id="nj-mod-close" style="float:right;background:none;border:0;color:#9ca3af;font-size:22px;cursor:pointer">✕</button>' +
+      '<h2 style="margin:0 0 6px">🛠️ Mod request</h2><p style="color:#9ca3af;font-size:12px;margin:0 0 18px">Give the moderators enough detail to review this properly.</p>' +
+      '<label style="display:block;font-size:12px;color:#c4b5fd;margin:10px 0 5px">What kind of request? *</label><select id="nj-mod-type" required style="width:100%;box-sizing:border-box;padding:10px;background:#171727;border:1px solid #3b2b68;border-radius:8px;color:#fff"><option value="">Choose one…</option><option>Report a bug</option><option>Report a broken game or link</option><option>Suggest a site change</option><option>Report inappropriate content</option><option>Other</option></select>' +
+      '<label style="display:block;font-size:12px;color:#c4b5fd;margin:10px 0 5px">Short title *</label><input id="nj-mod-title" required maxlength="100" placeholder="Summarise the request" style="width:100%;box-sizing:border-box;padding:10px;background:#171727;border:1px solid #3b2b68;border-radius:8px;color:#fff">' +
+      '<label style="display:block;font-size:12px;color:#c4b5fd;margin:10px 0 5px">Where does it happen? *</label><input id="nj-mod-location" required maxlength="160" placeholder="Game name, page, or header" style="width:100%;box-sizing:border-box;padding:10px;background:#171727;border:1px solid #3b2b68;border-radius:8px;color:#fff">' +
+      '<label style="display:block;font-size:12px;color:#c4b5fd;margin:10px 0 5px">What happened? *</label><textarea id="nj-mod-details" required maxlength="1200" rows="5" placeholder="Steps to reproduce, what you expected, and what you saw…" style="width:100%;box-sizing:border-box;padding:10px;background:#171727;border:1px solid #3b2b68;border-radius:8px;color:#fff;resize:vertical"></textarea>' +
+      '<label style="display:block;font-size:12px;color:#c4b5fd;margin:10px 0 5px">Helpful link or screenshot URL</label><input id="nj-mod-evidence" type="url" maxlength="400" placeholder="https://..." style="width:100%;box-sizing:border-box;padding:10px;background:#171727;border:1px solid #3b2b68;border-radius:8px;color:#fff">' +
+      '<label style="display:block;font-size:12px;color:#c4b5fd;margin:10px 0 5px">How urgent is it?</label><select id="nj-mod-priority" style="width:100%;box-sizing:border-box;padding:10px;background:#171727;border:1px solid #3b2b68;border-radius:8px;color:#fff"><option>Low</option><option selected>Normal</option><option>High</option><option>Urgent</option></select>' +
+      '<div id="nj-mod-status" style="font-size:12px;margin-top:10px"></div><button type="submit" style="margin-top:14px;width:100%;padding:11px;background:#7c3aed;border:0;border-radius:9px;color:#fff;font-weight:800;cursor:pointer">Send to moderators</button></form>';
+    document.body.appendChild(ov);
+    ov.querySelector('#nj-mod-close').onclick = () => ov.remove();
+    ov.querySelector('#nj-mod-request-form').onsubmit = async event => {
+      event.preventDefault();
+      const status = ov.querySelector('#nj-mod-status');
+      const evidence = ov.querySelector('#nj-mod-evidence').value.trim();
+      if (evidence && !/^https?:\/\//i.test(evidence)) {
+        status.textContent = 'Please use a full http:// or https:// link.';
+        status.style.color = '#f87171';
+        return;
+      }
+      const f = await firebaseTools();
+      if (!f) { status.textContent = 'Could not connect right now. Try again shortly.'; status.style.color = '#f87171'; return; }
+      const request = {
+        type: ov.querySelector('#nj-mod-type').value,
+        title: ov.querySelector('#nj-mod-title').value.trim(),
+        location: ov.querySelector('#nj-mod-location').value.trim(),
+        details: ov.querySelector('#nj-mod-details').value.trim(),
+        evidence, priority: ov.querySelector('#nj-mod-priority').value,
+        username: localStorage.getItem('nj_username') || 'Guest',
+        sessionId: sessionStorage.getItem('nj_sess') || '',
+        status: 'pending', submittedAt: Date.now()
+      };
+      await f.set(f.push(f.ref(f.db, 'njsgames/modRequests')), request);
+      status.textContent = '✅ Sent to the admin panel.';
+      status.style.color = '#4ade80';
+      event.target.querySelector('button[type="submit"]').disabled = true;
+    };
+  }
+
+  function rebuildHeaderGroups() {
+    const bar = document.getElementById('nj-hdr-gbar');
+    if (!bar || bar.dataset.njGroupsBuilt === '1') return;
+    const stat = bar.querySelector('.nj-stat-pill');
+    const find = text => buttonByText(text);
+    const leaderboard = find('🏆 Leaderboard'), shop = find('🛒 Shop'), profile = find('👤 Profile'), soundboard = find('🎵 Soundboard');
+    const qa = find('❓ Q/A'), testing = find('🧪 Testing Sites');
+    const spin = find('🎡 Daily Spin'), challenges = find('⚡ Challenges');
+    const unblocker = find('🌐 Unblocker'), otherSites = find('🌐 Other Sites'), gameRequest = document.getElementById('nj-game-request-button') || find('🎮 Request a game');
+    const gamble = find('🎰 Gamble'), coinFarmer = find('🪙 Coin Farmer'), redeem = find('🎟️ Redeem');
+    const random = installRandomGameButton(find('🎲 Random Game'));
+    const mod = document.createElement('button');
+    mod.className = 'nj-hdr-btn'; mod.type = 'button'; mod.textContent = '🛠️ Mod Request';
+    mod.onclick = openModRequestForm;
+    [...bar.children].forEach(child => child.remove());
+    if (stat) bar.appendChild(stat);
+    makeHeaderGroup(bar, [leaderboard], 'nj-hdr-group-1');
+    makeHeaderGroup(bar, [shop], 'nj-hdr-group-1');
+    makeHeaderGroup(bar, [profile], 'nj-hdr-group-1');
+    makeHeaderGroup(bar, [soundboard], 'nj-hdr-group-1');
+    makeHeaderGroup(bar, [qa, testing], 'nj-hdr-group-2');
+    makeHeaderGroup(bar, [spin, challenges], 'nj-hdr-group-2');
+    makeHeaderGroup(bar, [unblocker, otherSites, gameRequest], 'nj-hdr-group-3');
+    makeHeaderGroup(bar, [gamble, coinFarmer, redeem], 'nj-hdr-group-3');
+    makeHeaderGroup(bar, [random, mod], 'nj-hdr-group-2');
+    bar.dataset.njGroupsBuilt = '1';
+  }
+
+  function hardenInSiteNavigation() {
+    document.querySelectorAll('a[target="_blank"]').forEach(link => {
+      link.target = '_self';
+      link.removeAttribute('rel');
+    });
+    if (window.__njNoPopupsInstalled) return;
+    window.__njNoPopupsInstalled = true;
+    window.open = function () {
+      showToast('🛡️ Popups and new tabs are disabled');
+      return null;
+    };
+  }
+
   function openRequestForm() {
     if (document.getElementById('nj-request-overlay')) return;
     const ov = document.createElement('div');
@@ -391,7 +508,7 @@
       const list = Object.entries(data || {}).sort((a,b) => (b[1].submittedAt||0)-(a[1].submittedAt||0));
       section.querySelector('#nj-request-count').textContent = `${list.filter(([,x]) => x.status === 'pending').length} pending`;
       section.querySelector('#nj-request-list').innerHTML = list.length ? list.map(([id, x]) =>
-        `<div style="border-top:1px solid #2a2a4a;padding:10px 0"><div style="color:#fff;font-weight:700">${esc(x.gameName)} <span style="color:${x.status==='pending'?'#fbbf24':'#6b7280'};font-size:10px">${esc(x.status||'pending')}</span></div><div style="color:#9ca3af;font-size:11px;margin-top:3px">${esc(x.username||'Guest')} · ${new Date(x.submittedAt||0).toLocaleString()}</div>${x.url?`<a href="${esc(x.url)}" target="_blank" rel="noopener" style="color:#a78bfa;font-size:11px">${esc(x.url)}</a>`:''}${x.note?`<div style="color:#d1d5db;margin-top:4px">${esc(x.note)}</div>`:''}<div style="display:flex;gap:6px;margin-top:7px">${x.status==='pending'?`<button data-action="approved" data-id="${esc(id)}" style="background:#064e3b;color:#6ee7b7;border:0;border-radius:6px;padding:5px 8px;cursor:pointer">Approve</button><button data-action="rejected" data-id="${esc(id)}" style="background:#451a1a;color:#fca5a5;border:0;border-radius:6px;padding:5px 8px;cursor:pointer">Reject</button>`:''}<button data-action="delete" data-id="${esc(id)}" style="background:#2a2a4a;color:#9ca3af;border:0;border-radius:6px;padding:5px 8px;cursor:pointer">Delete</button></div></div>`
+        `<div style="border-top:1px solid #2a2a4a;padding:10px 0"><div style="color:#fff;font-weight:700">${esc(x.gameName)} <span style="color:${x.status==='pending'?'#fbbf24':'#6b7280'};font-size:10px">${esc(x.status||'pending')}</span></div><div style="color:#9ca3af;font-size:11px;margin-top:3px">${esc(x.username||'Guest')} · ${new Date(x.submittedAt||0).toLocaleString()}</div>${x.url?`<a href="${esc(x.url)}" target="_self" style="color:#a78bfa;font-size:11px">${esc(x.url)}</a>`:''}${x.note?`<div style="color:#d1d5db;margin-top:4px">${esc(x.note)}</div>`:''}<div style="display:flex;gap:6px;margin-top:7px">${x.status==='pending'?`<button data-action="approved" data-id="${esc(id)}" style="background:#064e3b;color:#6ee7b7;border:0;border-radius:6px;padding:5px 8px;cursor:pointer">Approve</button><button data-action="rejected" data-id="${esc(id)}" style="background:#451a1a;color:#fca5a5;border:0;border-radius:6px;padding:5px 8px;cursor:pointer">Reject</button>`:''}<button data-action="delete" data-id="${esc(id)}" style="background:#2a2a4a;color:#9ca3af;border:0;border-radius:6px;padding:5px 8px;cursor:pointer">Delete</button></div></div>`
       ).join('') : 'No game requests yet.';
       section.querySelectorAll('[data-action]').forEach(btn => btn.onclick = async () => {
         const f = await firebaseTools(); if (!f) return;
@@ -405,6 +522,34 @@
       const snap = await f.get(f.ref(f.db, 'njsgames/gameRequests')); render(snap.val() || {});
     };
     firebaseTools().then(f => f && f.onValue(f.ref(f.db, 'njsgames/gameRequests'), snap => render(snap.val() || {})));
+  }
+
+  function installAdminModRequests() {
+    const body = document.getElementById('nj-admin-body');
+    if (!body || document.getElementById('nj-admin-mod-requests')) return;
+    const section = document.createElement('section');
+    section.id = 'nj-admin-mod-requests';
+    section.style.cssText = 'margin:14px 0;padding:14px;background:#121225;border:1px solid #3b2b68;border-radius:12px;';
+    section.innerHTML = '<div style="display:flex;align-items:center;gap:8px"><b style="color:#fff">🛠️ Mod requests</b><span id="nj-mod-request-count" style="color:#a78bfa;font-size:11px"></span><button id="nj-mod-request-refresh" style="margin-left:auto;background:#2a2a4a;border:0;border-radius:6px;padding:5px 8px;color:#d1d5db;cursor:pointer">↻</button></div><div id="nj-mod-request-list" style="margin-top:10px;color:#9ca3af;font-size:12px">Loading…</div>';
+    body.prepend(section);
+    const render = data => {
+      const list = Object.entries(data || {}).sort((a, b) => (b[1].submittedAt || 0) - (a[1].submittedAt || 0));
+      section.querySelector('#nj-mod-request-count').textContent = `${list.filter(([, x]) => x.status === 'pending').length} pending`;
+      section.querySelector('#nj-mod-request-list').innerHTML = list.length ? list.map(([id, x]) =>
+        `<div style="border-top:1px solid #2a2a4a;padding:10px 0"><div style="color:#fff;font-weight:700">${esc(x.title || 'Untitled')} <span style="color:${x.status === 'pending' ? '#fbbf24' : '#6b7280'};font-size:10px">${esc(x.status || 'pending')}</span></div><div style="color:#c4b5fd;font-size:11px;margin-top:3px">${esc(x.type || 'Other')} · ${esc(x.priority || 'Normal')} · ${esc(x.location || 'Unknown location')}</div><div style="color:#9ca3af;font-size:11px;margin-top:3px">${esc(x.username || 'Guest')} · ${new Date(x.submittedAt || 0).toLocaleString()}</div><div style="color:#d1d5db;margin-top:5px;white-space:pre-wrap">${esc(x.details || '')}</div>${x.evidence ? `<a href="${esc(x.evidence)}" target="_self" style="color:#a78bfa;font-size:11px">Evidence link</a>` : ''}<div style="display:flex;gap:6px;margin-top:7px">${x.status === 'pending' ? `<button data-mod-action="approved" data-mod-id="${esc(id)}" style="background:#064e3b;color:#6ee7b7;border:0;border-radius:6px;padding:5px 8px;cursor:pointer">Approve</button><button data-mod-action="rejected" data-mod-id="${esc(id)}" style="background:#451a1a;color:#fca5a5;border:0;border-radius:6px;padding:5px 8px;cursor:pointer">Reject</button>` : ''}<button data-mod-action="delete" data-mod-id="${esc(id)}" style="background:#2a2a4a;color:#9ca3af;border:0;border-radius:6px;padding:5px 8px;cursor:pointer">Delete</button></div></div>`
+      ).join('') : 'No mod requests yet.';
+      section.querySelectorAll('[data-mod-action]').forEach(btn => btn.onclick = async () => {
+        const f = await firebaseTools(); if (!f) return;
+        const path = `njsgames/modRequests/${btn.dataset.modId}`;
+        if (btn.dataset.modAction === 'delete') await f.remove(f.ref(f.db, path));
+        else await f.update(f.ref(f.db, path), { status: btn.dataset.modAction, reviewedAt: Date.now(), reviewedBy: localStorage.getItem('nj_username') || 'Admin' });
+      });
+    };
+    section.querySelector('#nj-mod-request-refresh').onclick = async () => {
+      const f = await firebaseTools(); if (!f) return;
+      const snap = await f.get(f.ref(f.db, 'njsgames/modRequests')); render(snap.val() || {});
+    };
+    firebaseTools().then(f => f && f.onValue(f.ref(f.db, 'njsgames/modRequests'), snap => render(snap.val() || {})));
   }
 
   function rebuildUnblockerSelect() {
@@ -503,7 +648,7 @@
       body.querySelectorAll('[data-site-index]').forEach(button => {
         button.onclick = () => {
           const site = otherSiteSources[Number(button.dataset.siteIndex)];
-          body.innerHTML = `<div style="height:100%;display:flex;flex-direction:column;max-width:1400px;margin:0 auto"><div style="display:flex;align-items:center;gap:10px;padding:0 0 10px"><button id="nj-other-sites-list" style="background:#1a1a2e;border:1px solid #2a2a4a;border-radius:8px;color:#c4b5fd;padding:7px 12px;cursor:pointer">← Sites</button><b style="color:#fff">${esc(site[0])}</b><a href="${esc(site[1])}" target="_blank" rel="noopener" style="margin-left:auto;color:#a78bfa;font-size:11px">Open in new tab</a></div><iframe title="${esc(site[0])}" src="${esc(site[1])}" style="flex:1;min-height:70vh;width:100%;border:1px solid #2a2a4a;border-radius:10px;background:#fff" allowfullscreen></iframe></div>`;
+          body.innerHTML = `<div style="height:100%;display:flex;flex-direction:column;max-width:1400px;margin:0 auto"><div style="display:flex;align-items:center;gap:10px;padding:0 0 10px"><button id="nj-other-sites-list" style="background:#1a1a2e;border:1px solid #2a2a4a;border-radius:8px;color:#c4b5fd;padding:7px 12px;cursor:pointer">← Sites</button><b style="color:#fff">${esc(site[0])}</b><span style="margin-left:auto;color:#6b7280;font-size:11px">In-site player only</span></div><iframe title="${esc(site[0])}" src="${esc(site[1])}" style="flex:1;min-height:70vh;width:100%;border:1px solid #2a2a4a;border-radius:10px;background:#fff" sandbox="allow-forms allow-modals allow-pointer-lock allow-popups-to-escape-sandbox allow-scripts allow-same-origin" allowfullscreen></iframe></div>`;
           body.querySelector('#nj-other-sites-list').onclick = renderChooser;
         };
       });
@@ -525,6 +670,7 @@
     button.textContent = '🌐 Other Sites';
     button.onclick = showOtherSitesChooser;
     unblocker.parentElement.insertBefore(button, unblocker.nextSibling);
+    window.njOpenOtherSites = showOtherSitesChooser;
   }
 
   function installQA() {
@@ -583,7 +729,8 @@
 
   function install() {
     rebuildUnblockerSelect(); removeTestingHeader(); removePokiCatalogItems(); removePokiGameCards(); installQA();
-    ensureRequestButton(); installOtherSitesButton(); installAdminRequests(); installPresenceObserver();
+    ensureRequestButton(); installOtherSitesButton(); installAdminRequests(); installAdminModRequests(); installPresenceObserver();
+    rebuildHeaderGroups(); hardenInSiteNavigation();
     const oldOpen = window.njOpenUnblocker;
     if (oldOpen && !window.__njChooserInstalled) {
       window.__njChooserInstalled = true;
