@@ -446,16 +446,10 @@
     const bar = document.getElementById('nj-hdr-gbar');
     if (!bar || bar.dataset.njGroupsBuilt === '1') return;
     const stat = bar.querySelector('.nj-stat-pill');
-    const oldHealth = bar.querySelector('#nj-site-health');
-    if (oldHealth) oldHealth.remove();
-    bar.style.flex = '1 1 auto';
-    bar.style.minWidth = '0';
-    bar.style.maxWidth = 'calc(100vw - 110px)';
-    bar.style.overflow = 'hidden';
-    bar.style.alignContent = 'flex-start';
+    // The status indicator is intentionally not part of the public header.
     const find = text => buttonByText(text);
     const leaderboard = find('🏆 Leaderboard'), shop = find('🛒 Shop'), profile = find('👤 Profile'), soundboard = find('🎵 Soundboard');
-    const qa = find('❓ Q/A'), testing = find('🧪 Testing Sites');
+    const testing = find('🧪 Testing Sites');
     const spin = find('🎡 Daily Spin'), challenges = find('⚡ Challenges');
     const unblocker = find('🌐 Unblocker'), otherSites = find('🌐 Other Sites'), gameRequest = document.getElementById('nj-game-request-button') || find('🎮 Request a game');
     const gamble = find('🎰 Gamble'), coinFarmer = find('🪙 Coin Farmer'), redeem = find('🎟️ Redeem');
@@ -466,38 +460,38 @@
     [...bar.children].forEach(child => child.remove());
     if (stat) bar.appendChild(stat);
     makeHeaderGroup(bar, [leaderboard], 'nj-hdr-group-1');
-    makeHeaderGroup(bar, [testing], 'nj-hdr-group-1');
+    makeHeaderGroup(bar, [shop, profile], 'nj-hdr-group-1');
     makeHeaderGroup(bar, [random, soundboard], 'nj-hdr-group-2');
+    makeHeaderGroup(bar, [testing], 'nj-hdr-group-2');
     makeHeaderGroup(bar, [spin, challenges], 'nj-hdr-group-2');
     makeHeaderGroup(bar, [unblocker, otherSites], 'nj-hdr-group-2');
     makeHeaderGroup(bar, [gameRequest, mod], 'nj-hdr-group-2');
-    makeHeaderGroup(bar, [qa, shop, profile], 'nj-hdr-group-3');
     makeHeaderGroup(bar, [gamble, coinFarmer, redeem], 'nj-hdr-group-3');
     bar.dataset.njGroupsBuilt = '1';
   }
 
-  function removeSiteHealthBar() {
-    document.getElementById('nj-site-health')?.remove();
-  }
-
-  function skipBitlifeQuiz() {
-    if (window.__njBitlifeQuizSkipped) return;
-    window.__njBitlifeQuizSkipped = true;
-    const check = () => {
-      const quiz = document.getElementById('nj-quiz-overlay');
-      if (!quiz) return;
-      const style = getComputedStyle(quiz);
-      if (style.display === 'none' || style.visibility === 'hidden') return;
-      localStorage.setItem('nj_quiz_passed', '1');
-      quiz.style.display = 'none';
-      const username = localStorage.getItem('nj_username') || window._njPendingUsername;
-      if (username) {
-        window._njUsername = username;
+  function bypassBitlifeQuiz() {
+    const finish = () => {
+      const overlay = document.getElementById('nj-quiz-overlay');
+      if (!overlay) return;
+      const correct = overlay.querySelector('.nj-quiz-choice[data-correct="true"]');
+      if (correct) {
+        // Use the existing handler so pending username/presence state is
+        // completed exactly as it was for a user answering the quiz.
+        correct.click();
+      } else {
+        overlay.style.display = 'none';
       }
+      localStorage.setItem('nj_quiz_passed', '1');
     };
-    check();
-    const timer = setInterval(check, 100);
-    setTimeout(() => clearInterval(timer), 15000);
+    const scan = () => {
+      const overlay = document.getElementById('nj-quiz-overlay');
+      if (overlay && getComputedStyle(overlay).display !== 'none') finish();
+    };
+    new MutationObserver(scan).observe(document.documentElement, {
+      childList: true, subtree: true, attributes: true, attributeFilter: ['style']
+    });
+    scan();
   }
 
   function hardenInSiteNavigation() {
@@ -787,7 +781,10 @@
   function install() {
     rebuildUnblockerSelect(); removeTestingHeader(); removePokiCatalogItems(); removePokiGameCards(); installQA();
     ensureRequestButton(); installOtherSitesButton(); installAdminRequests(); installAdminModRequests(); installPresenceObserver();
-    removeSiteHealthBar(); rebuildHeaderGroups(); hardenInSiteNavigation(); skipBitlifeQuiz();
+    installHealthBar();
+    const health = document.getElementById('nj-site-health');
+    if (health) health.remove();
+    rebuildHeaderGroups(); hardenInSiteNavigation(); bypassBitlifeQuiz();
     const oldOpen = window.njOpenUnblocker;
     if (oldOpen && !window.__njChooserInstalled) {
       window.__njChooserInstalled = true;
