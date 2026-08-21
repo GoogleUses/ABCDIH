@@ -99,6 +99,142 @@
     });
   }
 
+  // Direct-source catalog importer. This intentionally skips Google Sites and
+  // other hub pages: only game pages/files or pages exposing a game iframe are
+  // added to the site's own player.
+  const importedSources = [
+    { name: 'StrongDog XP', index: 'https://mathcordxp.github.io/cards-data.js', type: 'strongdog' },
+    { name: 'Cool UGB', index: 'https://coolunblockedgames.github.io/pages.js', type: 'cool' },
+    { name: 'GitHub Games', index: 'https://git-hub-games.github.io/', type: 'github' },
+    { name: 'Classroom 6x', index: 'https://classroom6xunblocked-games.github.io/', type: 'classroom' }
+  ];
+  let importedCatalogPromise = null;
+  const importedKey = value => String(value || '').toLowerCase().replace(/&amp;/g, '&').replace(/[^a-z0-9]+/g, ' ').trim();
+  const absoluteUrl = (value, base) => { try { return new URL(value, base).href; } catch (_) { return ''; } };
+  const htmlText = value => String(value || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+  async function fetchText(url) {
+    const response = await fetch(url, { mode: 'cors' });
+    if (!response.ok) throw new Error(`${response.status} ${url}`);
+    return response.text();
+  }
+  function parseStrongDog(text, source) {
+    const games = [], re = /\{\s*href:\s*['"]([^'"]+)['"][\s\S]{0,220}?name:\s*['"]([^'"]+)['"][\s\S]{0,120}?(?:'id'|"id"|id):\s*([0-9]+)/g;
+    let match;
+    while ((match = re.exec(text))) games.push({ name: match[2], source: source.name, page: absoluteUrl(match[1], source.index), kind: 'resolve' });
+    return games;
+  }
+  function parseCool(text, source) {
+    const games = [], re = /\{\s*name:\s*"([^"]+)"([\s\S]*?)\n\s*\}/g;
+    let match;
+    while ((match = re.exec(text))) {
+      const body = match[2], type = (body.match(/fileType:\s*"([^"]+)"/) || [])[1] || 'html';
+      const file = (body.match(/file_name:\s*"([^"]+)"/) || [])[1] || match[1];
+      games.push({ name: (body.match(/formatted_Name:\s*"([^"]+)"/) || [])[1] || match[1], source: source.name, page: `https://coolubg2.github.io/coolubg-list/${encodeURIComponent(file).replace(/%2F/gi, '/')}${type === 'html' && !/\.[a-z0-9]+$/i.test(file) ? '.html' : ''}`, kind: 'direct' });
+    }
+    return games;
+  }
+  function parseHub(text, source, prefix, titlePattern) {
+    const games = [], re = new RegExp(`href=["'](${prefix}[^"']+)["'][\\s\\S]{0,700}?${titlePattern}`, 'gi');
+    let match;
+    while ((match = re.exec(text))) games.push({ name: htmlText(match[2] || match[1].split('/').pop().replace(/[-_]/g, ' ')), source: source.name, page: absoluteUrl(match[1], source.index), kind: 'resolve' });
+    return games;
+  }
+  async function loadImportedCatalog() {
+    if (importedCatalogPromise) return importedCatalogPromise;
+    importedCatalogPromise = Promise.all(importedSources.map(async source => {
+      try {
+        const text = await fetchText(source.index);
+        if (source.type === 'strongdog') return parseStrongDog(text, source);
+        if (source.type === 'cool') return parseCool(text, source);
+        if (source.type === 'github') return parseHub(text, source, '/play/', "alt=[\"']([^\"']+)[\"']");
+        return parseHub(text, source, '/g/', "title=[\"']([^\"']+)[\"']");
+      } catch (_) { return []; }
+    })).then(groups => {
+      const seen = new Set();
+      const existing = new Set([...document.querySelectorAll('img[alt]')].map(image => importedKey(image.alt)));
+      return groups.flat().filter(game => {
+        const key = importedKey(game.name);
+        if (!key || seen.has(key) || existing.has(key) || removedPokiGames.some(name => importedKey(name) === key)) return false;
+        seen.add(key);
+        return true;
+      });
+    });
+    return importedCatalogPromise;
+  }
+  async function resolveImportedGame(game) {
+    if (game.kind === 'direct') return game.page;
+    try {
+      const text = await fetchText(game.page);
+      const match = text.match(/<iframe[^>]+(?:id=["']game-area["']|class=["'][^"']*game-iframe[^"']*)[^>]+src=["']([^"']+)["']/i) || text.match(/<iframe[^>]+src=["']([^"']+)["']/i);
+      return match ? absoluteUrl(match[1], game.page) : game.page;
+    } catch (_) { return game.page; }
+  }
+  function openImportedGame(game) {
+    const overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;inset:0;z-index:20000;background:#000;display:flex;flex-direction:column;';
+    overlay.innerHTML = `<div style="background:#0f0f1a;border-bottom:1px solid #2a2a4a;padding:9px 14px;display:flex;align-items:center;gap:10px;flex-shrink:0"><b style="color:#fff;flex:1">🎮 ${esc(game.name)}</b><span style="color:#6b7280;font-size:11px">${esc(game.source)}</span><button style="background:#1a1a2e;border:1px solid #3b2b68;border-radius:7px;color:#fff;padding:6px 10px;cursor:pointer">✕</button></div><div style="flex:1;position:relative"><div class="nj-import-loading" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#c4b5fd">Loading game…</div></div>`;
+    document.body.appendChild(overlay);
+    overlay.querySelector('button').onclick = () => overlay.remove();
+    resolveImportedGame(game).then(url => {
+      if (!url || !overlay.isConnected) return;
+      const frame = document.createElement('iframe');
+      frame.src = url; frame.title = game.name; frame.allowFullscreen = true;
+      frame.style.cssText = 'width:100%;height:100%;border:0;position:absolute;inset:0;';
+      frame.setAttribute('allow', 'fullscreen; gamepad; autoplay');
+      frame.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms allow-pointer-lock allow-presentation');
+      overlay.querySelector('.nj-import-loading')?.remove();
+      overlay.querySelector('div > div:last-child')?.appendChild(frame);
+    });
+  }
+  function installImportedCatalogButton() {
+    if (document.getElementById('nj-imported-games-button')) return;
+    const anchor = [...document.querySelectorAll('button')].find(button => (button.textContent || '').replace(/\s+/g, ' ').trim() === '🌐 Unblocker');
+    if (!anchor || !anchor.parentElement) return;
+    const button = document.createElement('button');
+    button.id = 'nj-imported-games-button'; button.className = 'nj-hdr-btn'; button.type = 'button'; button.textContent = '🧩 Imported Games';
+    button.onclick = async () => {
+      const overlay = document.createElement('div');
+      overlay.style.cssText = 'position:fixed;inset:0;z-index:10060;background:#0a0a0f;overflow:auto;padding:24px 16px;color:#fff;';
+      overlay.innerHTML = '<div style="max-width:1100px;margin:0 auto"><div style="display:flex;align-items:center;gap:12px;margin-bottom:14px"><h1 style="font-size:22px;margin:0;flex:1">🧩 Imported Games</h1><button id="nj-import-close" style="background:#1a1a2e;border:1px solid #3b2b68;border-radius:8px;color:#fff;padding:8px 12px;cursor:pointer">✕ Close</button></div><p style="color:#9ca3af;font-size:12px;margin:0 0 14px">Direct game sources only — hub pages and wrapper pages are excluded.</p><input id="nj-import-search" placeholder="Search imported games…" style="width:100%;box-sizing:border-box;background:#171727;border:1px solid #3b2b68;border-radius:8px;padding:10px;color:#fff;margin-bottom:14px"><div id="nj-import-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px"><p style="color:#c4b5fd">Loading catalogs…</p></div></div>';
+      document.body.appendChild(overlay);
+      overlay.querySelector('#nj-import-close').onclick = () => overlay.remove();
+      const list = overlay.querySelector('#nj-import-list'), games = await loadImportedCatalog();
+      const render = () => {
+        const query = importedKey(overlay.querySelector('#nj-import-search').value);
+        const shown = games.filter(game => !query || importedKey(game.name).includes(query));
+        list.innerHTML = shown.length ? shown.map((game, index) => `<button data-index="${index}" style="text-align:left;background:#171727;border:1px solid #2a2a4a;border-radius:10px;padding:12px;color:#fff;cursor:pointer"><b style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(game.name)}</b><span style="display:block;color:#a78bfa;font-size:10px;margin-top:5px">${esc(game.source)}</span></button>`).join('') : '<p style="color:#9ca3af">No imported games found.</p>';
+        list.querySelectorAll('[data-index]').forEach(item => { item.onclick = () => openImportedGame(shown[Number(item.dataset.index)]); });
+      };
+      overlay.querySelector('#nj-import-search').oninput = render; render();
+    };
+    anchor.parentElement.insertBefore(button, anchor.nextSibling);
+  }
+
+  function installImportedHomeGames() {
+    if (document.getElementById('nj-imported-home-games')) return;
+    const grid = document.querySelector('main [style*="grid-template-columns"]');
+    if (!grid) return;
+    const section = document.createElement('div');
+    section.id = 'nj-imported-home-games';
+    section.style.cssText = 'display:contents';
+    grid.appendChild(section);
+    loadImportedCatalog().then(games => {
+      if (!section.isConnected) return;
+      const fragment = document.createDocumentFragment();
+      games.forEach(game => {
+        const card = document.createElement('div');
+        card.style.cssText = 'cursor:pointer;border-radius:12px;overflow:hidden;background:#1a1a2e;border:1px solid #2a2a4a;transition:all .2s;';
+        card.title = `${game.name} · ${game.source}`;
+        card.innerHTML = `<div style="position:relative;padding-bottom:100%;background:#0f0f1a"><img alt="${esc(game.name)}" loading="lazy" src="https://placehold.co/200x200/1a1a2e/9333ea?text=${encodeURIComponent((game.name || '?')[0])}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover"><div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.7),transparent);display:flex;align-items:center;justify-content:center"><div style="background:#7c3aed;border-radius:50%;width:44px;height:44px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:20px">▶</div></div></div><div style="padding:8px 8px 10px"><p style="color:#fff;font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:1.3;margin:0">${esc(game.name)}</p><p style="color:#7c3aed;font-size:11px;margin:2px 0 0">${esc(game.source)}</p></div>`;
+        card.onmouseenter = () => { card.style.transform = 'scale(1.05)'; card.style.borderColor = '#7c3aed'; card.style.boxShadow = '0 8px 24px rgba(124,58,237,.25)'; };
+        card.onmouseleave = () => { card.style.transform = ''; card.style.borderColor = '#2a2a4a'; card.style.boxShadow = ''; };
+        card.onclick = () => openImportedGame(game);
+        fragment.appendChild(card);
+      });
+      section.appendChild(fragment);
+    });
+  }
+
   // The original presence writer only knows whether an iframe exists. This
   // second, low-frequency observer records the visible feature/overlay too,
   // without replacing the site's existing game telemetry.
@@ -392,7 +528,7 @@
 
   function install() {
     rebuildUnblockerSelect(); removeTestingHeader(); removePokiCatalogItems(); removePokiGameCards(); installQA();
-    ensureRequestButton(); installAdminRequests(); installPresenceObserver();
+    ensureRequestButton(); installImportedHomeGames(); installAdminRequests(); installPresenceObserver();
     const oldOpen = window.njOpenUnblocker;
     if (oldOpen && !window.__njChooserInstalled) {
       window.__njChooserInstalled = true;
