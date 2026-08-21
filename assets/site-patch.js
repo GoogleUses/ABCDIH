@@ -311,6 +311,133 @@
     setInterval(scan, 1200);
   }
 
+  /* ── Leaderboard update ───────────────────────────────────────────────
+   * XP is a lifetime stat, so keep a separate all-time index in Firebase.
+   * The bundled app still writes its old weekly XP path for compatibility;
+   * this listener mirrors the user's actual XP total into the new index.
+   */
+  function installAllTimeXpLeaderboard() {
+    if (window.__njAllTimeXpLeaderboardInstalled) return;
+    window.__njAllTimeXpLeaderboardInstalled = true;
+    firebaseTools().then(async f => {
+      if (!f) return;
+      const uid = localStorage.getItem('nj_username');
+      if (!uid || uid === 'Unknown') return;
+      const userRef = f.ref(f.db, `njsgames/users/${uid}`);
+      const xpRef = f.ref(f.db, `njsgames/users/${uid}/xp`);
+      const allTimeRef = f.ref(f.db, `njsgames/leaderboard/xp-alltime/${uid}`);
+      try {
+        const snap = await f.get(userRef);
+        await f.set(allTimeRef, Number(snap.val()?.xp) || 0);
+      } catch (_) {}
+      f.onValue(xpRef, snap => {
+        f.set(allTimeRef, Number(snap.val()) || 0).catch(() => {});
+      });
+    });
+  }
+
+  function installLeaderboardUpdate() {
+    const row = document.querySelector('.nj-lb-tabs-row');
+    if (!row || window.__njLeaderboardUpdateInstalled) return;
+    const buttons = ['pt', 'monthly', 'yearly', 'xp', 'coins']
+      .map(tab => document.getElementById(`nj-lb-tab-${tab}`))
+      .filter(Boolean);
+    if (buttons.length !== 5) return;
+    buttons.forEach(button => row.appendChild(button));
+    window.__njLeaderboardUpdateInstalled = true;
+
+    const tabs = ['pt', 'monthly', 'yearly', 'xp', 'coins'];
+    const notes = {
+      pt: '🔄 Resets every Sunday · Top 3 earn coins',
+      monthly: '🔄 Resets every 4th Sunday · Top 3 earn bonus coins',
+      yearly: '🔄 Resets every year · Top 3 earn a big coin bonus',
+      xp: '♾️ Never resets — all-time XP totals',
+      coins: '♾️ Never resets — all-time coin totals'
+    };
+    const dateKeys = () => {
+      const d = new Date();
+      const start = new Date(d.getFullYear(), 0, 1);
+      const week = Math.ceil(((d - start) / 864e5 + start.getDay() + 1) / 7);
+      return {
+        week: `${d.getFullYear()}-W${String(week).padStart(2, '0')}`,
+        month: `${d.getFullYear()}-M${String(Math.ceil(week / 4)).padStart(2, '0')}`,
+        year: `${d.getFullYear()}`
+      };
+    };
+    const fmtTime = seconds => {
+      const h = Math.floor(seconds / 3600), m = Math.floor((seconds % 3600) / 60);
+      return h ? `${h}h ${m}m` : `${m}m`;
+    };
+    const escAttr = value => String(value).replace(/[&<>"']/g, c => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[c]));
+
+    window.njLbTab = async function (tab) {
+      if (!tabs.includes(tab)) tab = 'pt';
+      tabs.forEach(name => {
+        const button = document.getElementById(`nj-lb-tab-${name}`);
+        if (!button) return;
+        const active = name === tab;
+        button.style.background = active ? '#1a1a2e' : 'transparent';
+        button.style.color = active ? '#a78bfa' : '#6b7280';
+        button.style.fontWeight = active ? '700' : '600';
+        button.style.borderBottom = active ? '2px solid #7c3aed' : '2px solid transparent';
+      });
+      const note = document.getElementById('nj-lb-footer-note');
+      if (note) note.textContent = notes[tab];
+      const list = document.getElementById('nj-lb-list');
+      if (!list) return;
+      list.innerHTML = '<div style="text-align:center;color:#6b7280;padding:20px">Loading...</div>';
+      const f = await firebaseTools();
+      if (!f) return;
+      const keys = dateKeys();
+      const paths = {
+        pt: `njsgames/leaderboard/weekly/${keys.week}`,
+        monthly: `njsgames/leaderboard/monthly/${keys.month}`,
+        yearly: `njsgames/leaderboard/yearly/${keys.year}`,
+        xp: 'njsgames/leaderboard/xp-alltime',
+        coins: 'njsgames/leaderboard/coins-alltime'
+      };
+      try {
+        const snap = await f.get(f.ref(f.db, paths[tab]));
+        const entries = Object.entries(snap.val() || {})
+          .filter(([user]) => user && user !== 'Unknown')
+          .sort((a, b) => Number(b[1]) - Number(a[1]))
+          .slice(0, 10);
+        if (!entries.length) {
+          const empty = {
+            pt: 'No entries yet — start playing!',
+            monthly: 'No entries yet this cycle!',
+            yearly: 'No entries yet this year!',
+            xp: 'No XP data yet — play games to earn XP!',
+            coins: 'No coins earned yet!'
+          };
+          list.innerHTML = `<div style="text-align:center;color:#6b7280;padding:30px">${empty[tab]}</div>`;
+          return;
+        }
+        const current = localStorage.getItem('nj_username') || '';
+        const medals = ['🥇', '🥈', '🥉'];
+        const isXp = tab === 'xp', isCoins = tab === 'coins';
+        const color = isXp ? '#a78bfa' : isCoins ? '#fbbf24' : '#22c55e';
+        list.innerHTML = entries.map(([user, raw], index) => {
+          const value = Number(raw) || 0;
+          const me = user === current;
+          const valueText = isXp ? `${value.toLocaleString()} XP` :
+            isCoins ? `${value.toLocaleString()} 🪙` : fmtTime(value);
+          return `<div class="nj-lb-row${me ? ' nj-lb-me' : ''}" style="background:${['rgba(251,191,36,.1)','rgba(156,163,175,.08)','rgba(180,120,50,.08)'][index] || '#1a1a2e'}">` +
+            `<span style="font-size:${index < 3 ? 20 : 13}px;width:28px;text-align:center;flex-shrink:0">${medals[index] || `#${index + 1}`}</span>` +
+            `<span style="flex:1;font-size:13px"><button onclick="njViewProfile('${escAttr(user)}');njCloseLeaderboard();" style="background:none;border:none;color:${me ? '#a78bfa' : '#e5e7eb'};font-weight:${me ? 700 : 500};font-size:13px;cursor:pointer;padding:0;text-align:left">${escAttr(user)}${me ? ' (you)' : ''}</button></span>` +
+            `<span style="color:${color};font-weight:700;font-size:12px">${valueText}</span></div>`;
+        }).join('');
+        const rank = entries.findIndex(([user]) => user === current);
+        const footer = document.getElementById('nj-lb-my-rank');
+        if (footer) footer.textContent = rank >= 0 ? `Your rank: #${rank + 1}` : (current ? 'Play to appear on the board!' : '');
+      } catch (_) {
+        list.innerHTML = '<div style="text-align:center;color:#ef4444;padding:20px">Failed to load leaderboard</div>';
+      }
+    };
+  }
+
   function ensureRequestButton() {
     // The request action lives in the header, stacked below Unblocker.
     // Keep this binding idempotent because the site patch is re-run after
@@ -760,6 +887,7 @@
 
   function install() {
     rebuildUnblockerSelect(); removeTestingHeader(); removePokiCatalogItems(); removePokiGameCards(); installQA();
+    installAllTimeXpLeaderboard(); installLeaderboardUpdate();
     ensureRequestButton(); installOtherSitesButton(); installAdminRequests(); installAdminModRequests(); installPresenceObserver();
     removeSiteHealth(); removeBitlifeQuiz(); rebuildHeaderGroups(); hardenInSiteNavigation();
     const oldOpen = window.njOpenUnblocker;
