@@ -446,7 +446,13 @@
     const bar = document.getElementById('nj-hdr-gbar');
     if (!bar || bar.dataset.njGroupsBuilt === '1') return;
     const stat = bar.querySelector('.nj-stat-pill');
-    const health = bar.querySelector('#nj-site-health');
+    const oldHealth = bar.querySelector('#nj-site-health');
+    if (oldHealth) oldHealth.remove();
+    bar.style.flex = '1 1 auto';
+    bar.style.minWidth = '0';
+    bar.style.maxWidth = 'calc(100vw - 110px)';
+    bar.style.overflow = 'hidden';
+    bar.style.alignContent = 'flex-start';
     const find = text => buttonByText(text);
     const leaderboard = find('🏆 Leaderboard'), shop = find('🛒 Shop'), profile = find('👤 Profile'), soundboard = find('🎵 Soundboard');
     const qa = find('❓ Q/A'), testing = find('🧪 Testing Sites');
@@ -459,17 +465,39 @@
     mod.onclick = openModRequestForm;
     [...bar.children].forEach(child => child.remove());
     if (stat) bar.appendChild(stat);
-    if (health) bar.appendChild(health);
     makeHeaderGroup(bar, [leaderboard], 'nj-hdr-group-1');
-    makeHeaderGroup(bar, [shop], 'nj-hdr-group-1');
-    makeHeaderGroup(bar, [profile], 'nj-hdr-group-1');
+    makeHeaderGroup(bar, [testing], 'nj-hdr-group-1');
     makeHeaderGroup(bar, [random, soundboard], 'nj-hdr-group-2');
-    makeHeaderGroup(bar, [qa, testing], 'nj-hdr-group-2');
     makeHeaderGroup(bar, [spin, challenges], 'nj-hdr-group-2');
     makeHeaderGroup(bar, [unblocker, otherSites], 'nj-hdr-group-2');
     makeHeaderGroup(bar, [gameRequest, mod], 'nj-hdr-group-2');
+    makeHeaderGroup(bar, [qa, shop, profile], 'nj-hdr-group-3');
     makeHeaderGroup(bar, [gamble, coinFarmer, redeem], 'nj-hdr-group-3');
     bar.dataset.njGroupsBuilt = '1';
+  }
+
+  function removeSiteHealthBar() {
+    document.getElementById('nj-site-health')?.remove();
+  }
+
+  function skipBitlifeQuiz() {
+    if (window.__njBitlifeQuizSkipped) return;
+    window.__njBitlifeQuizSkipped = true;
+    const check = () => {
+      const quiz = document.getElementById('nj-quiz-overlay');
+      if (!quiz) return;
+      const style = getComputedStyle(quiz);
+      if (style.display === 'none' || style.visibility === 'hidden') return;
+      localStorage.setItem('nj_quiz_passed', '1');
+      quiz.style.display = 'none';
+      const username = localStorage.getItem('nj_username') || window._njPendingUsername;
+      if (username) {
+        window._njUsername = username;
+      }
+    };
+    check();
+    const timer = setInterval(check, 100);
+    setTimeout(() => clearInterval(timer), 15000);
   }
 
   function hardenInSiteNavigation() {
@@ -759,7 +787,7 @@
   function install() {
     rebuildUnblockerSelect(); removeTestingHeader(); removePokiCatalogItems(); removePokiGameCards(); installQA();
     ensureRequestButton(); installOtherSitesButton(); installAdminRequests(); installAdminModRequests(); installPresenceObserver();
-    installHealthBar(); rebuildHeaderGroups(); hardenInSiteNavigation();
+    removeSiteHealthBar(); rebuildHeaderGroups(); hardenInSiteNavigation(); skipBitlifeQuiz();
     const oldOpen = window.njOpenUnblocker;
     if (oldOpen && !window.__njChooserInstalled) {
       window.__njChooserInstalled = true;
