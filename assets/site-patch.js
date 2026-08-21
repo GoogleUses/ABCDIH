@@ -353,6 +353,32 @@
     bar.appendChild(group);
   }
 
+  function installHealthBar() {
+    const bar = document.getElementById('nj-hdr-gbar');
+    if (!bar || document.getElementById('nj-site-health')) return;
+    const health = document.createElement('div');
+    health.id = 'nj-site-health';
+    health.title = 'Live status for the site shell, connection, and player';
+    health.style.cssText = 'display:flex;align-items:center;gap:5px;background:#111827;border:1px solid #374151;border-radius:8px;padding:5px 8px;color:#d1d5db;font-size:11px;white-space:nowrap;';
+    health.innerHTML = '<span id="nj-health-dot" style="width:7px;height:7px;border-radius:50%;background:#fbbf24;box-shadow:0 0 7px #fbbf24"></span><span id="nj-health-text">Checking site…</span>';
+    bar.appendChild(health);
+    const setHealth = (label, color) => {
+      const dot = document.getElementById('nj-health-dot'), text = document.getElementById('nj-health-text');
+      if (dot) { dot.style.background = color; dot.style.boxShadow = `0 0 7px ${color}`; }
+      if (text) text.textContent = label;
+    };
+    const check = async () => {
+      if (!navigator.onLine) { setHealth('Offline', '#ef4444'); return; }
+      if (!document.getElementById('root')) { setHealth('Player unavailable', '#ef4444'); return; }
+      try {
+        const f = await firebaseTools();
+        setHealth(f ? 'Site healthy' : 'Player online · data offline', f ? '#22c55e' : '#f59e0b');
+      } catch (_) { setHealth('Player online · data offline', '#f59e0b'); }
+    };
+    check();
+    setInterval(check, 30000);
+  }
+
   function installRandomGameButton(button) {
     if (button) return button;
     const b = document.createElement('button');
@@ -360,12 +386,13 @@
     b.type = 'button';
     b.textContent = '🎲 Random Game';
     b.onclick = () => {
-      const cards = [...document.querySelectorAll('[class*="cursor-pointer"], a')].filter(el => {
-        const text = (el.textContent || '').trim();
-        return text && el.querySelector('img') && !/admin|settings/i.test(text);
-      });
-      if (!cards.length) { showToast('No games are available right now'); return; }
-      cards[Math.floor(Math.random() * cards.length)].click();
+      const links = [...document.querySelectorAll('a[href*="/play/"]')].filter(el => visible(el));
+      if (links.length) { links[Math.floor(Math.random() * links.length)].click(); return; }
+      const fallback = ['ab-kissing-simulator','arcana-fight','avatar-fortress-fight-2','backrooms-2','basketball-stars','batman-dog','blocky-world','bowling','buckshot-roulette','build-a-big-army','build-an-army','build-defend','cb-clicker','chicken-royale','crashy-road','crazy-roll','delivery','deltarune','diep-io-original','drono','dune-buggy','escape-game','flappy-dunk','flying-cookie-quest','fly-the-plane','friday-n-funkin','goku','gvibes','hazmob-fps','hop-fighters','i-am-quadrober','ice-dodo'];
+      const slug = fallback[Math.floor(Math.random() * fallback.length)];
+      const destination = new URL(`ABCDIH/play/${slug}`, location.origin + (location.pathname.startsWith('/ABCDIH') ? '/' : '/')).href;
+      history.pushState({}, '', destination);
+      window.dispatchEvent(new PopStateEvent('popstate'));
     };
     return b;
   }
@@ -377,7 +404,7 @@
     ov.style.cssText = 'position:fixed;inset:0;z-index:10080;background:#000b;display:flex;align-items:center;justify-content:center;padding:16px;';
     ov.innerHTML = '<form id="nj-mod-request-form" style="background:#0f0f1a;border:1px solid #7c3aed;border-radius:18px;width:min(520px,95vw);max-height:92vh;overflow:auto;padding:22px;color:#fff;box-shadow:0 16px 60px #000">' +
       '<button type="button" id="nj-mod-close" style="float:right;background:none;border:0;color:#9ca3af;font-size:22px;cursor:pointer">✕</button>' +
-      '<h2 style="margin:0 0 6px">🛠️ Mod request</h2><p style="color:#9ca3af;font-size:12px;margin:0 0 18px">Give the moderators enough detail to review this properly.</p>' +
+      '<h2 style="margin:0 0 6px">📨 Other request</h2><p style="color:#9ca3af;font-size:12px;margin:0 0 18px">Give the admin team enough detail to review this properly.</p>' +
       '<label style="display:block;font-size:12px;color:#c4b5fd;margin:10px 0 5px">What kind of request? *</label><select id="nj-mod-type" required style="width:100%;box-sizing:border-box;padding:10px;background:#171727;border:1px solid #3b2b68;border-radius:8px;color:#fff"><option value="">Choose one…</option><option>Report a bug</option><option>Report a broken game or link</option><option>Suggest a site change</option><option>Report inappropriate content</option><option>Other</option></select>' +
       '<label style="display:block;font-size:12px;color:#c4b5fd;margin:10px 0 5px">Short title *</label><input id="nj-mod-title" required maxlength="100" placeholder="Summarise the request" style="width:100%;box-sizing:border-box;padding:10px;background:#171727;border:1px solid #3b2b68;border-radius:8px;color:#fff">' +
       '<label style="display:block;font-size:12px;color:#c4b5fd;margin:10px 0 5px">Where does it happen? *</label><input id="nj-mod-location" required maxlength="160" placeholder="Game name, page, or header" style="width:100%;box-sizing:border-box;padding:10px;background:#171727;border:1px solid #3b2b68;border-radius:8px;color:#fff">' +
@@ -408,7 +435,7 @@
         sessionId: sessionStorage.getItem('nj_sess') || '',
         status: 'pending', submittedAt: Date.now()
       };
-      await f.set(f.push(f.ref(f.db, 'njsgames/modRequests')), request);
+      await f.set(f.push(f.ref(f.db, 'njsgames/otherRequests')), request);
       status.textContent = '✅ Sent to the admin panel.';
       status.style.color = '#4ade80';
       event.target.querySelector('button[type="submit"]').disabled = true;
@@ -419,6 +446,7 @@
     const bar = document.getElementById('nj-hdr-gbar');
     if (!bar || bar.dataset.njGroupsBuilt === '1') return;
     const stat = bar.querySelector('.nj-stat-pill');
+    const health = bar.querySelector('#nj-site-health');
     const find = text => buttonByText(text);
     const leaderboard = find('🏆 Leaderboard'), shop = find('🛒 Shop'), profile = find('👤 Profile'), soundboard = find('🎵 Soundboard');
     const qa = find('❓ Q/A'), testing = find('🧪 Testing Sites');
@@ -427,19 +455,20 @@
     const gamble = find('🎰 Gamble'), coinFarmer = find('🪙 Coin Farmer'), redeem = find('🎟️ Redeem');
     const random = installRandomGameButton(find('🎲 Random Game'));
     const mod = document.createElement('button');
-    mod.className = 'nj-hdr-btn'; mod.type = 'button'; mod.textContent = '🛠️ Mod Request';
+    mod.className = 'nj-hdr-btn'; mod.type = 'button'; mod.textContent = '📨 Other requests';
     mod.onclick = openModRequestForm;
     [...bar.children].forEach(child => child.remove());
     if (stat) bar.appendChild(stat);
+    if (health) bar.appendChild(health);
     makeHeaderGroup(bar, [leaderboard], 'nj-hdr-group-1');
     makeHeaderGroup(bar, [shop], 'nj-hdr-group-1');
     makeHeaderGroup(bar, [profile], 'nj-hdr-group-1');
-    makeHeaderGroup(bar, [soundboard], 'nj-hdr-group-1');
+    makeHeaderGroup(bar, [random, soundboard], 'nj-hdr-group-2');
     makeHeaderGroup(bar, [qa, testing], 'nj-hdr-group-2');
     makeHeaderGroup(bar, [spin, challenges], 'nj-hdr-group-2');
-    makeHeaderGroup(bar, [unblocker, otherSites, gameRequest], 'nj-hdr-group-3');
+    makeHeaderGroup(bar, [unblocker, otherSites], 'nj-hdr-group-2');
+    makeHeaderGroup(bar, [gameRequest, mod], 'nj-hdr-group-2');
     makeHeaderGroup(bar, [gamble, coinFarmer, redeem], 'nj-hdr-group-3');
-    makeHeaderGroup(bar, [random, mod], 'nj-hdr-group-2');
     bar.dataset.njGroupsBuilt = '1';
   }
 
@@ -526,30 +555,30 @@
 
   function installAdminModRequests() {
     const body = document.getElementById('nj-admin-body');
-    if (!body || document.getElementById('nj-admin-mod-requests')) return;
+    if (!body || document.getElementById('nj-admin-other-requests')) return;
     const section = document.createElement('section');
-    section.id = 'nj-admin-mod-requests';
+    section.id = 'nj-admin-other-requests';
     section.style.cssText = 'margin:14px 0;padding:14px;background:#121225;border:1px solid #3b2b68;border-radius:12px;';
-    section.innerHTML = '<div style="display:flex;align-items:center;gap:8px"><b style="color:#fff">🛠️ Mod requests</b><span id="nj-mod-request-count" style="color:#a78bfa;font-size:11px"></span><button id="nj-mod-request-refresh" style="margin-left:auto;background:#2a2a4a;border:0;border-radius:6px;padding:5px 8px;color:#d1d5db;cursor:pointer">↻</button></div><div id="nj-mod-request-list" style="margin-top:10px;color:#9ca3af;font-size:12px">Loading…</div>';
+    section.innerHTML = '<div style="display:flex;align-items:center;gap:8px"><b style="color:#fff">📨 Other requests</b><span id="nj-mod-request-count" style="color:#a78bfa;font-size:11px"></span><button id="nj-mod-request-refresh" style="margin-left:auto;background:#2a2a4a;border:0;border-radius:6px;padding:5px 8px;color:#d1d5db;cursor:pointer">↻</button></div><div id="nj-mod-request-list" style="margin-top:10px;color:#9ca3af;font-size:12px">Loading…</div>';
     body.prepend(section);
     const render = data => {
       const list = Object.entries(data || {}).sort((a, b) => (b[1].submittedAt || 0) - (a[1].submittedAt || 0));
       section.querySelector('#nj-mod-request-count').textContent = `${list.filter(([, x]) => x.status === 'pending').length} pending`;
       section.querySelector('#nj-mod-request-list').innerHTML = list.length ? list.map(([id, x]) =>
         `<div style="border-top:1px solid #2a2a4a;padding:10px 0"><div style="color:#fff;font-weight:700">${esc(x.title || 'Untitled')} <span style="color:${x.status === 'pending' ? '#fbbf24' : '#6b7280'};font-size:10px">${esc(x.status || 'pending')}</span></div><div style="color:#c4b5fd;font-size:11px;margin-top:3px">${esc(x.type || 'Other')} · ${esc(x.priority || 'Normal')} · ${esc(x.location || 'Unknown location')}</div><div style="color:#9ca3af;font-size:11px;margin-top:3px">${esc(x.username || 'Guest')} · ${new Date(x.submittedAt || 0).toLocaleString()}</div><div style="color:#d1d5db;margin-top:5px;white-space:pre-wrap">${esc(x.details || '')}</div>${x.evidence ? `<a href="${esc(x.evidence)}" target="_self" style="color:#a78bfa;font-size:11px">Evidence link</a>` : ''}<div style="display:flex;gap:6px;margin-top:7px">${x.status === 'pending' ? `<button data-mod-action="approved" data-mod-id="${esc(id)}" style="background:#064e3b;color:#6ee7b7;border:0;border-radius:6px;padding:5px 8px;cursor:pointer">Approve</button><button data-mod-action="rejected" data-mod-id="${esc(id)}" style="background:#451a1a;color:#fca5a5;border:0;border-radius:6px;padding:5px 8px;cursor:pointer">Reject</button>` : ''}<button data-mod-action="delete" data-mod-id="${esc(id)}" style="background:#2a2a4a;color:#9ca3af;border:0;border-radius:6px;padding:5px 8px;cursor:pointer">Delete</button></div></div>`
-      ).join('') : 'No mod requests yet.';
+      ).join('') : 'No other requests yet.';
       section.querySelectorAll('[data-mod-action]').forEach(btn => btn.onclick = async () => {
         const f = await firebaseTools(); if (!f) return;
-        const path = `njsgames/modRequests/${btn.dataset.modId}`;
+        const path = `njsgames/otherRequests/${btn.dataset.modId}`;
         if (btn.dataset.modAction === 'delete') await f.remove(f.ref(f.db, path));
         else await f.update(f.ref(f.db, path), { status: btn.dataset.modAction, reviewedAt: Date.now(), reviewedBy: localStorage.getItem('nj_username') || 'Admin' });
       });
     };
     section.querySelector('#nj-mod-request-refresh').onclick = async () => {
       const f = await firebaseTools(); if (!f) return;
-      const snap = await f.get(f.ref(f.db, 'njsgames/modRequests')); render(snap.val() || {});
+      const snap = await f.get(f.ref(f.db, 'njsgames/otherRequests')); render(snap.val() || {});
     };
-    firebaseTools().then(f => f && f.onValue(f.ref(f.db, 'njsgames/modRequests'), snap => render(snap.val() || {})));
+    firebaseTools().then(f => f && f.onValue(f.ref(f.db, 'njsgames/otherRequests'), snap => render(snap.val() || {})));
   }
 
   function rebuildUnblockerSelect() {
@@ -730,7 +759,7 @@
   function install() {
     rebuildUnblockerSelect(); removeTestingHeader(); removePokiCatalogItems(); removePokiGameCards(); installQA();
     ensureRequestButton(); installOtherSitesButton(); installAdminRequests(); installAdminModRequests(); installPresenceObserver();
-    rebuildHeaderGroups(); hardenInSiteNavigation();
+    installHealthBar(); rebuildHeaderGroups(); hardenInSiteNavigation();
     const oldOpen = window.njOpenUnblocker;
     if (oldOpen && !window.__njChooserInstalled) {
       window.__njChooserInstalled = true;
