@@ -386,12 +386,18 @@
     b.textContent = '🎲 Random Game';
     b.onclick = () => {
       const links = [...document.querySelectorAll('a[href*="/play/"]')].filter(el => visible(el));
-      if (links.length) { links[Math.floor(Math.random() * links.length)].click(); return; }
-      const fallback = ['ab-kissing-simulator','arcana-fight','avatar-fortress-fight-2','backrooms-2','basketball-stars','batman-dog','blocky-world','bowling','buckshot-roulette','build-a-big-army','build-an-army','build-defend','cb-clicker','chicken-royale','crashy-road','crazy-roll','delivery','deltarune','diep-io-original','drono','dune-buggy','escape-game','flappy-dunk','flying-cookie-quest','fly-the-plane','friday-n-funkin','goku','gvibes','hazmob-fps','hop-fighters','i-am-quadrober','ice-dodo'];
+      if (links.length) {
+        // Use the same real anchor navigation as the catalog. A history
+        // mutation alone can update the URL without mounting the game route.
+        links[Math.floor(Math.random() * links.length)].click();
+        return;
+      }
+      // The catalog may still be rendering when the header is clicked. Use a
+      // known bundled-game route and perform a real navigation as a fallback.
+      const fallback = ['pou','bitlife','ages-of-conflict','iron-snout','dead-again','smash-karts','slope','death-run-3d','crazy-cattle-3d','edge-surf','eaglercraft','rooftop-snipers','among-us','boxing-random','basket-random'];
       const slug = fallback[Math.floor(Math.random() * fallback.length)];
-      const destination = new URL(`ABCDIH/play/${slug}`, location.origin + (location.pathname.startsWith('/ABCDIH') ? '/' : '/')).href;
-      history.pushState({}, '', destination);
-      window.dispatchEvent(new PopStateEvent('popstate'));
+      const base = location.pathname.startsWith('/ABCDIH') ? '/ABCDIH/' : '/ABCDIH/';
+      window.location.assign(new URL(`play/${slug}`, location.origin + base).href);
     };
     return b;
   }
