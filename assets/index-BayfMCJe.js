@@ -55,7 +55,7 @@ Error generating stack: `+l.message+`
     _nj_setFbLoad(!0);
     try{
       const {initializeApp}=await import("https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js");
-      const {getDatabase,ref,set,remove,get,onValue}=await import("https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js");
+      const {getDatabase,ref,set,remove,get,onValue,push}=await import("https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js");
       const _app=initializeApp({
         apiKey:"AIzaSyDW9xdFdxFSjAm15f-l107fQpmZbs6_vEw",
         authDomain:"trolling-e3ed8.firebaseapp.com",
@@ -63,7 +63,7 @@ Error generating stack: `+l.message+`
         projectId:"trolling-e3ed8"
       },"nj_adm_"+Date.now());
       const _db=getDatabase(_app);
-      window._nj_fb_ins={db:_db,ref,set,remove,get,onValue};
+      window._nj_fb_ins={db:_db,ref,set,remove,get,onValue,push};
       const u1=onValue(ref(_db,"njsgames/presence"),s=>{_nj_setOnline(s.val()||{});});
       const u2=onValue(ref(_db,"njsgames/bans"),s=>{_nj_setBans(s.val()||{});});
       const u3=onValue(ref(_db,"njsgames/reports"),s=>{_nj_setRpts(s.val()||{});});
@@ -106,18 +106,20 @@ Error generating stack: `+l.message+`
   async function _njMute(sess,username,dur){
     const exp=Date.now()+dur*1000;
     if(sess)await _njCmd(sess,{type:"mute",expiresAt:exp});
-    if(_njFb())await _njFb().set(_njFb().ref(_njFb().db,"njsgames/mutes/"+_njfk(username)),{username,expiresAt:exp,ts:Date.now()});
+    if(_njFb())await _njFb().set(_njFb().ref(_njFb().db,"njsgames/mutes/"+_njfk(username)),{username,expiresAt:exp,ts:Date.now(),moderator:localStorage.getItem("nj_username")||"Moderator"});
+    if(_njFb())await _njFb().push(_njFb().ref(_njFb().db,"njsgames/adminlogs"),{type:"moderation",action:"mute",actor:localStorage.getItem("nj_username")||"Moderator",target:username,data:{duration:dur},ts:Date.now()});
   }
   async function _njBan(sess,username,reason){
     if(!_njFb())return;
-    await _njFb().set(_njFb().ref(_njFb().db,"njsgames/bans/"+_njfk(username)),{username,reason:reason||"",ts:Date.now(),bannedBy:"admin"});
+    await _njFb().set(_njFb().ref(_njFb().db,"njsgames/bans/"+_njfk(username)),{username,reason:reason||"",ts:Date.now(),bannedBy:localStorage.getItem("nj_username")||"Moderator"});
+    await _njFb().push(_njFb().ref(_njFb().db,"njsgames/adminlogs"),{type:"moderation",action:"ban",actor:localStorage.getItem("nj_username")||"Moderator",target:username,data:{reason:reason||""},ts:Date.now()});
     if(sess)await _njCmd(sess,{type:"ban"});
   }
-  async function _njKick(sess){if(sess)await _njCmd(sess,{type:"kick"});}
-  async function _njUnban(key){if(_njFb())await _njFb().remove(_njFb().ref(_njFb().db,"njsgames/bans/"+key));}
-  async function _njDismiss(key){if(_njFb())await _njFb().remove(_njFb().ref(_njFb().db,"njsgames/reports/"+key));}
-  async function _njLbSet(username,coins){if(_njFb())await _njFb().set(_njFb().ref(_njFb().db,"njsgames/leaderboard/"+_njfk(username)),{username,coins:Number(coins)||0,ts:Date.now()});}
-  async function _njLbDel(key){if(_njFb())await _njFb().remove(_njFb().ref(_njFb().db,"njsgames/leaderboard/"+key));}
+  async function _njKick(sess){if(sess){await _njCmd(sess,{type:"kick",moderator:localStorage.getItem("nj_username")||"Moderator"});if(_njFb())await _njFb().push(_njFb().ref(_njFb().db,"njsgames/adminlogs"),{type:"moderation",action:"kick",actor:localStorage.getItem("nj_username")||"Moderator",target:sess,ts:Date.now()});}}
+  async function _njUnban(key){if(_njFb()){await _njFb().remove(_njFb().ref(_njFb().db,"njsgames/bans/"+key));await _njFb().push(_njFb().ref(_njFb().db,"njsgames/adminlogs"),{type:"moderation",action:"unban",actor:localStorage.getItem("nj_username")||"Moderator",target:key,ts:Date.now()});}}
+  async function _njDismiss(key){if(_njFb()){await _njFb().remove(_njFb().ref(_njFb().db,"njsgames/reports/"+key));await _njFb().push(_njFb().ref(_njFb().db,"njsgames/adminlogs"),{type:"moderation",action:"dismiss_report",actor:localStorage.getItem("nj_username")||"Moderator",target:key,ts:Date.now()});}}
+  async function _njLbSet(username,coins){if(_njFb()){await _njFb().set(_njFb().ref(_njFb().db,"njsgames/leaderboard/"+_njfk(username)),{username,coins:Number(coins)||0,ts:Date.now()});await _njFb().push(_njFb().ref(_njFb().db,"njsgames/adminlogs"),{type:"moderation",action:"set_coins",actor:localStorage.getItem("nj_username")||"Moderator",target:username,data:{coins:Number(coins)||0},ts:Date.now()});}}
+  async function _njLbDel(key){if(_njFb()){await _njFb().remove(_njFb().ref(_njFb().db,"njsgames/leaderboard/"+key));await _njFb().push(_njFb().ref(_njFb().db,"njsgames/adminlogs"),{type:"moderation",action:"delete_leaderboard_entry",actor:localStorage.getItem("nj_username")||"Moderator",target:key,ts:Date.now()});}}
 
   /* ══ Styles ══ */
   const S={
