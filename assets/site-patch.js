@@ -943,8 +943,6 @@
     installAllTimeXpLeaderboard(); installLeaderboardUpdate();
     ensureRequestButton(); installOtherSitesButton(); installAdminRequests(); installAdminModRequests(); installAdminXpLeaderboardSync(); installPresenceObserver();
     removeSiteHealth(); removeBitlifeQuiz(); rebuildHeaderGroups(); hardenInSiteNavigation();
-    installAuditLogging();
-    installAdminLogViewer();
     const oldOpen = window.njOpenUnblocker;
     if (oldOpen && !window.__njChooserInstalled) {
       window.__njChooserInstalled = true;
@@ -960,120 +958,6 @@
         if (content) content.innerHTML = '<h2 style="color:#fff">📋 Update Log</h2><div style="background:#0f1a0f;border:1px solid #166534;border-radius:12px;padding:14px;color:#d1d5db"><b style="color:#4ade80">Latest · 20 Aug 2026</b><h3 style="color:#fff">🛠️ Requests, activity & catalog cleanup</h3><ul><li>Added a public Request a game button that sends submissions to the admin panel.</li><li>Admin user rows now show the most accurate current feature or game activity.</li><li>Activity telemetry records unblocker selections and feature overlays as well as game iframes.</li><li>Removed the unreliable LunarV2 proxy.</li><li>Removed the non-working Poki game range from the visible catalog.</li></ul></div>';
       };
     }
-  }
-
-  /* ── Site audit trail ────────────────────────────────────────────────
-   * Captures meaningful site actions without recording gameplay or chat
-   * message contents. This is intentionally best-effort: telemetry must
-   * never block the action that generated it.
-   */
-  function installAuditLogging() {
-    if (window.__njAuditLoggingInstalled) return;
-    window.__njAuditLoggingInstalled = true;
-    let lastKey = '';
-    let lastAt = 0;
-    const ignored = /^(send|message|play|launch|open-game|game|chat|change-name|copy|close|cancel|search|filter|fullscreen|volume|mute)$/i;
-    const clean = value => String(value || '').replace(/\s+/g, ' ').trim().slice(0, 180);
-    const slug = value => clean(value).toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '').slice(0, 80);
-    const actor = () => localStorage.getItem('nj_username') || 'Anonymous';
-    const record = async (action, detail, source) => {
-      if (!action || ignored.test(action)) return;
-      const now = Date.now();
-      const key = `${action}|${detail}`;
-      if (key === lastKey && now - lastAt < 1200) return;
-      lastKey = key; lastAt = now;
-      const f = await firebaseTools();
-      if (!f) return;
-      await f.push(f.ref(f.db, 'njsgames/adminlogs'), {
-        type: 'audit',
-        action,
-        actor: actor(),
-        actorRole: source === 'admin' ? 'Moderator' : 'User',
-        data: { detail: clean(detail), path: location.pathname, source: source || 'site' },
-        ts: now
-      }).catch(() => {});
-    };
-    const describe = target => {
-      const el = target && target.closest ? target.closest('button,a,[role="button"],input[type="submit"]') : null;
-      if (!el) return null;
-      const text = clean(el.getAttribute('aria-label') || el.dataset.action || el.textContent || el.value);
-      const id = clean(el.id || '');
-      const raw = `${text} ${id}`.trim();
-      if (!raw || /^(send|play|launch|chat|message)$/i.test(text)) return null;
-      const action = slug(el.dataset.action || id || text);
-      if (!action || ignored.test(action) || /^(game-card|game)/i.test(action)) return null;
-      const form = el.closest('form,.modal-box,[role="dialog"]');
-      const fields = form ? [...form.querySelectorAll('input,select,textarea')].map(x => {
-        if (x.type === 'password' || /message|chat/i.test(x.id || x.name || '')) return null;
-        const v = clean(x.value);
-        return v ? `${x.name || x.id || 'field'}=${v}` : null;
-      }).filter(Boolean).slice(0, 6).join(', ') : '';
-      return { action, detail: [text, fields].filter(Boolean).join(' — ') };
-    };
-    document.addEventListener('click', event => {
-      const d = describe(event.target);
-      if (!d) return;
-      const admin = !!event.target.closest('#nj-admin-overlay,#nj-ext-overlay,[data-admin-panel],.admin-panel');
-      record(d.action, d.detail, admin ? 'admin' : 'site');
-    }, true);
-    const originalSetItem = Storage.prototype.setItem;
-    Storage.prototype.setItem = function (key, value) {
-      const result = originalSetItem.call(this, key, value);
-      if (this === localStorage && !/^(nj_username|nj_sess|nj_last_ann|nj-admin-data|.*game.*|.*save.*)$/i.test(key)) {
-        record(`storage_${slug(key)}`, `Updated ${key}`, 'site');
-      }
-      return result;
-    };
-  }
-
-  /* Add a Logs tab to the existing ?imhim panel without changing its
-   * existing React bundle. The observer reattaches it if the panel rerenders.
-   */
-  function installAdminLogViewer() {
-    if (window.__njAdminLogViewerInstalled) return;
-    window.__njAdminLogViewerInstalled = true;
-    const clean = value => String(value || '').replace(/\s+/g, ' ').trim().slice(0, 240);
-    const render = async body => {
-      body.innerHTML = '<div style="color:#c4b5fd;padding:20px;text-align:center">Loading audit log…</div>';
-      const f = await firebaseTools();
-      if (!f) { body.innerHTML = '<div style="color:#f87171;padding:20px">Could not connect to Firebase.</div>'; return; }
-      const snap = await f.get(f.ref(f.db, 'njsgames/adminlogs')).catch(() => null);
-      const rows = snap && snap.exists() ? Object.values(snap.val()).sort((a,b) => (b.ts || 0) - (a.ts || 0)).slice(0, 250) : [];
-      body.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><b style="color:#c4b5fd">Recent activity (${rows.length})</b><button id="nj-audit-refresh" class="nj-ext-btn-primary">↻ Refresh</button></div>` +
-        (rows.length ? rows.map(x => `<div style="padding:9px 10px;margin:5px 0;background:#1a1a2e;border:1px solid #2a2a4a;border-radius:8px;font-size:12px"><div style="color:#fff;font-weight:700">${esc(x.action || x.data?.action || 'activity')}</div><div style="color:#a78bfa;margin-top:2px">By ${esc(x.actor || x.admin || 'Unknown')} · ${esc(x.actorRole || '')}</div><div style="color:#9ca3af;margin-top:3px">${esc(x.target ? 'Target: ' + x.target + ' — ' : '')}${esc(x.data?.detail || x.detail || (x.data ? JSON.stringify(x.data) : ''))}</div><div style="color:#6b7280;margin-top:3px">${esc(x.ts ? new Date(x.ts).toLocaleString() : '-')}</div></div>`).join('') : '<div style="color:#6b7280;padding:20px;text-align:center">No activity recorded yet.</div>');
-      body.querySelector('#nj-audit-refresh')?.addEventListener('click', () => render(body));
-    };
-    const attach = () => {
-      let panel = document.querySelector('#nj-admin-overlay,#nj-ext-overlay');
-      if (!panel) {
-        const title = [...document.querySelectorAll('div')].find(el => clean(el.textContent) === 'Admin Panel');
-        if (title) {
-          panel = title.closest('div[style*="position"],div[role="dialog"]') || title.parentElement?.parentElement;
-        }
-      }
-      if (!panel || panel.dataset.njAuditReady === '1') return;
-      const tabs = panel.querySelector('[role="tablist"],.tabs,#nj-ext-tabs') ||
-        [...panel.querySelectorAll('div')].find(el => /Games.*Users.*Reports.*Leaderboard/i.test(clean(el.textContent)) && el.querySelectorAll('button').length >= 3);
-      const body = panel.querySelector('[role="tabpanel"],.admin-body,#nj-ext-body') || panel.querySelector('div[style*="overflow"]');
-      if (!tabs || !body) {
-        const fallback = document.createElement('button');
-        fallback.textContent = '📋 Logs'; fallback.className = 'nj-ext-tab'; fallback.type = 'button';
-        fallback.style.cssText = 'position:fixed;right:26px;top:74px;z-index:100000';
-        fallback.addEventListener('click', () => {
-          const ov = document.createElement('div');
-          ov.style.cssText = 'position:fixed;inset:0;z-index:100001;background:#0a0a0f;overflow:auto;padding:24px 16px;color:#fff;font-family:Inter,sans-serif';
-          ov.innerHTML = '<div style="max-width:820px;margin:0 auto"><button id="nj-audit-close" style="float:right;background:#1a1a2e;border:1px solid #3b2b68;border-radius:8px;color:#fff;padding:8px 12px;cursor:pointer">✕ Close</button><h2 style="margin:0 0 16px">📋 Admin Activity Logs</h2><div id="nj-audit-fallback-body"></div></div>';
-          document.body.appendChild(ov); ov.querySelector('#nj-audit-close').onclick = () => ov.remove(); render(ov.querySelector('#nj-audit-fallback-body'));
-        });
-        document.body.appendChild(fallback); panel.dataset.njAuditReady = '1'; return;
-      }
-      const button = document.createElement('button');
-      button.textContent = '📋 Logs'; button.className = 'nj-ext-tab'; button.type = 'button';
-      button.addEventListener('click', () => { panel.querySelectorAll('.nj-ext-tab').forEach(x => x.classList.remove('active')); button.classList.add('active'); render(body); });
-      tabs.appendChild(button); panel.dataset.njAuditReady = '1';
-    };
-    new MutationObserver(attach).observe(document.body, { childList: true, subtree: true });
-    attach();
   }
   install();
   new MutationObserver(install).observe(document.body, { childList: true, subtree: true });
