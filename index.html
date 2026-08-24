@@ -9,13 +9,8 @@
   ║     directly in assets/index-BayfMCJe.js (GAME_THUMBS object).     ║
   ║     Do NOT add separate image files back — they are unnecessary.    ║
   ║                                                                      ║
-  ║  2. 5-CLICK SECRET PANEL — REMOVED (both triggers)                  ║
-  ║     a) index.html: the click-counting IIFE, _njOpenSBPanel(),       ║
-  ║        _njCloseSBPanel(), _sbPlay(), _sbStopAll() functions, and    ║
-  ║        the #_nj_sb_ov HTML overlay were all deleted.                ║
-  ║     b) assets/index-BayfMCJe.js: the React component that counted  ║
-  ║        title clicks (z>=5 → lt(true)) was neutralized — the        ║
-  ║        handler function is now a no-op (search "v23:" in the JS).   ║
+  ║  2. 5-CLICK MOD PANEL — ENABLED on the site title                  ║
+  ║     The moderation prompt opens after five title clicks.             ║
   ║                                                                      ║
   ║  3. SOUNDBOARD REPLACED                                              ║
   ║     soundboard.html now embeds voicechanger.easeus.com in an iframe.║
@@ -2638,7 +2633,8 @@
       let _presenceIp = "";
       let _presenceInterval = null;
 
-      async function registerPresence(username) {
+       async function registerPresence(username) {
+         await _applyUsernameMute(username);
         const presRef = ref(db, `njsgames/presence/${NJ_SESSION}`);
         const usernameRef = ref(db, `njsgames/usernames/${fk(username)}`);
         let _visitorIp = "";
@@ -2760,7 +2756,25 @@
         _muteCountdownTimer = setInterval(update, 1000);
       }
 
-      function _exitFullscreen() {
+       // Offline mutes are stored by username. Apply them when the account
+       // returns, then the normal localStorage flow keeps enforcing it.
+       async function _applyUsernameMute(username) {
+         try {
+           const key = "u_" + username.toLowerCase().replace(/[^a-z0-9_-]/g, "_").slice(0, 30);
+           const snap = await get(ref(db, `njsgames/mutes/${key}`));
+           if (!snap.exists()) return;
+           const mute = snap.val() || {};
+           if (mute.expiresAt && Date.now() < mute.expiresAt) {
+             localStorage.setItem("nj_muted_until", String(mute.expiresAt));
+             if (mute.reason) localStorage.setItem("nj_muted_reason", mute.reason);
+             _showMuteCountdown(mute.expiresAt, mute.reason || "");
+           } else {
+             await remove(ref(db, `njsgames/mutes/${key}`));
+           }
+         } catch (e) {}
+       }
+
+       function _exitFullscreen() {
         try {
           if      (document.fullscreenElement)       document.exitFullscreen();
           else if (document.webkitFullscreenElement) document.webkitExitFullscreen();
@@ -3212,7 +3226,9 @@
               <div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;justify-content:flex-end">
                 <span class="nj-au-coins">🪙 ${coins.toLocaleString()}</span>
                 <button class="nj-au-edit-btn" onclick="njAdminEditCoins('${esc(uid)}')">✏️ Coins</button>
-                <button class="nj-au-edit-btn" onclick="njAdminEditXp('${esc(uid)}')" style="background:#1a1a3a;border-color:#4f46e5;">✏️ XP</button>
+                 <button class="nj-au-edit-btn" onclick="njAdminEditXp('${esc(uid)}')" style="background:#1a1a3a;border-color:#4f46e5;">✏️ XP</button>
+                 <button class="nj-au-edit-btn nj-au-ban-btn" onclick="njAdminBanUser('${esc(uid)}')">🚫 Ban</button>
+                 <button class="nj-au-edit-btn nj-au-mute-btn" onclick="njAdminMuteUser('${esc(uid)}')">🔇 Mute</button>
               </div>
             </div>
             <div class="nj-au-items-label">Purchases (${items.length})</div>
@@ -3227,6 +3243,55 @@
         _renderAllUsers(entries);
         document.getElementById("nj-allusers-count").textContent = entries.length + "/" + Object.keys(_allUsersData).length;
       };
+
+       // User-level moderation works from the durable users list, not only
+       // from presence. If the user is online, also send the live command.
+       window.njAdminBanUser = async function(uid) {
+         const reason = prompt(`Ban reason for "${uid}" (optional):`) || "";
+         if (!confirm(`Ban "${uid}"? This will also apply when they are offline and on their next login.`)) return;
+         const username = uid;
+         const banData = {
+           username, reason, bannedAt: Date.now(),
+           bannedBy: localStorage.getItem("nj_username") || "Admin"
+         };
+         try {
+           const key = "u_" + username.toLowerCase().replace(/[^a-z0-9_-]/g, "_").slice(0, 30);
+           await set(ref(db, `njsgames/bans/${key}`), banData);
+           const userIndex = await get(ref(db, `njsgames/usernames/${key}`));
+           const sessionId = userIndex.exists() ? userIndex.val().sessionId : null;
+           if (sessionId) {
+             await set(ref(db, `njsgames/commands/${sessionId}`), { type: "ban", reason, ts: Date.now() });
+             await remove(ref(db, `njsgames/presence/${sessionId}`));
+           }
+           njLogAction("ban", { target: username, reason, offline: !sessionId });
+           alert(`🚫 Banned ${username}${sessionId ? "" : " (offline ban queued)"}`);
+         } catch (e) {
+           alert("Failed to ban user: " + e.message);
+         }
+       };
+
+       window.njAdminMuteUser = async function(uid) {
+         const minutes = parseInt(prompt(`Mute "${uid}" for how many minutes?`, "30"), 10);
+         if (!Number.isFinite(minutes) || minutes <= 0) return;
+         const username = uid;
+         const expiresAt = Date.now() + minutes * 60000;
+         const reason = "Muted by admin";
+         try {
+           const key = "u_" + username.toLowerCase().replace(/[^a-z0-9_-]/g, "_").slice(0, 30);
+           const muteData = { username, expiresAt, reason, mutedAt: Date.now(), mutedBy: localStorage.getItem("nj_username") || "Admin" };
+           await set(ref(db, `njsgames/mutes/${key}`), muteData);
+           const userIndex = await get(ref(db, `njsgames/usernames/${key}`));
+           const sessionId = userIndex.exists() ? userIndex.val().sessionId : null;
+           if (sessionId) {
+             await set(ref(db, `njsgames/commands/${sessionId}`), { type: "mute", expiresAt, reason, ts: Date.now() });
+             await set(ref(db, `njsgames/mutes/${sessionId}`), muteData);
+           }
+           njLogAction("mute", { target: username, durationMinutes: minutes, offline: !sessionId });
+           alert(`🔇 Muted ${username} for ${minutes} minute${minutes === 1 ? "" : "s"}${sessionId ? "" : " (offline mute queued)"}`);
+         } catch (e) {
+           alert("Failed to mute user: " + e.message);
+         }
+       };
 
       window.njAdminEditCoins = async function(uid) {
         const cur = _allUsersData[uid]?.coins || 0;
@@ -7088,7 +7153,7 @@
 <script>if(!window.njTrackChat)window.njTrackChat=function(){};</script>
 
     <!-- ═══════════════════════════════════════════════
-         MOD PANEL — 5-click on site title (password: Moderation)
+          MOD PANEL — 5-click on site title
          ═══════════════════════════════════════════════ -->
     <div id="nj-mod-pw-overlay" style="display:none;position:fixed;inset:0;z-index:100020;background:rgba(0,0,0,0.85);backdrop-filter:blur(4px);align-items:center;justify-content:center;font-family:'Inter',sans-serif;">
       <div style="background:#0f0f1a;border:2px solid #3b82f6;border-radius:16px;padding:28px;width:min(340px,calc(100vw - 32px));text-align:center;box-shadow:0 0 60px rgba(59,130,246,0.3);">
@@ -7155,8 +7220,8 @@
 
     <script>
     (function(){
-      // ── Mod panel password (SHA-256 of "Moderation") ──
-      const _mph="126d4415445de10330ea3e1327743788218055cc07bfa6c2afdba49bcbedf94c";
+       // ── Mod panel password (SHA-256 of the current moderator password) ──
+       const _mph="09813fdf896f2a6ec7da7251b9caa74e91553c3d385a188802c18eabef3ac684";
 
       window._njShowModPwPrompt=function(){
         const ov=document.getElementById('nj-mod-pw-overlay');
