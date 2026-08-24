@@ -956,9 +956,12 @@
     style.id = 'nj-winter-blizzard-style';
     style.textContent = `
       html.nj-winter-blizzard, html.nj-winter-blizzard body {
-        background:
-          radial-gradient(circle at 18% 10%, rgba(191,236,255,.20), transparent 28%),
-          linear-gradient(155deg, #071b35 0%, #0a2948 48%, #102f51 100%) !important;
+        background: url('assets/winter-blizzard.png') center / cover no-repeat fixed !important;
+      }
+      html.nj-winter-blizzard #nj-bg-layer {
+        background-image: url('assets/winter-blizzard.png') !important;
+        background-size: cover !important;
+        background-position: center !important;
       }
       #nj-winter-blizzard-layer {
         position: fixed; inset: 0; z-index: 9990; pointer-events: none;
@@ -975,13 +978,6 @@
         10% { opacity: .9; }
         90% { opacity: .75; }
         100% { transform: translate3d(42px,105vh,0) rotate(180deg); opacity: 0; }
-      }
-      .nj-winter-event-pill {
-        position: fixed; right: 14px; bottom: 14px; z-index: 9995;
-        color: #e9f8ff; background: rgba(8,39,70,.88);
-        border: 1px solid rgba(160,224,255,.55); border-radius: 999px;
-        padding: 7px 12px; font: 700 11px Inter,system-ui,sans-serif;
-        box-shadow: 0 4px 18px rgba(0,0,0,.28); pointer-events: auto;
       }
       .nj-winter-ice {
         position: relative !important;
@@ -1005,6 +1001,7 @@
         shop['bg-winter-blizzard'] = {
           name: 'Winter Blizzard', type: 'background', price: 1000001, icon: '❄️',
           desc: 'Limited event background · earned during the blizzard',
+          img: 'assets/winter-blizzard.png',
           css: 'linear-gradient(155deg,#071b35,#0d426d 55%,#c9f2ff)', eventExclusive: true
         };
       }
@@ -1024,15 +1021,6 @@
       }
       document.body.appendChild(layer);
     }
-    if (!document.getElementById('nj-winter-event-pill')) {
-      const pill = document.createElement('button');
-      pill.id = 'nj-winter-event-pill';
-      pill.className = 'nj-winter-event-pill';
-      pill.textContent = '❄️ Winter Blizzard';
-      pill.title = 'Limited event active until 27 August 2026';
-      pill.onclick = () => window.njOpenShop && window.njOpenShop();
-      document.body.appendChild(pill);
-    }
     document.querySelectorAll('.nj-game-thumb,.nj-user-game,.game-card,.nj-game-card,[class*="game-card"]').forEach(el => el.classList.add('nj-winter-ice'));
 
     // Add the non-purchasable event item once the base app has exposed SHOP.
@@ -1042,6 +1030,7 @@
       shop[EVENT_ID] = {
         name: 'Winter Blizzard', type: 'background', price: 1000001, icon: '❄️',
         desc: 'Limited event background · earned by visiting during the blizzard',
+        img: 'assets/winter-blizzard.png',
         css: 'linear-gradient(155deg,#071b35,#0d426d 55%,#c9f2ff)',
         eventExclusive: true
       };
