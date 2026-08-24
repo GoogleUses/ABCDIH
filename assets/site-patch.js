@@ -938,8 +938,186 @@
     };
   }
 
+  // ── Winter Blizzard live event ──────────────────────────────────────────
+  // The event is deliberately client-safe: the shared cosmetic is only
+  // granted after the signed-in account has loaded, while the visual event
+  // is available to every visitor.  The Firebase write mirrors the site's
+  // existing account/cosmetic schema.
+  function installWinterBlizzard() {
+    if (window.__njWinterBlizzardInstalled) return;
+    window.__njWinterBlizzardInstalled = true;
+
+    const EVENT_ID = 'bg-winter-blizzard';
+    const START = Date.parse('2026-08-24T00:00:00+10:00');
+    const END = Date.parse('2026-08-27T00:00:00+10:00');
+    const active = Date.now() >= START && Date.now() < END;
+
+    const style = document.createElement('style');
+    style.id = 'nj-winter-blizzard-style';
+    style.textContent = `
+      html.nj-winter-blizzard, html.nj-winter-blizzard body {
+        background:
+          radial-gradient(circle at 18% 10%, rgba(191,236,255,.20), transparent 28%),
+          linear-gradient(155deg, #071b35 0%, #0a2948 48%, #102f51 100%) !important;
+      }
+      #nj-winter-blizzard-layer {
+        position: fixed; inset: 0; z-index: 9990; pointer-events: none;
+        overflow: hidden; opacity: .72;
+        background: linear-gradient(180deg, rgba(219,244,255,.04), transparent 45%, rgba(185,225,247,.07));
+      }
+      .nj-winter-flake {
+        position: absolute; top: -24px; border-radius: 50%;
+        background: #fff; box-shadow: 0 0 7px rgba(218,246,255,.95);
+        animation: njWinterFall linear infinite;
+      }
+      @keyframes njWinterFall {
+        0% { transform: translate3d(0,-30px,0) rotate(0deg); opacity: 0; }
+        10% { opacity: .9; }
+        90% { opacity: .75; }
+        100% { transform: translate3d(42px,105vh,0) rotate(180deg); opacity: 0; }
+      }
+      .nj-winter-event-pill {
+        position: fixed; right: 14px; bottom: 14px; z-index: 9995;
+        color: #e9f8ff; background: rgba(8,39,70,.88);
+        border: 1px solid rgba(160,224,255,.55); border-radius: 999px;
+        padding: 7px 12px; font: 700 11px Inter,system-ui,sans-serif;
+        box-shadow: 0 4px 18px rgba(0,0,0,.28); pointer-events: auto;
+      }
+      .nj-winter-ice {
+        position: relative !important;
+        border-color: #b9eaff !important;
+        box-shadow: 0 0 0 2px rgba(176,231,255,.36), inset 0 0 18px rgba(164,224,255,.14), 0 7px 22px rgba(0,35,70,.22) !important;
+      }
+      .nj-winter-ice::after {
+        content: ""; position: absolute; left: 4px; right: 4px; top: -3px;
+        height: 7px; border-radius: 0 0 60% 40%;
+        background: linear-gradient(135deg, transparent 0 9%, #e9fbff 10% 18%, transparent 19% 32%, #bdeeff 33% 43%, transparent 44% 57%, #f5fdff 58% 72%, transparent 73%);
+        opacity: .86; pointer-events: none; z-index: 2;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .nj-winter-flake { animation-play-state: paused; opacity: .35; }
+      }
+    `;
+    document.head.appendChild(style);
+    if (!active) {
+      const shop = window.njShopItems;
+      if (shop && !shop['bg-winter-blizzard']) {
+        shop['bg-winter-blizzard'] = {
+          name: 'Winter Blizzard', type: 'background', price: 1000001, icon: '❄️',
+          desc: 'Limited event background · earned during the blizzard',
+          css: 'linear-gradient(155deg,#071b35,#0d426d 55%,#c9f2ff)', eventExclusive: true
+        };
+      }
+      return;
+    }
+
+    document.documentElement.classList.add('nj-winter-blizzard');
+    if (!document.getElementById('nj-winter-blizzard-layer')) {
+      const layer = document.createElement('div');
+      layer.id = 'nj-winter-blizzard-layer';
+      for (let i = 0; i < 48; i++) {
+        const flake = document.createElement('i');
+        flake.className = 'nj-winter-flake';
+        const size = 2 + (i % 4);
+        flake.style.cssText = `left:${(i * 37) % 101}%;width:${size}px;height:${size}px;animation-duration:${8 + (i % 9)}s;animation-delay:-${i % 12}s;opacity:${.35 + (i % 5) / 10}`;
+        layer.appendChild(flake);
+      }
+      document.body.appendChild(layer);
+    }
+    if (!document.getElementById('nj-winter-event-pill')) {
+      const pill = document.createElement('button');
+      pill.id = 'nj-winter-event-pill';
+      pill.className = 'nj-winter-event-pill';
+      pill.textContent = '❄️ Winter Blizzard';
+      pill.title = 'Limited event active until 27 August 2026';
+      pill.onclick = () => window.njOpenShop && window.njOpenShop();
+      document.body.appendChild(pill);
+    }
+    document.querySelectorAll('.nj-game-thumb,.nj-user-game,.game-card,.nj-game-card,[class*="game-card"]').forEach(el => el.classList.add('nj-winter-ice'));
+
+    // Add the non-purchasable event item once the base app has exposed SHOP.
+    const addShopItem = () => {
+      const shop = window.njShopItems;
+      if (!shop || shop[EVENT_ID]) return !!shop;
+      shop[EVENT_ID] = {
+        name: 'Winter Blizzard', type: 'background', price: 1000001, icon: '❄️',
+        desc: 'Limited event background · earned by visiting during the blizzard',
+        css: 'linear-gradient(155deg,#071b35,#0d426d 55%,#c9f2ff)',
+        eventExclusive: true
+      };
+      return true;
+    };
+    const grantToAccount = async (uid) => {
+      if (!uid || !window.njDb) return false;
+      try {
+        if (!window.__njWinterFirebase) {
+          window.__njWinterFirebase = await import('https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js');
+        }
+        const { get, set, ref } = window.__njWinterFirebase;
+        const marker = `njsgames/users/${uid}/items/${EVENT_ID}`;
+        if (!(await get(ref(window.njDb, marker))).exists()) {
+          await set(ref(window.njDb, marker), true);
+          return true;
+        }
+        return false;
+      } catch (e) { console.warn('Winter Blizzard reward sync failed', e); }
+      return false;
+    };
+    const prepare = () => {
+      if (!addShopItem()) return false;
+      if (!window.__njWinterFirebase && window.njDb) {
+        import('https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js')
+          .then(m => { window.__njWinterFirebase = m; });
+      }
+      return true;
+    };
+    const wire = () => {
+      prepare();
+      const oldInit = window.initGam;
+      if (oldInit && !window.__njWinterInitWrapped) {
+        window.__njWinterInitWrapped = true;
+        window.initGam = async function (uid) {
+          await grantToAccount(uid);
+          return oldInit.apply(this, arguments);
+        };
+      }
+      const oldShopAct = window.njShopAct;
+      if (oldShopAct && !window.__njWinterShopWrapped) {
+        window.__njWinterShopWrapped = true;
+        window.njShopAct = async function (id) {
+          if (id === EVENT_ID) {
+            alert('❄️ Event Exclusive — earned by visiting during Winter Blizzard.');
+            return;
+          }
+          return oldShopAct.apply(this, arguments);
+        };
+      }
+      document.querySelectorAll('.nj-game-thumb,.nj-user-game,.game-card,.nj-game-card,[class*="game-card"]').forEach(el => el.classList.add('nj-winter-ice'));
+    };
+    wire();
+    let attempts = 0;
+    const retry = setInterval(() => {
+      wire();
+      if (++attempts > 30 || window.__njWinterInitWrapped) clearInterval(retry);
+    }, 500);
+    // initGam is lexical inside the original module, so also watch the
+    // username hand-off and grant before the normal account read completes.
+    const rewardWatch = setInterval(() => {
+      const uid = window._njUsername;
+      if (!uid || !window.njDb || !active) return;
+      grantToAccount(uid).then(newReward => {
+        if (newReward && !localStorage.getItem('nj_winter_reward_reload')) {
+          localStorage.setItem('nj_winter_reward_reload', '1');
+          location.reload();
+        }
+      });
+      if (++attempts > 30) clearInterval(rewardWatch);
+    }, 500);
+  }
+
   function install() {
     rebuildUnblockerSelect(); removeTestingHeader(); removePokiCatalogItems(); removePokiGameCards(); installQA();
+    installWinterBlizzard();
     installAllTimeXpLeaderboard(); installLeaderboardUpdate();
     ensureRequestButton(); installOtherSitesButton(); installAdminRequests(); installAdminModRequests(); installAdminXpLeaderboardSync(); installPresenceObserver();
     removeSiteHealth(); removeBitlifeQuiz(); rebuildHeaderGroups(); hardenInSiteNavigation();
