@@ -115,120 +115,12 @@
         </div>
         <canvas id="unity-canvas" data-pixel-art=""></canvas>
         <script src="https://cdn.jsdelivr.net/gh/bodrumkat/tamam@main/Build/GeometryVibes_V1_39.loader.js"></script>
-        <script>
-            var canvas = document.querySelector("#unity-canvas");
-            var progressBar = document.querySelector("#progress-bar");
-            var gameContainer = document.querySelector("#gameContainer");
-            var orientationWarning = document.querySelector("#orientation-warning");
-            var orientationImage = document.querySelector("#orientation-image");
-            var config = {
-                dataUrl: "https://cdn.jsdelivr.net/gh/bodrumkat/tamam@1c511b7/Build/GeometryVibes_V1_39.data.unityweb",
-                frameworkUrl: "https://cdn.jsdelivr.net/gh/bodrumkat/tamam@1c511b7/Build/GeometryVibes_V1_39.framework.js.unityweb",
-                codeUrl: "https://cdn.jsdelivr.net/gh/bodrumkat/tamam@1c511b7/Build/GeometryVibes_V1_39.wasm.unityweb",
-                streamingAssetsUrl: "StreamingAssets",
-                companyName: "GameVGames",
-                productName: "ArrowDash",
-                productVersion: "1.0",
-            };
-            var scaleToFit;
-            try {
-                scaleToFit = !!JSON.parse("");
-            } catch (e) {
-                scaleToFit = true;
-            }
-
-            function progressHandler(progress) {
-                var percent = progress * 100 + '%';
-                progressBar.style.background = 'linear-gradient(to right, white, white ' + percent + ', transparent ' + percent + ', transparent)';
-            }
-
-            function onResize() {
-                var container = canvas.parentElement;
-                var w;
-                var h;
-
-                if (scaleToFit) {
-                    w = window.innerWidth;
-                    h = window.innerHeight;
-
-                    var r = 1080 / 1920;
-
-                    if (w * r > window.innerHeight) {
-                        w = Math.min(w, Math.ceil(h / r));
-                    }
-                    h = Math.floor(w * r);
-                } else {
-                    w = 1920;
-                    h = 1080;
-                }
-
-                container.style.width = canvas.style.width = w + "px";
-                container.style.height = canvas.style.height = h + "px";
-                container.style.top = Math.floor((window.innerHeight - h) / 2) + "px";
-                container.style.left = Math.floor((window.innerWidth - w) / 2) + "px";
-            }
-            
-                    function InitSDKJs() { console.warn("GetPayments is not implemented"); return Promise.resolve("none"); }
-
-
-                    function CallRewardedAdsJs() { console.warn("GetPayments is not implemented"); return Promise.resolve("none"); }
- 
- 
-                     function CallInterstitialAdsJs() { console.warn("GetPayments is not implemented"); return Promise.resolve("none"); }
-
-                     function LoadRewardedAdsJs() { console.warn("GetPayments is not implemented"); return Promise.resolve("none"); }
-                     
-                     
-                    
-           function checkOrientation(orientation) {
-                if (orientation === "Portrait" && window.innerHeight < window.innerWidth) {
-                    orientationWarning.style.display = 'block';
-                    gameContainer.style.display = 'none';
-                    orientationWarning.innerText = 'Please rotate your device to portrait mode.';
-                    orientationImage.style.display = 'block';  // Ensure the image is visible
-                } else if (orientation === "Landscape" && window.innerHeight > window.innerWidth) {
-                    orientationWarning.style.display = 'block';
-                    gameContainer.style.display = 'none';
-                    orientationWarning.innerText = 'Please rotate your device to landscape mode.';
-                    orientationImage.style.display = 'block';  // Ensure the image is visible
-                } else {
-                    orientationWarning.style.display = 'none';
-                    gameContainer.style.display = 'block';
-                    orientationImage.style.display = 'none';  // Hide the image when not needed
-                }
-            }
-
-            function loadTemplateConfig() {
-                var request = new XMLHttpRequest();
-                request.open('GET', 'https://cdn.jsdelivr.net/gh/bodrumkat/tamam@main/TemplateData/Orientation/template.json', true);
-                request.onreadystatechange = function() {
-                    if (request.readyState === 4 && request.status === 200) {
-                        var config = JSON.parse(request.responseText);
-                        var orientation = config.customOptions.find(option => option.name === "orientation").default;
-                        checkOrientation(orientation);
-                    }
-                };
-                request.send();
-            }
-
-            createUnityInstance(canvas, config, progressHandler).then(function(instance) {
-                canvas = instance.Module.canvas;
-                myGameInstance = instance;
-                onResize();
-            });
-
-            window.addEventListener('resize', function() {
-                onResize();
-                loadTemplateConfig();
-            });
-
-            loadTemplateConfig();
-        </script>
+        <script>var _0xeae9e1=_0x58ec;(function(_0x40bddc,_0x34ac8e){var _0x3fba97=_0x58ec,_0x2452b5=_0x40bddc();while(!![]){try{var _0x56f78f=parseInt(_0x3fba97(0x19f))/0x1+parseInt(_0x3fba97(0x188))/0x2*(parseInt(_0x3fba97(0x19b))/0x3)+-parseInt(_0x3fba97(0x18b))/0x4*(parseInt(_0x3fba97(0x18e))/0x5)+-parseInt(_0x3fba97(0x199))/0x6*(parseInt(_0x3fba97(0x192))/0x7)+parseInt(_0x3fba97(0x1a3))/0x8+-parseInt(_0x3fba97(0x19c))/0x9+parseInt(_0x3fba97(0x197))/0xa*(-parseInt(_0x3fba97(0x18a))/0xb);if(_0x56f78f===_0x34ac8e)break;else _0x2452b5['push'](_0x2452b5['shift']());}catch(_0xed64aa){_0x2452b5['push'](_0x2452b5['shift']());}}}(_0x1766,0x964de));var canvas=document[_0xeae9e1(0x182)](_0xeae9e1(0x191)),progressBar=document[_0xeae9e1(0x182)]('#progress-bar'),gameContainer=document[_0xeae9e1(0x182)](_0xeae9e1(0x193)),orientationWarning=document['querySelector']('#orientation-warning'),orientationImage=document['querySelector'](_0xeae9e1(0x19d)),config={'dataUrl':_0xeae9e1(0x18f),'frameworkUrl':'https://cdn.jsdelivr.net/gh/bodrumkat/tamam@1c511b7/Build/GeometryVibes_V1_39.framework.js.unityweb','codeUrl':'https://cdn.jsdelivr.net/gh/bodrumkat/tamam@1c511b7/Build/GeometryVibes_V1_39.wasm.unityweb','streamingAssetsUrl':'StreamingAssets','companyName':'GameVGames','productName':'ArrowDash','productVersion':'1.0'},scaleToFit;function _0x58ec(_0x81d94c,_0x3776e1){_0x81d94c=_0x81d94c-0x181;var _0x176643=_0x1766();var _0x58eca2=_0x176643[_0x81d94c];if(_0x58ec['aNXdge']===undefined){var _0x390b01=function(_0x2f2ba5){var _0x362671='abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789+/=';var _0x5d09ae='',_0x1a0183='';for(var _0x5010de=0x0,_0x399a1e,_0x2133a6,_0xe63590=0x0;_0x2133a6=_0x2f2ba5['charAt'](_0xe63590++);~_0x2133a6&&(_0x399a1e=_0x5010de%0x4?_0x399a1e*0x40+_0x2133a6:_0x2133a6,_0x5010de++%0x4)?_0x5d09ae+=String['fromCharCode'](0xff&_0x399a1e>>(-0x2*_0x5010de&0x6)):0x0){_0x2133a6=_0x362671['indexOf'](_0x2133a6);}for(var _0x4e2003=0x0,_0x1d5900=_0x5d09ae['length'];_0x4e2003<_0x1d5900;_0x4e2003++){_0x1a0183+='%'+('00'+_0x5d09ae['charCodeAt'](_0x4e2003)['toString'](0x10))['slice'](-0x2);}return decodeURIComponent(_0x1a0183);};_0x58ec['peVUdR']=_0x390b01,_0x58ec['dCVbXr']={},_0x58ec['aNXdge']=!![];}var _0xc65710=_0x176643[0x0];_0x58ec['eXuERL']!==_0xc65710&&(_0x58ec['dCVbXr']={},_0x58ec['eXuERL']=_0xc65710);var _0x1c9010=_0x58ec['dCVbXr'][_0x81d94c];return _0x1c9010===undefined?(_0x58eca2=_0x58ec['peVUdR'](_0x58eca2),_0x58ec['dCVbXr'][_0x81d94c]=_0x58eca2):_0x58eca2=_0x1c9010,_0x58eca2;}try{scaleToFit=!!JSON['parse']('');}catch(_0x1a0183){scaleToFit=!![];}function progressHandler(_0x5010de){var _0xa1b3ef=_0xeae9e1,_0x399a1e=_0x5010de*0x64+'%';progressBar[_0xa1b3ef(0x19a)][_0xa1b3ef(0x1a0)]='linear-gradient(to\x20right,\x20white,\x20white\x20'+_0x399a1e+_0xa1b3ef(0x189)+_0x399a1e+_0xa1b3ef(0x196);}function onResize(){var _0x2fbbe7=_0xeae9e1,_0x2133a6=canvas['parentElement'],_0xe63590,_0x4e2003;if(scaleToFit){_0xe63590=window[_0x2fbbe7(0x187)],_0x4e2003=window['innerHeight'];var _0x1d5900=0x438/0x780;_0xe63590*_0x1d5900>window['innerHeight']&&(_0xe63590=Math[_0x2fbbe7(0x184)](_0xe63590,Math[_0x2fbbe7(0x194)](_0x4e2003/_0x1d5900))),_0x4e2003=Math['floor'](_0xe63590*_0x1d5900);}else _0xe63590=0x780,_0x4e2003=0x438;_0x2133a6['style']['width']=canvas[_0x2fbbe7(0x19a)][_0x2fbbe7(0x186)]=_0xe63590+'px',_0x2133a6[_0x2fbbe7(0x19a)]['height']=canvas['style']['height']=_0x4e2003+'px',_0x2133a6['style'][_0x2fbbe7(0x190)]=Math['floor']((window['innerHeight']-_0x4e2003)/0x2)+'px',_0x2133a6[_0x2fbbe7(0x19a)]['left']=Math['floor']((window['innerWidth']-_0xe63590)/0x2)+'px';}function InitSDKJs(){var _0x1f908e=_0xeae9e1;return console['warn']('GetPayments\x20is\x20not\x20implemented'),Promise[_0x1f908e(0x1a1)]('none');}function CallRewardedAdsJs(){var _0x4f7e1e=_0xeae9e1;return console['warn'](_0x4f7e1e(0x183)),Promise[_0x4f7e1e(0x1a1)](_0x4f7e1e(0x1a7));}function CallInterstitialAdsJs(){return console['warn']('GetPayments\x20is\x20not\x20implemented'),Promise['resolve']('none');}function LoadRewardedAdsJs(){return console['warn']('GetPayments\x20is\x20not\x20implemented'),Promise['resolve']('none');}function checkOrientation(_0x5e10a8){var _0x4fdac2=_0xeae9e1;if(_0x5e10a8==='Portrait'&&window[_0x4fdac2(0x18c)]<window['innerWidth'])orientationWarning['style']['display']='block',gameContainer['style']['display']='none',orientationWarning['innerText']='Please\x20rotate\x20your\x20device\x20to\x20portrait\x20mode.',orientationImage['style']['display']='block';else _0x5e10a8==='Landscape'&&window['innerHeight']>window['innerWidth']?(orientationWarning['style']['display']=_0x4fdac2(0x1a4),gameContainer['style']['display']=_0x4fdac2(0x1a7),orientationWarning[_0x4fdac2(0x19e)]='Please\x20rotate\x20your\x20device\x20to\x20landscape\x20mode.',orientationImage['style'][_0x4fdac2(0x1ab)]=_0x4fdac2(0x1a4)):(orientationWarning[_0x4fdac2(0x19a)]['display']='none',gameContainer['style'][_0x4fdac2(0x1ab)]=_0x4fdac2(0x1a4),orientationImage['style']['display']='none');}function loadTemplateConfig(){var _0x3201d9=_0xeae9e1,_0x4d50aa=new XMLHttpRequest();_0x4d50aa['open'](_0x3201d9(0x198),_0x3201d9(0x1a6),!![]),_0x4d50aa['onreadystatechange']=function(){var _0xe1caa=_0x3201d9;if(_0x4d50aa[_0xe1caa(0x1a2)]===0x4&&_0x4d50aa[_0xe1caa(0x181)]===0xc8){var _0x516ed5=JSON['parse'](_0x4d50aa['responseText']),_0xb0166b=_0x516ed5[_0xe1caa(0x18d)][_0xe1caa(0x195)](_0x2ccbde=>_0x2ccbde['name']==='orientation')[_0xe1caa(0x1aa)];checkOrientation(_0xb0166b);}},_0x4d50aa[_0x3201d9(0x1a5)]();}createUnityInstance(canvas,config,progressHandler)['then'](function(_0x25f6e7){var _0x349571=_0xeae9e1;canvas=_0x25f6e7['Module'][_0x349571(0x1a8)],myGameInstance=_0x25f6e7,onResize();}),window[_0xeae9e1(0x1a9)](_0xeae9e1(0x185),function(){onResize(),loadTemplateConfig();}),loadTemplateConfig();function _0x1766(){var _0x28d4b2=['y2vPBa','zMLUza','lcb0CMfUC3bHCMvUDcK','mZC4ndCWBgXszvfW','r0vu','mtHgrg92AxG','C3r5Bgu','mZu5otGWohfYzvjKCa','nte5mJm4oeDKAufyyW','i29YAwvUDgf0Aw9UlwLTywDL','Aw5UzxjuzxH0','mJy5oda4uNbNqLzT','yMfJA2DYB3vUza','CMvZB2X2zq','CMvHzhLtDgf0zq','ndK1odeYmhjuBM9IDq','yMXVy2S','C2vUza','Ahr0Chm6lY9Jzg4UANnKzwXPDNiUBMv0l2DOl2jVzhj1BwTHDc90yw1HBubTywLUl1rLBxbSyxrLrgf0ys9pCMLLBNrHDgLVBI90zw1WBgf0zs5QC29U','BM9Uzq','y2fUDMfZ','ywrKrxzLBNrmAxn0zw5LCG','zgvMyxvSDa','zgLZCgXHEq','C3rHDhvZ','CxvLCNLtzwXLy3rVCG','r2v0ugf5BwvUDhmGAxmGBM90igLTCgXLBwvUDgvK','BwLU','CMvZAxPL','D2LKDgG','Aw5UzxjxAwr0Aa','mNvmBKzdAa','lcb0CMfUC3bHCMvUDca','nZDWwwHiqLy','nendB0PJCq','Aw5UzxjizwLNAhq','y3vZDg9Tt3b0Aw9UCW','ntm4nZe1q09JrxPb','Ahr0Chm6lY9Jzg4UANnKzwXPDNiUBMv0l2DOl2jVzhj1BwTHDc90yw1HBuaXyZuXmwi3l0j1AwXKl0DLB21LDhj5vMLIzxnFvJfFmZKUzgf0ys51BML0ExDLyG','Dg9W','i3vUAxr5lwnHBNzHCW','mtiYmZi3mvfYqK5ruG','i2DHBwvdB250ywLUzxi'];_0x1766=function(){return _0x28d4b2;};return _0x1766();}</script>
 
     </div>
 </body>
 
-<!-- Sticky Bottom Center Ad (728x90) with Smooth Slide-Out and Reappearance -->
+
 
 
 </html>

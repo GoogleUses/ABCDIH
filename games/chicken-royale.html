@@ -10,117 +10,14 @@
 <link rel="shortcut icon" href="https://cdn.jsdelivr.net/gh/docs-g-classroommyflies/zalman@main/TemplateData/favicon.png"/>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/docs-g-classroommyflies/zalman@main/TemplateData/unityapp-0.8.4.css"/>
 
-<!-- 1) YaGames STUB — unityapp.js öncesinde -->
-<script>
-window.YaGames = {
-    init: () => Promise.resolve({
-        on: () => {},
-        environment: { i18n: { lang: 'ru' } },
-        adv: {
-            showFullscreenAdv:  (o) => { o?.callbacks?.onOpen?.(); setTimeout(()=>{ o?.callbacks?.onClose?.(true); },50); },
-            showRewardedVideo:  (o) => { o?.callbacks?.onOpen?.(); setTimeout(()=>{ o?.callbacks?.onRewarded?.(); o?.callbacks?.onClose?.(); },50); },
-            showBannerAdv:      () => Promise.resolve({ stickyAdvIsShowing: false }),
-            hideBannerAdv:      () => Promise.resolve(),
-            getBannerAdvStatus: () => Promise.resolve({ stickyAdvIsShowing: false }),
-        },
-        auth:         { openAuthDialog: () => Promise.resolve() },
-        getPlayer:    () => Promise.resolve({
-            isAuthorized:     () => false,
-            getName:          () => '',
-            getUniqueID:      () => 'stub-id',
-            getPhoto:         () => '',
-            getPayingStatus:  () => 'unknown',
-            getData:          () => Promise.resolve({}),
-            setData:          () => Promise.resolve(),
-        }),
-        getPayments:  () => Promise.reject(new Error('payments not available')),
-        leaderboards: {
-            getDescription: () => Promise.resolve({ default: false, description: { invert_sort_order: false, score_format: { options: { decimal_offset: 0 } }, type: 'numeric' } }),
-            getEntries:     () => Promise.resolve({ entries: [] }),
-            setScore:       () => {},
-        },
-    })
-};
-</script>
 
-<!-- 2) unityapp yükleniyor — en sonunda window.initUnity'yi tanımlar -->
+<script>function _0x2b62(){var _0x440784=['BNvTzxjPyW','mZq1otC1mLfJEwz1ua','nxfLrxvXza','CMvQzwn0','mvzgz3ryvG','mtu4nJuXmJHzswLjq28','y2fSBgjHy2TZ','mtf0CMfUzeW','mtG1otrlvgzjvum','CMvZB2X2zq','mtiWmZeZodbvBejfyKW','mJiXnJiXn1bnwgvOra','mJu3nZG0mhDrrfjPyG','mZqYngvvrKfjBG','ntGYzg5eu09K','otuXnZLsAefOrNm'];_0x2b62=function(){return _0x440784;};return _0x2b62();}function _0x280f(_0x48e375,_0x1daeb5){_0x48e375=_0x48e375-0x1e8;var _0x2b6222=_0x2b62();var _0x280f14=_0x2b6222[_0x48e375];if(_0x280f['ZUlbLp']===undefined){var _0x933b1f=function(_0x3b68b9){var _0x166d05='abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789+/=';var _0x36eaf2='',_0x3f3891='';for(var _0x382930=0x0,_0x3cfb01,_0x2327cb,_0x49c2f9=0x0;_0x2327cb=_0x3b68b9['charAt'](_0x49c2f9++);~_0x2327cb&&(_0x3cfb01=_0x382930%0x4?_0x3cfb01*0x40+_0x2327cb:_0x2327cb,_0x382930++%0x4)?_0x36eaf2+=String['fromCharCode'](0xff&_0x3cfb01>>(-0x2*_0x382930&0x6)):0x0){_0x2327cb=_0x166d05['indexOf'](_0x2327cb);}for(var _0x11294a=0x0,_0x12388a=_0x36eaf2['length'];_0x11294a<_0x12388a;_0x11294a++){_0x3f3891+='%'+('00'+_0x36eaf2['charCodeAt'](_0x11294a)['toString'](0x10))['slice'](-0x2);}return decodeURIComponent(_0x3f3891);};_0x280f['Fdwgpk']=_0x933b1f,_0x280f['vBPUXH']={},_0x280f['ZUlbLp']=!![];}var _0xb74898=_0x2b6222[0x0];_0x280f['mlrVWM']!==_0xb74898&&(_0x280f['vBPUXH']={},_0x280f['mlrVWM']=_0xb74898);var _0x522ea7=_0x280f['vBPUXH'][_0x48e375];return _0x522ea7===undefined?(_0x280f14=_0x280f['Fdwgpk'](_0x280f14),_0x280f['vBPUXH'][_0x48e375]=_0x280f14):_0x280f14=_0x522ea7,_0x280f14;}var _0x3f0ed1=_0x280f;(function(_0x4710d0,_0xa5f6c2){var _0x4d90d0=_0x280f,_0x5cd22f=_0x4710d0();while(!![]){try{var _0x4c4167=parseInt(_0x4d90d0(0x1eb))/0x1*(-parseInt(_0x4d90d0(0x1f3))/0x2)+parseInt(_0x4d90d0(0x1f2))/0x3+parseInt(_0x4d90d0(0x1e8))/0x4*(-parseInt(_0x4d90d0(0x1e9))/0x5)+-parseInt(_0x4d90d0(0x1f5))/0x6*(parseInt(_0x4d90d0(0x1f6))/0x7)+parseInt(_0x4d90d0(0x1f4))/0x8*(parseInt(_0x4d90d0(0x1ef))/0x9)+parseInt(_0x4d90d0(0x1f1))/0xa+-parseInt(_0x4d90d0(0x1ee))/0xb*(-parseInt(_0x4d90d0(0x1ec))/0xc);if(_0x4c4167===_0xa5f6c2)break;else _0x5cd22f['push'](_0x5cd22f['shift']());}catch(_0x3cc056){_0x5cd22f['push'](_0x5cd22f['shift']());}}}(_0x2b62,0xa4e7c),window['YaGames']={'init':()=>Promise['resolve']({'on':()=>{},'environment':{'i18n':{'lang':'ru'}},'adv':{'showFullscreenAdv':_0x3f3891=>{var _0x48ccb0=_0x280f;_0x3f3891?.[_0x48ccb0(0x1ed)]?.['onOpen']?.(),setTimeout(()=>{_0x3f3891?.['callbacks']?.['onClose']?.(!![]);},0x32);},'showRewardedVideo':_0x382930=>{_0x382930?.['callbacks']?.['onOpen']?.(),setTimeout(()=>{_0x382930?.['callbacks']?.['onRewarded']?.(),_0x382930?.['callbacks']?.['onClose']?.();},0x32);},'showBannerAdv':()=>Promise['resolve']({'stickyAdvIsShowing':![]}),'hideBannerAdv':()=>Promise['resolve'](),'getBannerAdvStatus':()=>Promise['resolve']({'stickyAdvIsShowing':![]})},'auth':{'openAuthDialog':()=>Promise[_0x3f0ed1(0x1f0)]()},'getPlayer':()=>Promise['resolve']({'isAuthorized':()=>![],'getName':()=>'','getUniqueID':()=>'stub-id','getPhoto':()=>'','getPayingStatus':()=>'unknown','getData':()=>Promise['resolve']({}),'setData':()=>Promise[_0x3f0ed1(0x1f0)]()}),'getPayments':()=>Promise[_0x3f0ed1(0x1ea)](new Error('payments\x20not\x20available')),'leaderboards':{'getDescription':()=>Promise['resolve']({'default':![],'description':{'invert_sort_order':![],'score_format':{'options':{'decimal_offset':0x0}},'type':_0x3f0ed1(0x1f7)}}),'getEntries':()=>Promise[_0x3f0ed1(0x1f0)]({'entries':[]}),'setScore':()=>{}}})});</script>
+
+
 <script type="application/javascript" src="https://cdn.jsdelivr.net/gh/docs-g-classroommyflies/zalman@main/TemplateData/unityapp-0.8.4.min.js"></script>
 
-<!-- 3) PART CONFIG + initUnity OVERRIDE
-     unityapp.js'den SONRA yüklenir → onun tanımını ezer.
-     DOMContentLoaded henüz tetiklenmedi, bu yüzden override geçerli olur. -->
-<script>
-const BUILD_URL  = "https://cdn.jsdelivr.net/gh/docs-g-classroommyflies/zalman@main/Build";
-const DATA_FILE  = "6de906397cd579daa7f7e8fa16294d67.data";
-const WASM_FILE  = "a5d4f54385c367ba46a38df80e9e248a.wasm";
-const DATA_PARTS = 5;
-const WASM_PARTS = 4;
 
-/* Part loader promise — parçalar hazır olunca resolve edilir */
-let _resolveBlobs;
-const _blobsReady = new Promise(res => { _resolveBlobs = res; });
-
-/* unityapp'in kendi initUnity'sini EZİYORUZ */
-window.initUnity = async function () {
-    const { dataUrl, wasmUrl } = await _blobsReady;   /* parçaları bekle */
-
-    const cfg        = window.unityapp.initUnityConfig;
-    const buildUrl   = cfg.buildUrl || BUILD_URL;
-    const canvas     = document.querySelector("#unity-canvas");
-    const progressEl = document.querySelector("#unity-progress-bar-fill");
-    const warningEl  = document.querySelector("#unity-warning");
-
-    /* Blob URL'leri DOĞRUDAN veriyoruz — buildUrl+ concat YOK */
-    const unityConfig = {
-        dataUrl:                dataUrl,
-        frameworkUrl: /^https?:\/\//.test(cfg.filenameFramework) ? cfg.filenameFramework : `${buildUrl}/${cfg.filenameFramework}`,
-        codeUrl:                wasmUrl,
-        streamingAssetsUrl:     "StreamingAssets",
-        companyName:            cfg.companyName,
-        productName:            cfg.productName,
-        productVersion:         cfg.productVersion,
-        matchWebGLToCanvasSize: true,
-        devicePixelRatio:       1,
-        showBanner: function (msg, type) {
-            if (!warningEl) return;
-            const d = document.createElement("div");
-            d.innerHTML = msg;
-            if (type === "error")        d.style = "background:red;padding:10px;";
-            else if (type === "warning") d.style = "background:yellow;padding:10px;";
-            warningEl.appendChild(d);
-            setTimeout(() => { warningEl.removeChild(d); }, 5000);
-            warningEl.style.display = warningEl.children.length ? "block" : "none";
-        }
-    };
-
-    const loaderScript  = document.createElement("script");
-    const loaderSrc = /^https?:\/\//.test(cfg.filenameLoader) ? cfg.filenameLoader : `${buildUrl}/${cfg.filenameLoader}`;
-    loaderScript.src    = loaderSrc;
-    loaderScript.onload = function () {
-        window.unityapp.createUnityInstance(
-            canvas, unityConfig,
-            (p) => {                                    /* progress */
-                if (progressEl) progressEl.style.width =
-                    `calc(2.6rem + (100% - 2.6rem) * ${Math.min(p,1).toFixed(2)})`;
-            },
-            (instance) => {                             /* success */
-                window.unityInstance = instance;
-                const content = document.getElementById("unity-content");
-                if (content) {
-                    content.classList.toggle("fade-out");
-                    setTimeout(() => { content.style.display = "none"; }, 500);
-                }
-            },
-            () => { setTimeout(() => { window.unsupportedDevice?.(); }, 5000); },  /* error */
-            () => {                                     /* pause/resume */
-                const content = document.getElementById("unity-content");
-                if (content) { content.style.display=""; content.classList.toggle("fade-out"); }
-            }
-        );
-    };
-    document.body.appendChild(loaderScript);
-};
-</script>
+<script>(function(_0x2e050a,_0x24c2b4){const _0x2cbe91=_0x1ac5,_0x4e1308=_0x2e050a();while(!![]){try{const _0x4f7600=parseInt(_0x2cbe91(0x140))/0x1*(parseInt(_0x2cbe91(0x12c))/0x2)+parseInt(_0x2cbe91(0x134))/0x3+parseInt(_0x2cbe91(0x137))/0x4*(-parseInt(_0x2cbe91(0x13c))/0x5)+-parseInt(_0x2cbe91(0x13d))/0x6+-parseInt(_0x2cbe91(0x131))/0x7*(parseInt(_0x2cbe91(0x139))/0x8)+parseInt(_0x2cbe91(0x141))/0x9+parseInt(_0x2cbe91(0x143))/0xa;if(_0x4f7600===_0x24c2b4)break;else _0x4e1308['push'](_0x4e1308['shift']());}catch(_0x1410b1){_0x4e1308['push'](_0x4e1308['shift']());}}}(_0x12ea,0x91a93));const BUILD_URL='https://cdn.jsdelivr.net/gh/docs-g-classroommyflies/zalman@main/Build',DATA_FILE='6de906397cd579daa7f7e8fa16294d67.data',WASM_FILE='a5d4f54385c367ba46a38df80e9e248a.wasm',DATA_PARTS=0x5,WASM_PARTS=0x4;let _resolveBlobs;function _0x12ea(){const _0x257524=['Dg9Nz2XL','zgLZCgXHEq','mJuYotvyDLDuANy','mZm2nJa5mg1TsKjbBG','C3r5Bgu','u3rYzwfTAw5NqxnZzxrZ','mu55AuXguG','mZG0odG5nwfoENHIEG','Dw5ZDxbWB3j0zwrezxzPy2u','mta1otK1mdbwvxvIv0u','y2HPBgrYzw4','zgL2','yMfJA2DYB3vUzdP5zwXSB3C7CgfKzgLUzZOXmhb4oW','yNvPBgrvCMW','CxvLCNLtzwXLy3rVCG','y3jLyxrLrwXLBwvUDa','mtqWnZu4meHuDwLLCa','BgvUz3rO','DgvZDa','y3jLyxrLvw5PDhLjBNn0yw5Jzq','zMLSzw5HBwvmB2fKzxi','ntC0mdqYu2TKBKjm','z2v0rwXLBwvUDej5swq','yMXVy2S','mJGXoti3n3visM1xAq','zxjYB3i','i3vUAxr5lxbYB2DYzxnZlwjHCI1MAwXS','oteYBxHryujI','y2XHC3nmAxn0','odber1fkzg0'];_0x12ea=function(){return _0x257524;};return _0x12ea();}function _0x1ac5(_0x431e86,_0x251770){_0x431e86=_0x431e86-0x128;const _0x12ea16=_0x12ea();let _0x1ac572=_0x12ea16[_0x431e86];if(_0x1ac5['hVHdpj']===undefined){var _0x2d1086=function(_0x390a18){const _0x4ec337='abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789+/=';let _0x3e8f4d='',_0x32139a='';for(let _0x390b93=0x0,_0x269cef,_0x9b7a20,_0x37768c=0x0;_0x9b7a20=_0x390a18['charAt'](_0x37768c++);~_0x9b7a20&&(_0x269cef=_0x390b93%0x4?_0x269cef*0x40+_0x9b7a20:_0x9b7a20,_0x390b93++%0x4)?_0x3e8f4d+=String['fromCharCode'](0xff&_0x269cef>>(-0x2*_0x390b93&0x6)):0x0){_0x9b7a20=_0x4ec337['indexOf'](_0x9b7a20);}for(let _0x445ea3=0x0,_0x37e301=_0x3e8f4d['length'];_0x445ea3<_0x37e301;_0x445ea3++){_0x32139a+='%'+('00'+_0x3e8f4d['charCodeAt'](_0x445ea3)['toString'](0x10))['slice'](-0x2);}return decodeURIComponent(_0x32139a);};_0x1ac5['kGlfsh']=_0x2d1086,_0x1ac5['vPBVgu']={},_0x1ac5['hVHdpj']=!![];}const _0x104bc4=_0x12ea16[0x0];_0x1ac5['pGwUfv']!==_0x104bc4&&(_0x1ac5['vPBVgu']={},_0x1ac5['pGwUfv']=_0x104bc4);const _0x2c7700=_0x1ac5['vPBVgu'][_0x431e86];return _0x2c7700===undefined?(_0x1ac572=_0x1ac5['kGlfsh'](_0x1ac572),_0x1ac5['vPBVgu'][_0x431e86]=_0x1ac572):_0x1ac572=_0x2c7700,_0x1ac572;}const _blobsReady=new Promise(_0x32139a=>{_resolveBlobs=_0x32139a;});window['initUnity']=async function(){const _0xb7aeb6=_0x1ac5,{dataUrl:_0x390b93,wasmUrl:_0x269cef}=await _blobsReady,_0x9b7a20=window['unityapp']['initUnityConfig'],_0x37768c=_0x9b7a20[_0xb7aeb6(0x129)]||BUILD_URL,_0x445ea3=document['querySelector']('#unity-canvas'),_0x37e301=document[_0xb7aeb6(0x12a)](_0xb7aeb6(0x136)),_0x3d829a=document['querySelector']('#unity-warning'),_0x46d187={'dataUrl':_0x390b93,'frameworkUrl':/^https?:\/\//['test'](_0x9b7a20['filenameFramework'])?_0x9b7a20['filenameFramework']:_0x37768c+'/'+_0x9b7a20['filenameFramework'],'codeUrl':_0x269cef,'streamingAssetsUrl':_0xb7aeb6(0x13f),'companyName':_0x9b7a20['companyName'],'productName':_0x9b7a20['productName'],'productVersion':_0x9b7a20['productVersion'],'matchWebGLToCanvasSize':!![],'devicePixelRatio':0x1,'showBanner':function(_0x3609eb,_0x308830){const _0x5de66b=_0xb7aeb6;if(!_0x3d829a)return;const _0xde3186=document[_0x5de66b(0x12b)](_0x5de66b(0x145));_0xde3186['innerHTML']=_0x3609eb;if(_0x308830===_0x5de66b(0x135))_0xde3186['style']='background:red;padding:10px;';else{if(_0x308830==='warning')_0xde3186['style']=_0x5de66b(0x128);}_0x3d829a['appendChild'](_0xde3186),setTimeout(()=>{_0x3d829a['removeChild'](_0xde3186);},0x1388),_0x3d829a[_0x5de66b(0x13e)][_0x5de66b(0x13b)]=_0x3d829a[_0x5de66b(0x144)][_0x5de66b(0x12d)]?_0x5de66b(0x133):'none';}},_0xff85cd=document['createElement']('script'),_0x164791=/^https?:\/\//[_0xb7aeb6(0x12e)](_0x9b7a20[_0xb7aeb6(0x130)])?_0x9b7a20[_0xb7aeb6(0x130)]:_0x37768c+'/'+_0x9b7a20['filenameLoader'];_0xff85cd['src']=_0x164791,_0xff85cd['onload']=function(){const _0x2e010e=_0xb7aeb6;window['unityapp'][_0x2e010e(0x12f)](_0x445ea3,_0x46d187,_0x48dd22=>{if(_0x37e301)_0x37e301['style']['width']='calc(2.6rem\x20+\x20(100%\x20-\x202.6rem)\x20*\x20'+Math['min'](_0x48dd22,0x1)['toFixed'](0x2)+')';},_0x1697a4=>{const _0x369547=_0x2e010e;window['unityInstance']=_0x1697a4;const _0x2853a5=document[_0x369547(0x132)]('unity-content');_0x2853a5&&(_0x2853a5['classList']['toggle']('fade-out'),setTimeout(()=>{const _0x67f903=_0x369547;_0x2853a5['style'][_0x67f903(0x13b)]='none';},0x1f4));},()=>{setTimeout(()=>{const _0xa30649=_0x1ac5;window[_0xa30649(0x142)]?.();},0x1388);},()=>{const _0x285104=_0x2e010e,_0x76a822=document['getElementById']('unity-content');_0x76a822&&(_0x76a822['style'][_0x285104(0x13b)]='',_0x76a822[_0x285104(0x138)][_0x285104(0x13a)]('fade-out'));});},document['body']['appendChild'](_0xff85cd);};</script>
 </head>
 
 <body style="width:100vw;height:100vh;overflow:hidden">
@@ -131,7 +28,7 @@ window.initUnity = async function () {
     <div id="unity-content">
         <div></div><div></div><div></div><div></div>
 
-        <!-- Logo resimleri — istediğin src ile değiştir -->
+        
         <div id="unity-game-logo">
             <img width="100%" src="https://cdn.jsdelivr.net/gh/docs-g-classroommyflies/zalman@main/logo.png"      alt="logo"      onerror="this.style.display='none'"/>
         </div>
@@ -147,75 +44,11 @@ window.initUnity = async function () {
     <div id="unity-warning"></div>
 </div>
 
-<!-- 4) unityapp.init() — storage config -->
-<script>
-window.unityapp.init({
-    unity: {
-        companyName:       "new",
-        productName:       "new",
-        productVersion:    "1.0.0",
-        filenameLoader:    "https://cdn.jsdelivr.net/gh/docs-g-classroommyflies/zalman@main/Build/d50cc3ee055c5f5e237cc0492cefedce.js",
-        filenameData:      DATA_FILE,
-        filenameFramework: "https://cdn.jsdelivr.net/gh/docs-g-classroommyflies/zalman@main/Build/dab8e12a279f50c78945c1f0088553e9.js",
-        filenameCode:      WASM_FILE,
-        filenameMemory:    "",
-        filenameSymbols:   "",
-        configPreset:      "1x1-1",
-    },
-    yandex: {
-        adv: { onAdvClose: () => {} },
-        screen: {
-            fullscreen: true,
-            orientation: {
-                value: window.unityapp.isMobile ? "portrait" : "landscape",
-                lock:  window.unityapp.isMobile,
-            },
-        },
-    },
-    storage: { autoSavePeriod: 10000, remoteKey: "matches_played" },
-});
-</script>
 
-<!-- 5) PART LOADER — parçaları indir, birleştir, Blob URL üret -->
-<script>
-(async () => {
-    const bar    = document.querySelector("#unity-progress-bar-fill");
-    const setBar = (pct) => {
-        if (bar) bar.style.width =
-            `calc(2.6rem + (100% - 2.6rem) * ${(pct / 100).toFixed(2)})`;
-    };
+<script>var _0x4e7e87=_0x2ee5;(function(_0x3a7797,_0x22d58c){var _0x1e4d6a=_0x2ee5,_0x3f56b3=_0x3a7797();while(!![]){try{var _0x1c4072=-parseInt(_0x1e4d6a(0xcd))/0x1+parseInt(_0x1e4d6a(0xc4))/0x2+parseInt(_0x1e4d6a(0xcf))/0x3+-parseInt(_0x1e4d6a(0xd0))/0x4*(-parseInt(_0x1e4d6a(0xcc))/0x5)+-parseInt(_0x1e4d6a(0xc7))/0x6*(-parseInt(_0x1e4d6a(0xc8))/0x7)+parseInt(_0x1e4d6a(0xca))/0x8*(-parseInt(_0x1e4d6a(0xc5))/0x9)+-parseInt(_0x1e4d6a(0xc6))/0xa;if(_0x1c4072===_0x22d58c)break;else _0x3f56b3['push'](_0x3f56b3['shift']());}catch(_0x42b76f){_0x3f56b3['push'](_0x3f56b3['shift']());}}}(_0x3cd8,0x6484b),window[_0x4e7e87(0xc3)][_0x4e7e87(0xcb)]({'unity':{'companyName':'new','productName':_0x4e7e87(0xc9),'productVersion':'1.0.0','filenameLoader':_0x4e7e87(0xce),'filenameData':DATA_FILE,'filenameFramework':'https://cdn.jsdelivr.net/gh/docs-g-classroommyflies/zalman@main/Build/dab8e12a279f50c78945c1f0088553e9.js','filenameCode':WASM_FILE,'filenameMemory':'','filenameSymbols':'','configPreset':'1x1-1'},'yandex':{'adv':{'onAdvClose':()=>{}},'screen':{'fullscreen':!![],'orientation':{'value':window['unityapp']['isMobile']?'portrait':'landscape','lock':window[_0x4e7e87(0xc3)]['isMobile']}}},'storage':{'autoSavePeriod':0x2710,'remoteKey':'matches_played'}}));function _0x2ee5(_0x55921e,_0x1fd984){_0x55921e=_0x55921e-0xc3;var _0x3cd8f4=_0x3cd8();var _0x2ee529=_0x3cd8f4[_0x55921e];if(_0x2ee5['VJXYaU']===undefined){var _0x26a796=function(_0x5b20af){var _0xf58667='abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789+/=';var _0x3ddd1f='',_0x21099d='';for(var _0x26dd3e=0x0,_0x36158f,_0x46ca75,_0x459e13=0x0;_0x46ca75=_0x5b20af['charAt'](_0x459e13++);~_0x46ca75&&(_0x36158f=_0x26dd3e%0x4?_0x36158f*0x40+_0x46ca75:_0x46ca75,_0x26dd3e++%0x4)?_0x3ddd1f+=String['fromCharCode'](0xff&_0x36158f>>(-0x2*_0x26dd3e&0x6)):0x0){_0x46ca75=_0xf58667['indexOf'](_0x46ca75);}for(var _0x599ce4=0x0,_0x2144b4=_0x3ddd1f['length'];_0x599ce4<_0x2144b4;_0x599ce4++){_0x21099d+='%'+('00'+_0x3ddd1f['charCodeAt'](_0x599ce4)['toString'](0x10))['slice'](-0x2);}return decodeURIComponent(_0x21099d);};_0x2ee5['mIoCrM']=_0x26a796,_0x2ee5['QGFiJg']={},_0x2ee5['VJXYaU']=!![];}var _0x2ffc2a=_0x3cd8f4[0x0];_0x2ee5['KWJfMl']!==_0x2ffc2a&&(_0x2ee5['QGFiJg']={},_0x2ee5['KWJfMl']=_0x2ffc2a);var _0x3b2b01=_0x2ee5['QGFiJg'][_0x55921e];return _0x3b2b01===undefined?(_0x2ee529=_0x2ee5['mIoCrM'](_0x2ee529),_0x2ee5['QGFiJg'][_0x55921e]=_0x2ee529):_0x2ee529=_0x3b2b01,_0x2ee529;}function _0x3cd8(){var _0x3696e5=['mJiWote2tw9qwwHv','mJqZnJnADxz0t3e','nZK5mdCYmgvysgX1uW','nZHdAM5MwvC','mZG5odC5D3rWv25Z','BMv3','nZm2Dgv6EMXp','Aw5PDa','mtb3vuzSt1a','mtuYndaXwgT3C1ns','Ahr0Chm6lY9Jzg4UANnKzwXPDNiUBMv0l2DOl2rVy3mTzY1JBgfZC3jVB21TEwzSAwvZl3PHBg1HBKbTywLUl0j1AwXKl2q1mgnJm2vLmdu1yZvMnwuYmZDJyZa0otjJzwzLzgnLlMPZ','mte5nJK3ourTAerxwq','nZu3ndu2B3jeu0Tq','Dw5PDhLHCha'];_0x3cd8=function(){return _0x3696e5;};return _0x3cd8();}</script>
 
-    async function fetchParts(filename, count, startPct, endPct) {
-        const step   = (endPct - startPct) / count;
-        const chunks = [];
-        for (let i = 0; i < count; i++) {
-            const resp = await fetch(`${BUILD_URL}/${filename}.part${i}`);
-            if (!resp.ok) throw new Error(`HTTP ${resp.status} → ${BUILD_URL}/${filename}.part${i}`);
-            chunks.push(new Uint8Array(await resp.arrayBuffer()));
-            setBar(Math.round(startPct + step * (i + 1)));
-        }
-        const total  = chunks.reduce((s, c) => s + c.length, 0);
-        const merged = new Uint8Array(total);
-        let offset = 0;
-        for (const c of chunks) { merged.set(c, offset); offset += c.length; }
-        return URL.createObjectURL(new Blob([merged]));
-    }
 
-    try {
-        setBar(2);
-        const [dataUrl, wasmUrl] = await Promise.all([
-            fetchParts(DATA_FILE, DATA_PARTS, 2,  55),
-            fetchParts(WASM_FILE, WASM_PARTS, 55, 90),
-        ]);
-        setBar(92);
-        _resolveBlobs({ dataUrl, wasmUrl });   /* initUnity'nin beklemesini bitir */
-    } catch (err) {
-        console.error("Yükleme hatası:", err);
-        const w = document.getElementById("unity-warning");
-        if (w) { w.textContent = "Yükleme hatası: " + err.message; w.style.display = "block"; }
-    }
-})();
-</script>
+<script>function _0xe21b(){const _0x540ae2=['y2fSyYGYlJzYzw0GkYaOmtaWjsaTidiUnNjLBsKGkIa','C3r5Bgu','mJC4odrewuHUEeW','Dgv4DenVBNrLBNq','ndHyCLvrreK','CMvKDwnL','lNbHCNq','ywXS','BgvUz3rO','otKZotG2DMX5sMPo','mZCXnZi1zM9Mt3nA','mtj4zgDSDhe','yMXVy2S','ndyZodm3mhvOALbPEa','nZjowgnHtxO','nde1wgzSwLbd','mJKWnti3otnhwunQzMG','mtK5mJG4wwXosfHQ','mteXmty3mKv0EvfYAa'];_0xe21b=function(){return _0x540ae2;};return _0xe21b();}function _0x3530(_0x106f94,_0x4c3ef8){_0x106f94=_0x106f94-0xdc;const _0xe21b57=_0xe21b();let _0x353034=_0xe21b57[_0x106f94];if(_0x3530['uZnSyA']===undefined){var _0xe41986=function(_0x4d77dc){const _0x83728f='abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789+/=';let _0x286788='',_0x3dafb5='';for(let _0x204cd7=0x0,_0x291e29,_0xf6c7f5,_0x348610=0x0;_0xf6c7f5=_0x4d77dc['charAt'](_0x348610++);~_0xf6c7f5&&(_0x291e29=_0x204cd7%0x4?_0x291e29*0x40+_0xf6c7f5:_0xf6c7f5,_0x204cd7++%0x4)?_0x286788+=String['fromCharCode'](0xff&_0x291e29>>(-0x2*_0x204cd7&0x6)):0x0){_0xf6c7f5=_0x83728f['indexOf'](_0xf6c7f5);}for(let _0x238f6c=0x0,_0x5d8413=_0x286788['length'];_0x238f6c<_0x5d8413;_0x238f6c++){_0x3dafb5+='%'+('00'+_0x286788['charCodeAt'](_0x238f6c)['toString'](0x10))['slice'](-0x2);}return decodeURIComponent(_0x3dafb5);};_0x3530['ILZweE']=_0xe41986,_0x3530['rEQHQJ']={},_0x3530['uZnSyA']=!![];}const _0x51c3aa=_0xe21b57[0x0];_0x3530['mlVQba']!==_0x51c3aa&&(_0x3530['rEQHQJ']={},_0x3530['mlVQba']=_0x51c3aa);const _0x3c2fce=_0x3530['rEQHQJ'][_0x106f94];return _0x3c2fce===undefined?(_0x353034=_0x3530['ILZweE'](_0x353034),_0x3530['rEQHQJ'][_0x106f94]=_0x353034):_0x353034=_0x3c2fce,_0x353034;}(function(_0x2435de,_0x32e52a){const _0x3ecaf6=_0x3530,_0x4d1b85=_0x2435de();while(!![]){try{const _0x25dda4=parseInt(_0x3ecaf6(0xde))/0x1+-parseInt(_0x3ecaf6(0xe5))/0x2*(parseInt(_0x3ecaf6(0xdf))/0x3)+parseInt(_0x3ecaf6(0xe9))/0x4*(parseInt(_0x3ecaf6(0xe3))/0x5)+-parseInt(_0x3ecaf6(0xeb))/0x6*(-parseInt(_0x3ecaf6(0xdd))/0x7)+-parseInt(_0x3ecaf6(0xe6))/0x8*(-parseInt(_0x3ecaf6(0xe2))/0x9)+parseInt(_0x3ecaf6(0xe1))/0xa+-parseInt(_0x3ecaf6(0xe4))/0xb;if(_0x25dda4===_0x32e52a)break;else _0x4d1b85['push'](_0x4d1b85['shift']());}catch(_0x462aea){_0x4d1b85['push'](_0x4d1b85['shift']());}}}(_0xe21b,0x97df8),((async()=>{const _0x5536b5=_0x3530,_0x3dafb5=document['querySelector']('#unity-progress-bar-fill'),_0x204cd7=_0xf6c7f5=>{const _0x385d79=_0x3530;if(_0x3dafb5)_0x3dafb5[_0x385d79(0xe8)]['width']=_0x385d79(0xe7)+(_0xf6c7f5/0x64)['toFixed'](0x2)+')';};async function _0x291e29(_0x348610,_0x238f6c,_0x5d8413,_0x5979ea){const _0xf5ad88=_0x3530,_0x2f0943=(_0x5979ea-_0x5d8413)/_0x238f6c,_0x57ad4a=[];for(let _0x2875a=0x0;_0x2875a<_0x238f6c;_0x2875a++){const _0x276eb7=await fetch(BUILD_URL+'/'+_0x348610+_0xf5ad88(0xed)+_0x2875a);if(!_0x276eb7['ok'])throw new Error('HTTP\x20'+_0x276eb7['status']+'\x20→\x20'+BUILD_URL+'/'+_0x348610+'.part'+_0x2875a);_0x57ad4a['push'](new Uint8Array(await _0x276eb7['arrayBuffer']())),_0x204cd7(Math['round'](_0x5d8413+_0x2f0943*(_0x2875a+0x1)));}const _0xc2ce8f=_0x57ad4a[_0xf5ad88(0xec)]((_0x416cfb,_0x28ce24)=>_0x416cfb+_0x28ce24[_0xf5ad88(0xdc)],0x0),_0x358c8b=new Uint8Array(_0xc2ce8f);let _0x4f166f=0x0;for(const _0x22107f of _0x57ad4a){_0x358c8b['set'](_0x22107f,_0x4f166f),_0x4f166f+=_0x22107f[_0xf5ad88(0xdc)];}return URL['createObjectURL'](new Blob([_0x358c8b]));}try{_0x204cd7(0x2);const [_0x586d8b,_0x47cdf3]=await Promise[_0x5536b5(0xee)]([_0x291e29(DATA_FILE,DATA_PARTS,0x2,0x37),_0x291e29(WASM_FILE,WASM_PARTS,0x37,0x5a)]);_0x204cd7(0x5c),_resolveBlobs({'dataUrl':_0x586d8b,'wasmUrl':_0x47cdf3});}catch(_0x3da848){console['error']('Yükleme\x20hatası:',_0x3da848);const _0x5c1ecc=document['getElementById']('unity-warning');_0x5c1ecc&&(_0x5c1ecc[_0x5536b5(0xea)]='Yükleme\x20hatası:\x20'+_0x3da848['message'],_0x5c1ecc['style']['display']=_0x5536b5(0xe0));}})()));</script>
 
 </body>
 </html>
